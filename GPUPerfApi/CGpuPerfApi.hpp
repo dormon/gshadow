@@ -1,8 +1,8 @@
 #ifndef _CGPUPERFAPI_HPP_
 #define _CGPUPERFAPI_HPP_
 
-#include<GPUPerfAPI/GPUPerfAPITypes.h>
-#include<GPUPerfAPI/GPUPerfAPI.h>
+#include<GPUPerfAPITypes.h>
+#include<GPUPerfAPI.h>
 
 #include<iostream>
 

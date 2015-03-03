@@ -6,8 +6,8 @@
 
 #include<stdlib.h>
 
-#include<GPUPerfAPI/GPUPerfAPITypes.h>
-#include<GPUPerfAPI/GPUPerfAPI.h>
+#include<GPUPerfAPITypes.h>
+#include<GPUPerfAPI.h>
 
 namespace NDormon{
   std::string GPUPerfApiTranslateUsage(GPA_Usage_Type Type){

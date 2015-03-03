@@ -194,6 +194,7 @@ glm::mat4 mvp;
 ge::util::WindowObject*Window;
 
 NDormon::CGpuPerfApi*GPA;
+bool GPAavalable=true;
 
 unsigned framecount=0;
 
@@ -295,19 +296,19 @@ int main(int Argc,char*Argv[]){
   }
 
   /*
-  std::cerr<<simData->toStr()<<std::endl;
-  std::cerr<<simData->define("");
-  delete argLoader;
-  delete simData;
-  exit(0);
-  */
+     std::cerr<<simData->toStr()<<std::endl;
+     std::cerr<<simData->define("");
+     delete argLoader;
+     delete simData;
+     exit(0);
+     */
 
   // */
   //return 0;
 
   Args=new ge::util::ArgumentObject(Argc,Argv);
 
-  ModelFile          = Args->getArg("-m","/home/dormon/Plocha/o/o.3ds");
+  ModelFile          = Args->getArg("-m","models/2quads.obj");
   ShaderDir          = Args->getArg("--shader-directory","shaders/");
   DisableAnttweakbar = Args->isPresent("--disable-anttweakbar");
 
@@ -458,10 +459,18 @@ int main(int Argc,char*Argv[]){
   }catch(std::string&e){
     std::cerr<<e<<std::endl;
   }
-  GPA=new NDormon::CGpuPerfApi(Window->getContext());
-  GPA->EnableComputeShader();
-  //GPA->EnableTiming();
-  //GPA->EnableLocalMemory();
+
+
+  try{
+    GPA=new NDormon::CGpuPerfApi(Window->getContext());
+    GPA->EnableComputeShader();
+    //GPA->EnableTiming();
+    //GPA->EnableLocalMemory();
+  }catch(std::string&e){
+    std::cerr<<e<<std::endl;
+    GPAavalable=false;
+  }
+
 
   ge::gl::setDefaultDebugMessage();
 
@@ -487,7 +496,7 @@ int main(int Argc,char*Argv[]){
   destroy();
 
   delete EmptyVAO;
-  delete GPA;
+  if(GPAavalable)delete GPA;
   delete Window;
   return 0;
 }
@@ -1035,8 +1044,8 @@ void Idle(){
         case SS_SHADOWMAP:
           if(Shadowmapping==NULL)
             Shadowmapping = new CShadowMapping(simData);
-            /*Shadowmapping=new CShadowMapping(ShadowmapParam.Resolution,windowParam.size,
-                sceneVAO,&ModelAdjacency);*/
+          /*Shadowmapping=new CShadowMapping(ShadowmapParam.Resolution,windowParam.size,
+            sceneVAO,&ModelAdjacency);*/
           break;
         case SS_NAVYMAPPING:
           if(navyMapping==NULL)
@@ -1198,19 +1207,19 @@ void Idle(){
 
   if(navyMapping){
     /*
-    geometry::ConvexHullPlanes lightFrustumPlanesHull(navyMapping->LightProjection,navyMapping->LightView);
-    geometry::ConvexHullPlanes cameraFrustumPlanesHull(Projection,View);
+       geometry::ConvexHullPlanes lightFrustumPlanesHull(navyMapping->LightProjection,navyMapping->LightView);
+       geometry::ConvexHullPlanes cameraFrustumPlanesHull(Projection,View);
 
-    geometry::ConvexHullPlanes scenePlanesHull(sceneAABB->minPoint,sceneAABB->maxPoint);
+       geometry::ConvexHullPlanes scenePlanesHull(sceneAABB->minPoint,sceneAABB->maxPoint);
 
-    geometry::ConvexHullPoints     scenePointsHull    (scenePlanesHull    );
-    geometry::ConvexHullPointPlane scenePointPlaneHull(scenePointsHull    );
-    geometry::ConvexHullFaces      sceneFaces         (scenePointPlaneHull);
-    geometry::ConvexHullTriangles  sceneTriangles     (sceneFaces         );
+       geometry::ConvexHullPoints     scenePointsHull    (scenePlanesHull    );
+       geometry::ConvexHullPointPlane scenePointPlaneHull(scenePointsHull    );
+       geometry::ConvexHullFaces      sceneFaces         (scenePointPlaneHull);
+       geometry::ConvexHullTriangles  sceneTriangles     (sceneFaces         );
 
 
-    geometry::ConvexHullPoints     lightScenePointsHull=geometry::intersect(scenePlanesHull,lightFrustumPlanesHull);
-    geometry::ConvexHullPointPlane lightScenePointPlaneHull(lightScenePointsHull);
+       geometry::ConvexHullPoints     lightScenePointsHull=geometry::intersect(scenePlanesHull,lightFrustumPlanesHull);
+       geometry::ConvexHullPointPlane lightScenePointPlaneHull(lightScenePointsHull);
     //std::cerr<<lightScenePointPlaneHull.toStr();
     geometry::ConvexHullFaces      lightSceneFaces(lightScenePointPlaneHull);
     //std::cerr<<lightSceneFaces.toStr();
@@ -1268,12 +1277,12 @@ void Idle(){
 
 
     /*
-    geometry::ConvexHullPoints extendedHullPoints=geometry::getExtendedHull(camProj,camView,sceneAABB->minPoint,sceneAABB->maxPoint,glm::vec3(light.position));
-    std::cerr<<"Abod"<<std::endl;
-    geometry::ConvexHullPoints sceneCameraHullPoints = geometry::intersect(geometry::ConvexHullPlanes(camProj,camView),scenePlanesHull);
-    std::cerr<<"Bbod"<<std::endl;
-    sceneCameraHullPoints.points.push_back(glm::vec3(light.position));
-    geometry::ConvexHullPlanes sceneCameraExtendedHullPlane(sceneCameraHullPoints);
+       geometry::ConvexHullPoints extendedHullPoints=geometry::getExtendedHull(camProj,camView,sceneAABB->minPoint,sceneAABB->maxPoint,glm::vec3(light.position));
+       std::cerr<<"Abod"<<std::endl;
+       geometry::ConvexHullPoints sceneCameraHullPoints = geometry::intersect(geometry::ConvexHullPlanes(camProj,camView),scenePlanesHull);
+       std::cerr<<"Bbod"<<std::endl;
+       sceneCameraHullPoints.points.push_back(glm::vec3(light.position));
+       geometry::ConvexHullPlanes sceneCameraExtendedHullPlane(sceneCameraHullPoints);
     //glm::mat4 minView,minProj;
     //geometry::getMinimalVP(&minProj,&minView,camProj,camView,sceneAABB->minPoint,sceneAABB->maxPoint,glm::vec3(light.position));
 
@@ -1297,7 +1306,7 @@ void Idle(){
 
     geometry::ConvexHull*sceneHull=new geometry::ConvexHull(sceneAABB->minPoint,sceneAABB->maxPoint);
     geometry::ConvexTriangles*sceneHullTriangles=new geometry::ConvexTriangles(sceneHull);
-    
+
     geometry::ConvexHull*cameraHull=new geometry::ConvexHull(camProj,camView);
     geometry::ConvexTriangles*cameraHullTriangles=new geometry::ConvexTriangles(cameraHull);
 
@@ -1308,7 +1317,7 @@ void Idle(){
     //geometry::ConvexTriangles*sceneCameraExtendedHullTriangles=new geometry::ConvexTriangles(sceneCameraHull);
 
     //geometry::ConvexHull*sceneCameraExtendedLimitedHull=sceneCameraHull->intersect(sceneHull);
-    
+
     //std::cerr<<sceneCameraExtendedLimitedHull->allToStr();
     //geometry::ConvexTriangles*sceneCameraExtendedLimitedHullTriangles=new geometry::ConvexTriangles(sceneCameraExtendedLimitedHull);
 
@@ -1322,13 +1331,13 @@ void Idle(){
 
 
     /*
-    if(drawCameraHull)cameraHull.draw(simpleDraw);
-    if(drawExtendedHull)extendedHull.draw(simpleDraw);
-    if(drawSceneCameraHull)sceneCameraHull.draw(simpleDraw);
-    if(drawSceneCameraExtendedHull)sceneCameraExtendedHull.draw(simpleDraw);
-    if(drawMinShadowHull){}
-    */
-  
+       if(drawCameraHull)cameraHull.draw(simpleDraw);
+       if(drawExtendedHull)extendedHull.draw(simpleDraw);
+       if(drawSceneCameraHull)sceneCameraHull.draw(simpleDraw);
+       if(drawSceneCameraExtendedHull)sceneCameraExtendedHull.draw(simpleDraw);
+       if(drawMinShadowHull){}
+       */
+
 
     //*
     simpleDraw->beginPlanes();
@@ -1400,9 +1409,9 @@ void Idle(){
     simpleDraw->beginPoint();
     simpleDraw->setColor(1,1,1,1);
     /*
-    for(unsigned p=0;p<lightScenePointsHull.points.size();++p){
-      simpleDraw->point(lightScenePointsHull.points[p],.03);
-    }*/
+       for(unsigned p=0;p<lightScenePointsHull.points.size();++p){
+       simpleDraw->point(lightScenePointsHull.points[p],.03);
+       }*/
     simpleDraw->end();
 
     // */
@@ -1633,19 +1642,21 @@ void DrawSintorn(simulation::Light*L){
   //*
 
   if(Window->isKeyOn('b')){
-    GPA->BeginSession();
-    for(unsigned p=0;p<GPA->GetNumPasses();++p){
-      GPA->BeginPass();
+    if(GPAavalable){
+      GPA->BeginSession();
+      for(unsigned p=0;p<GPA->GetNumPasses();++p){
+        GPA->BeginPass();
 
-      GPA->BeginSample(0);
-      Sintorn->GenerateHierarchyTexture(Deferred.depth->getId(),Deferred.normal->getId(),glm::value_ptr(L->position));
-      //Sintorn->GenerateHierarchy(Deferred.depth->getId(),Deferred.normal->getId(),L->Position);
-      GPA->EndSample();
+        GPA->BeginSample(0);
+        Sintorn->GenerateHierarchyTexture(Deferred.depth->getId(),Deferred.normal->getId(),glm::value_ptr(L->position));
+        //Sintorn->GenerateHierarchy(Deferred.depth->getId(),Deferred.normal->getId(),L->Position);
+        GPA->EndSample();
 
-      GPA->EndPass();
+        GPA->EndPass();
+      }
+      GPA->EndSession();
+      std::cerr<<GPA->GetResults()<<std::endl;
     }
-    GPA->EndSession();
-    std::cerr<<GPA->GetResults()<<std::endl;
   }else{
 
     HierarchyTextureQuery->begin();
@@ -1669,21 +1680,23 @@ void DrawSintorn(simulation::Light*L){
   //std::cerr<<"ANO ANO TADY JE DORMON 1\n";
   //
   if(Window->isKeyOn('n')){
-    GPA->BeginSession();
-    for(unsigned p=0;p<GPA->GetNumPasses();++p){
-      GPA->BeginPass();
+    if(GPAavalable){
+      GPA->BeginSession();
+      for(unsigned p=0;p<GPA->GetNumPasses();++p){
+        GPA->BeginPass();
 
-      GPA->BeginSample(0);
+        GPA->BeginSample(0);
 
-      Sintorn->RasterizeTexture();
-      //Sintorn->Rasterize();
+        Sintorn->RasterizeTexture();
+        //Sintorn->Rasterize();
 
-      GPA->EndSample();
+        GPA->EndSample();
 
-      GPA->EndPass();
+        GPA->EndPass();
+      }
+      GPA->EndSession();
+      std::cerr<<GPA->GetResults()<<std::endl;
     }
-    GPA->EndSession();
-    std::cerr<<GPA->GetResults()<<std::endl;
   }else{
     //*
     RasterizeTextureQuery->begin();
@@ -1814,19 +1827,21 @@ void DrawComputeSOE(simulation::Light*Light){
     glBeginQuery(GL_TIME_ELAPSED,QueryTime);*/
 
   if(Window->isKeyOn('n')){
-    GPA->BeginSession();
-    for(unsigned p=0;p<GPA->GetNumPasses();++p){
-      GPA->BeginPass();
+    if(GPAavalable){
+      GPA->BeginSession();
+      for(unsigned p=0;p<GPA->GetNumPasses();++p){
+        GPA->BeginPass();
 
-      GPA->BeginSample(0);
-      ComputeSidesSOE->ComputeSides(glm::value_ptr(mvp),Light);
+        GPA->BeginSample(0);
+        ComputeSidesSOE->ComputeSides(glm::value_ptr(mvp),Light);
 
-      GPA->EndSample();
+        GPA->EndSample();
 
-      GPA->EndPass();
+        GPA->EndPass();
+      }
+      GPA->EndSession();
+      std::cerr<<GPA->GetResults()<<std::endl;
     }
-    GPA->EndSession();
-    std::cerr<<GPA->GetResults()<<std::endl;
   }else
     ComputeSidesSOE->ComputeSides(glm::value_ptr(mvp),Light);
 
@@ -2091,6 +2106,7 @@ void TestInit(){
 }
 
 void Init(){
+  std::cerr<<"Init()"<<std::endl;
 
   /*
      simulation::SimulationData *sData=new simulation::SimulationData();
@@ -2181,21 +2197,29 @@ void Init(){
 
   InitModel(ModelFile.c_str());
 
+  std::cerr<<"asasas"<<std::endl;
   drawAABBProgram = new ge::gl::ProgramObject(
       ShaderDir+"app/drawaabb.vp",
       ShaderDir+"app/drawaabb.gp",
       ShaderDir+"app/drawaabb.fp");
+  std::cerr<<"asasas2"<<std::endl;
+
   drawOBBProgram = new ge::gl::ProgramObject(
       ShaderDir+"app/drawaabb.vp",
       ShaderDir+"app/drawobb.gp",
       ShaderDir+"app/drawaabb.fp");
+  std::cerr<<"asasas3"<<std::endl;
+
   drawTriangleProgram = new ge::gl::ProgramObject(
       ShaderDir+"app/drawTriangle.vp",
       ShaderDir+"app/drawTriangle.gp",
       ShaderDir+"app/drawTriangle.fp");
+  std::cerr<<"asasas4"<<std::endl;
+
 
   simpleDraw = new DrawPrimitive(ShaderDir+"app/");
 
+  std::cerr<<"asasas5"<<std::endl;
 
 
   //*

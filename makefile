@@ -20,7 +20,7 @@ INCLUDEDIRS=${foreach var,${SRCDIR},-I ${var}}
 
 
 BIN=svetlo
-LIBS      = -lGLU -lSDL2 -lGLEW -lassimp -lAntTweakBar -lgeGL -lgeUtil -lGPUPerfAPIGL -lglbinding -lAntTweakBar -lIL -lILU -lILUT -g # -lcv -lhighgui
+LIBS      = -lGLU -lSDL2 -lGLEW -lassimp -lAntTweakBar -lgeGL -lgeUtil -lGPUPerfAPIGL -lAntTweakBar -lIL -lILU -lILUT -lGL -g
 CFLAGS    = -std=c++1y -Wall ${INCLUDEDIRS}
 CPP       = g++-4.9
 #CPP       = wing++
