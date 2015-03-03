@@ -1,0 +1,97 @@
+#version 430 core
+
+#ifndef GRID_SIZE_X
+#define GRID_SIZE_X 4
+#endif//GRID_SIZE_X
+
+#ifndef GRID_SIZE_Y
+#define GRID_SIZE_Y 4
+#endif//GRID_SIZE_Y
+
+#ifndef BINDING_GRIDX
+#define BINDING_GRIDX 0
+#endif//BINDING_GRIDX
+
+#ifndef BINDING_GRIDY
+#define BINDING_GRIDY 1
+#endif//BINDING_GRIDY
+
+#ifndef SHADOWMAP_SIZE 
+#define SHADOWMAP_SIZE 1024
+#endif//SHADOWMAP_SIZE
+
+layout(r32f,binding=BINDING_GRIDX)uniform image2D gridX;
+layout(r32f,binding=BINDING_GRIDY)uniform image2D gridY;
+
+
+layout(location=0)in vec3 Pos;
+
+uniform mat4 m,v,p;
+
+out float z;
+
+vec2 unwarpx(in vec2 coord){
+  vec2 result;
+  result.y=coord.y;
+  float gridPosition[GRID_SIZE_X+1];
+  for(uint i=0;i<=GRID_SIZE_X;++i)
+    gridPosition[i]=imageLoad(gridX,ivec2((result.y*.5+.5)*(SHADOWMAP_SIZE-1),i)).r;
+  if(coord.x<gridPosition[0          ])coord.x=gridPosition[0          ];
+  if(coord.x>gridPosition[GRID_SIZE_X])coord.x=gridPosition[GRID_SIZE_X];
+  uint gridId=0;
+  for(;gridId<GRID_SIZE_X;++gridId){
+    if(coord.x>=gridPosition[gridId])break;
+  }
+  float a=gridPosition[gridId+0];
+  float b=gridPosition[gridId+1];
+  float ta=float(gridId+0)/GRID_SIZE_X*2.-1;
+  float tb=float(gridId+1)/GRID_SIZE_X*2.-1;
+  float t=(coord.x-a)/(b-a);
+
+  if(b-a<=0){
+    if(coord.x< 0)return vec2(-1,coord.y);
+    if(coord.x>=0)return vec2(+1,coord.y);
+  }
+
+  result.x=ta+(tb-ta)*t;
+  return result;
+}
+
+vec2 unwarpy(in vec2 coord){
+  vec2 result;
+  result.x=coord.x;
+  float gridPosition[GRID_SIZE_Y+1];
+  for(uint i=0;i<=GRID_SIZE_Y;++i)
+    gridPosition[i]=imageLoad(gridY,ivec2((result.x*.5+.5)*(SHADOWMAP_SIZE-1),i)).r;
+  if(coord.y<gridPosition[0          ])coord.y=gridPosition[0          ];
+  if(coord.y>gridPosition[GRID_SIZE_Y])coord.y=gridPosition[GRID_SIZE_Y];
+  uint gridId=0;
+  for(;gridId<GRID_SIZE_Y;++gridId){
+    if(coord.y>=gridPosition[gridId])break;
+  }
+  float a=gridPosition[gridId+0];
+  float b=gridPosition[gridId+1];
+  float ta=float(gridId+0)/GRID_SIZE_Y;
+  float tb=float(gridId+1)/GRID_SIZE_Y;
+  float t=(coord.y-a)/(b-a);
+
+  if(b-a<=0){
+    if(coord.y< 0)return vec2(coord.x,-1);
+    if(coord.y>=0)return vec2(coord.x,+1);
+  }
+
+  result.y=ta+(tb-ta)*t;
+  return result;
+}
+
+void main(){
+  vec4 view=v*m*vec4(Pos,1);
+	z=view.z;
+  vec4 clip=p*view;
+  if(z>0||any(lessThanEqual(clip.xyz,-clip.www))||any(greaterThanEqual(clip.xyz,clip.www))){
+    gl_Position=clip;
+  }else{
+    gl_Position=vec4(/*unwarpy*/(unwarpx(clip.xy/clip.w))*clip.w,clip.zw);
+  }
+//  gl_Position=clip;
+}

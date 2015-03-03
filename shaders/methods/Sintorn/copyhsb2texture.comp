@@ -1,0 +1,16 @@
+#version 440 core
+
+layout(local_size_x=WORKGROUP_SIZE)in;
+
+layout(binding=0,std430)buffer HSB{uvec2 HSBBuffer[];};
+layout(rg32ui,binding=0)writeonly uniform uimage2D HSBImage;
+
+uniform uint HSBSize=0;
+
+void main(){
+  if(gl_GlobalInvocationID.x>=HSBSize)return;
+  imageStore(
+    HSBImage,
+    ivec2(gl_GlobalInvocationID.x%TESTSIZE,gl_GlobalInvocationID.x/TESTSIZE),
+    uvec4(HSBBuffer[gl_GlobalInvocationID.x],0,0));
+}

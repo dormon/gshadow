@@ -1,0 +1,12 @@
+#version 330
+
+layout(location=0)in vec4 Pos;
+//projekce svetla je spocitana frustum cullingem TODO
+uniform vec3 LightPosition;
+uniform mat4 m,v;
+
+out vec3 vLPos;
+void main(){
+	gl_Position=Pos;
+	vLPos=(v*(m*vec4(LightPosition,1))).xyz;
+}

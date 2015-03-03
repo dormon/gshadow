@@ -1,0 +1,12 @@
+#version 430 core
+
+layout(location=0)in vec3 Pos;
+
+uniform mat4 v,p;
+
+out float z;
+
+void main(){
+	z=(v*vec4(Pos,1)).z;
+	gl_Position=p*v*(vec4(Pos,1));
+}

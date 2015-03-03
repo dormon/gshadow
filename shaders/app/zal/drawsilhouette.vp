@@ -1,0 +1,54 @@
+#version 430
+
+layout(location=0)in vec4 Position0;
+layout(location=1)in vec4 Position1;
+layout(location=2)in vec4 Position2;
+layout(location=3)in vec4 Position3;
+layout(location=4)in vec4 Position4;
+layout(location=5)in vec4 Position5;
+layout(location=6)in vec4 Position6;
+layout(location=7)in vec4 Position7;
+layout(location=8)in vec4 Position8;
+layout(location=9)in vec4 Position9;
+layout(location=10)in vec4 Position10;
+layout(location=11)in vec4 Position11;
+layout(location=12)in vec4 Position12;
+layout(location=13)in vec4 Position13;
+layout(location=14)in vec4 Position14;
+layout(location=15)in vec4 Position15;
+
+out vec4 vPosition0;
+out vec4 vPosition1;
+out vec4 vPosition2;
+out vec4 vPosition3;
+out vec4 vPosition4;
+out vec4 vPosition5;
+out vec4 vPosition6;
+out vec4 vPosition7;
+out vec4 vPosition8;
+out vec4 vPosition9;
+out vec4 vPosition10;
+out vec4 vPosition11;
+out vec4 vPosition12;
+out vec4 vPosition13;
+out vec4 vPosition14;
+
+void main(){
+	gl_Position=Position0;
+	vPosition0=Position1;
+	vPosition1=Position2;
+	vPosition2=Position3;
+	vPosition3=Position4;
+	vPosition4=Position5;
+	vPosition5=Position6;
+	vPosition6=Position7;
+	vPosition7=Position8;
+	vPosition8=Position9;
+	vPosition9=Position10;
+	vPosition10=Position11;
+	vPosition11=Position12;
+	vPosition12=Position13;
+	vPosition13=Position14;
+	vPosition14=Position15;
+}
+

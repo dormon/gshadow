@@ -1,0 +1,56 @@
+#version 440 core
+
+#ifndef BINDING_GRID
+#define BINDING_GRID 0
+#endif//BINDING_GRID
+
+#ifndef BINDING_SMOOTH
+#define BINDING_SMOOTH 1
+#endif//BINDING_SMOOTH
+
+#ifndef SHADOWMAP_SIZE
+#define SHADOWMAP_SIZE 1024
+#endif//SHADOWMAP_SIZE
+
+#ifndef WORKGROUP_SIZE_X
+#define WORKGROUP_SIZE_X 64
+#endif//WORKGROUP_SIZE_X
+
+#ifndef WALKING_WINDOW_SIZE
+#define WALKING_WINDOW_SIZE 5
+#endif//WALKING_WINDOW_SIZE
+
+layout(local_size_x=WORKGROUP_SIZE_X)in;
+
+layout(rg32ui,binding=BINDING_GRID  )uniform uimage2D         grid;
+layout(r32f  ,binding=BINDING_SMOOTH)uniform  image2D smoothedGrid;
+
+vec2 getGrid(uint i){
+  uvec2 data=imageLoad(grid,ivec2(i,gl_GlobalInvocationID.y)).rg;
+  return vec2(2.*data.x/SHADOWMAP_SIZE-1,data.y);
+}
+
+uniform int gridSize=4;
+
+void main(){
+  if(gl_GlobalInvocationID.x>=SHADOWMAP_SIZE)return;
+  /*
+  if(gl_GlobalInvocationID.y==0||gl_GlobalInvocationID.y==gridSize){
+    imageStore(smoothedGrid,ivec2(gl_GlobalInvocationID.x,gl_GlobalInvocationID.y),vec4(getGrid(gl_GlobalInvocationID.x)));
+    return;
+  }*/
+  float x=0;
+  uint counterX=0;
+  for(int k=-WALKING_WINDOW_SIZE;k<=WALKING_WINDOW_SIZE;++k){
+    if(gl_GlobalInvocationID.x+k>=0&&gl_GlobalInvocationID.x+k<SHADOWMAP_SIZE){
+      vec2 data=getGrid(gl_GlobalInvocationID.x+k);
+      x+=data.x*data.y;
+      counterX+=uint(data.y);
+      //x+=getGrid(gl_GlobalInvocationID.x+k);
+      //counterX++;
+    }
+  }
+  x/=counterX;
+  imageStore(smoothedGrid,ivec2(gl_GlobalInvocationID.x,gl_GlobalInvocationID.y),vec4(x));
+}
+

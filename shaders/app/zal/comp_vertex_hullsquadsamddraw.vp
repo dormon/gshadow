@@ -1,0 +1,13 @@
+#version 430
+
+layout(location=0)in vec4 Position;
+
+uniform mat4 mvp;
+
+flat out float vMultiplicity;
+
+void main(){
+	int w=int(Position.w);
+	gl_Position=mvp*vec4(Position.xyz,w%1);
+	vMultiplicity=float(int(w/2));
+}

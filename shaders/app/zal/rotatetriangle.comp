@@ -1,0 +1,99 @@
+#version 430 core
+
+layout(local_size_x=64)in;
+
+layout(std430,binding=0)buffer Input{vec4 InputTriangles[];};
+layout(std430,binding=0)buffer Output{vec4 OutputTriangles[];};
+layout(binding=2,offset=0)uniform atomic_uint OutputNumTriangles;
+
+
+uniform uint NumTriangles;
+
+int CmpVec(vec3 a,vec3 b){
+	return sign(int(dot(ivec3(sign(a-b)),ivec3(4,2,1))));
+}
+
+void main(){
+	uint gid=gl_GlobalInvocationID.x;//thread id
+	if(gid<NumTriangles){
+		gid*=3;
+		vec4 T[3];
+		T[0]=InputTriangles[gid+0];
+		T[1]=InputTriangles[gid+1];
+		T[2]=InputTriangles[gid+2];
+		int ab=CmpVec(T[0].xyz,T[1].xyz);
+		int ac=CmpVec(T[0].xyz,T[2].xyz);
+		int bc=CmpVec(T[1].xyz,T[2].xyz);
+		if(ab==0||ac==0||bc==0)return;//triangle is degenerated
+		int Index=((ab+1)/2)+((ac+1)/2)*2+((bc+1)/2)*4;
+		const ivec3 Move[8]={
+			ivec3(0,  1,  2),
+      ivec3(0,  2,  1),
+      ivec3(0,  0,  0),
+			ivec3(2,  0,  1),
+			ivec3(1,  0,  2),
+			ivec3(0,  0,  0),
+			ivec3(1,  2,  0),
+			ivec3(2,  1,  0)
+		};
+		uint WH=atomicCounterIncrement(OutputNumTriangles)*3;
+		OutputNumTriangles[WH+0]=T[Move[Index].x];
+		OutputNumTriangles[WH+1]=T[Move[Index].y];
+		OutputNumTriangles[WH+2]=T[Move[Index].z];	
+		/*
+		int ab=CmpVec(T[0].xyz,T[1].xyz);
+		int ac=CmpVec(T[0].xyz,T[2].xyz);
+		int bc=CmpVec(T[1].xyz,T[2].xyz);
+		if(ab==0||ac==0||bc==0)return;//triangle is degenerated
+		int v=ab*4+av*2+bc;
+		int o0=(1+(((v+7)>>1)&1))*(v>-5);
+		int o1=((7-abs(v))>>1+1)%4;
+		int o2=3-o1-o2;
+		OutputNumTriangles[gid+0]=T[o0];
+		OutputNumTriangles[gid+1]=T[o1];
+		OutputNumTriangles[gid+2]=T[o2];*/
+	}
+}
+
+/*
+abca bcab cabc
+cbac bacb acba
+
+
+
+
+ab ac bc  v o0 o1 o2
+-1 -1 -1 -7  0  1  2 abc
+-1 -1 +1 -5  0  2  1 acb
+-1 +1 -1 -3  x  x  x abca
+-1 +1 +1 -1  2  0  1 cab
++1 -1 -1 +1  1  0  2 bac
++1 -1 +1 +3  x  x  x cbac
++1 +1 -1 +5  1  2  0 bca
++1 +1 +1 +7  2  1  0 cba
+o0(-1,-1,-1)=0
+o0(-1,-1,+1)=0
+o0(+1,-1,-1)=1
+o0(+1,+1,-1)=1
+o0(-1,+1,+1)=2
+o9(+1,+1,+1)=2
+o1:	
+v     -7 -5 -3 -1 +1 +3 +5 +7
+|v|              7 5 3 1 1 3 5 7
+7-|v|            0 2 4 6 6 4 2 0
+(7-|v|)>>1       0 1 2 3 3 2 1 0
+(7-|v|)>>1+1     1 2 3 4 4 3 2 1
+((7-|v|)>>1+1)%4 1 2 3 0 0 3 2 1
+o1               1 2 x 0 0 x 2 1
+
+o0:
+v     -7 -5 -3 -1 +1 +3 +5 +7
+v+7                       0 2 4 6 8 10 12 14
+(v+7)>>1                  0 1 2 3 4 5 6 7
+((v+7)>>1)&1              0 1 0 1 0 1 0 1
+1+(((v+7)>>1)&1)          1 2 1 2 1 2 1 2
+(1+(((v+7)>>1)&1))*(v>-5) 0 0 1 2 1 2 1 2
+o0                        0 0 x 2 1 x 1 2
+o2: 3-o1-o2
+
+*/

@@ -1,0 +1,103 @@
+#version 440
+
+#ifndef PREFIXSUMY_BINDING_UNWARPXCOUNTMAP
+#define PREFIXSUMY_BINDING_UNWARPXCOUNTMAP 0
+#endif//PREFIXSUMY_BINDING_UNWARPXCOUNTMAP
+
+#ifndef PREFIXSUMY_BINDING_PREFIXSUMYMAP
+#define PREFIXSUMY_BINDING_PREFIXSUMYMAP 1
+#endif//PREFIXSUMY_BINDING_PREFIXSUMYMAP
+
+#ifndef PREFIXSUMY_BINDING_GRIDY
+#define PREFIXSUMY_BINDING_GRIDY 2
+#endif//PREFIXSUMY_BINDING_GRIDY
+
+#ifndef SHADOWMAP_SIZE
+#define SHADOWMAP_SIZE 1024
+#endif//SHADOWMAP_SIZE
+
+#ifndef WORKGROUP_SIZE_X
+#define WORKGROUP_SIZE_X 64
+#endif//WORKGROUP_SIZE_X
+
+#ifndef GRID_SIZE_X
+#define GRID_SIZE_X 4
+#endif//GRID_SIZE_X
+
+
+layout(local_size_x=WORKGROUP_SIZE_X)in;
+
+layout(r32ui,binding=PREFIXSUMY_BINDING_UNWARPXCOUNTMAP)uniform uimage2D unwarpXCountMap;
+layout(r32ui,binding=PREFIXSUMY_BINDING_PREFIXSUMYMAP  )uniform uimage2D   prefixSumYMap;
+layout(r32ui,binding=PREFIXSUMY_BINDING_GRIDY          )uniform uimage2D           gridY;
+
+
+
+uint getCountMap(in uint x){
+  return imageLoad(countMap,ivec2(x,gl_GlobalInvocationID.x)).x;
+}
+
+uint getPrefixSumMap(in uint x){
+  return imageLoad(prefixSumMap,ivec2(x,gl_GlobalInvocationID.x)).x;
+}
+
+void setPrefixSumMap(in uint x,uint d){
+  imageStore(prefixSumMap,ivec2(x,gl_GlobalInvocationID.x),uvec4(d));
+}
+
+void setGridX(in uint i,uint d){
+  imageStore(gridX,ivec2(gl_GlobalInvocationID.x,i),uvec4(d));
+}
+
+uint getGridX(in uint i){
+  return imageLoad(gridX,ivec2(gl_GlobalInvocationID.x,i)).x;
+}
+
+void main(){
+  if(gl_GlobalInvocationID.x>=SHADOWMAP_SIZE)return;
+  uint counter=0;
+  for(uint i=0;i<SHADOWMAP_SIZE;++i){
+    counter+=getCountMap(i);
+    setPrefixSumMap(i,counter);
+  }
+
+  uint gridPosition[GRID_SIZE_X+1];
+  for(uint i=0;i<=GRID_SIZE_X;++i)
+    gridPosition[i]=i*SHADOWMAP_SIZE/GRID_SIZE_X;
+
+  if(counter>=1){
+    uint gridXStep=counter/GRID_SIZE_X;
+    uint gridId=0;
+    uint lastValue=getPrefixSumMap(0);
+    for(uint i=1;i<SHADOWMAP_SIZE;++i){
+      uint value=getPrefixSumMap(i);
+      if(lastValue<=gridXStep*gridId && value > gridXStep*gridId){
+        gridPosition[gridId]=i-1;
+        gridId++;
+      }
+      lastValue=value;
+    }
+    //return;
+    for(uint i=SHADOWMAP_SIZE-2;i>0;--i){
+      if(getCountMap(i)>0){
+        gridPosition[GRID_SIZE_X]=i;
+        break;
+      }
+    }
+  }
+
+  for(uint i=0;i<=GRID_SIZE_X;++i)
+    setGridX(i,gridPosition[i]);
+
+
+  uint gridId=0;
+  for(uint i=0;i<SHADOWMAP_SIZE;++i){
+    if(gridPosition[gridId]==i){
+      setPrefixSumMap(i,100);
+      if(i+1<SHADOWMAP_SIZE)setPrefixSumMap(i+1,100);
+      if(i>0)setPrefixSumMap(i-1,100);
+      gridId++;
+    }else
+      setPrefixSumMap(i,getCountMap(i));
+  }
+}

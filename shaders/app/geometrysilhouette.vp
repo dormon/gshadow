@@ -1,0 +1,412 @@
+#version 430
+
+/////////////////////////////////////////////////////////////////////
+// Options:
+// if you define something, it will be applied.
+// if you don't define something, opposite will be applied.
+// Some defines has value that has to be set properly.
+// Version number has to be chosen by user, preprocessor
+// cannot do it (nothing useful can precede #version N P).
+/////////////////////////////////////////////////////////////////////
+
+//generate universal shader - define/don't define
+//#define UNIVERSAL
+//use arrays for transfer - define/don't define
+//#define USE_ARRAY_TRANSFER
+//use vertex array - define/don't define
+//#define USE_VERTEX_ARRAY
+//use layouts - define/don't define
+//#define USE_LAYOUTS
+//set input vertex attrib name - set value
+//#define VERTEX_ATTRIB_NAME Position
+//maximal number of opposite vertices - set value
+//#define MAX_MULTIPLICITY 2
+
+// DO NOT CHANGE ANYTHING BELOW THIS COMMENT!!!
+// UNLESS, OF COURSE, YOU KNOW WHAT YOU ARE DOING.
+
+
+
+
+
+/////////////////////////////////////////////////////////////////////
+// TODO extensions and checks
+/////////////////////////////////////////////////////////////////////
+
+#if MAX_MULTIPLICITY > 16
+  #error Max Multiplicity cannot exceed 16
+#endif
+
+#if MAX_MULTIPLICITY < 1
+  #error Max Multiplicity cannont be 0 or less
+#endif
+
+#define PASTER(x,y) x##y
+
+
+
+
+/////////////////////////////////////////////////////////////////////
+// Inputs
+/////////////////////////////////////////////////////////////////////
+
+//compute number of imput vertex attribs
+#ifdef UNIVERSAL
+  #define NUMBER_OF_INPUTS (MAX_MULTIPLICITY+2+1)
+#else//UNIVERSAL
+  #define NUMBER_OF_INPUTS (MAX_MULTIPLICITY+2)
+#endif//UNIVERSAL
+
+//declare inputs
+#ifdef USE_VERTEX_ARRAY
+  #ifdef USE_LAYOUTS
+    layout(location=0)in vec4 VERTEX_ATTRIB_NAME[NUMBER_OF_INPUTS];
+  #else
+    in vec4 VERTEX_ATTRIB_NAME[NUMBER_OF_INPUTS];
+  #endif
+#else//USE_VERTEX_ARRAY
+  #ifdef USE_LAYOUTS
+    #define DEF_INPUT(x,y) layout(location=y)in vec4 PASTER(x,y);
+  #else//USE_LAYOUTS
+    #define DEF_INPUT(x,y) in vec4 PASTER(x,y);
+  #endif//USE_LAYOUTS
+    //vertex A of an edge
+DEF_INPUT(VERTEX_ATTRIB_NAME,0)
+    //vertex B of an edge
+DEF_INPUT(VERTEX_ATTRIB_NAME,1)
+  #ifdef UNIVERSAL
+    //number of opposite vertices
+DEF_INPUT(VERTEX_ATTRIB_NAME,2)
+    #if MAX_MULTIPLICITY>0
+DEF_INPUT(VERTEX_ATTRIB_NAME,3)
+    #endif
+    #if MAX_MULTIPLICITY>1
+DEF_INPUT(VERTEX_ATTRIB_NAME,4)
+    #endif
+    #if MAX_MULTIPLICITY>2
+DEF_INPUT(VERTEX_ATTRIB_NAME,5)
+    #endif
+    #if MAX_MULTIPLICITY>3
+DEF_INPUT(VERTEX_ATTRIB_NAME,6)
+    #endif
+    #if MAX_MULTIPLICITY>4
+DEF_INPUT(VERTEX_ATTRIB_NAME,7)
+    #endif
+    #if MAX_MULTIPLICITY>5
+DEF_INPUT(VERTEX_ATTRIB_NAME,8)
+    #endif
+    #if MAX_MULTIPLICITY>6
+DEF_INPUT(VERTEX_ATTRIB_NAME,9)
+    #endif
+    #if MAX_MULTIPLICITY>7
+DEF_INPUT(VERTEX_ATTRIB_NAME,10)
+    #endif
+    #if MAX_MULTIPLICITY>8
+DEF_INPUT(VERTEX_ATTRIB_NAME,11)
+    #endif
+    #if MAX_MULTIPLICITY>9
+DEF_INPUT(VERTEX_ATTRIB_NAME,12)
+    #endif
+    #if MAX_MULTIPLICITY>10
+DEF_INPUT(VERTEX_ATTRIB_NAME,13)
+    #endif
+    #if MAX_MULTIPLICITY>11
+DEF_INPUT(VERTEX_ATTRIB_NAME,14)
+    #endif
+    #if MAX_MULTIPLICITY>12
+DEF_INPUT(VERTEX_ATTRIB_NAME,15)
+    #endif
+    #if MAX_MULTIPLICITY>13
+DEF_INPUT(VERTEX_ATTRIB_NAME,16)
+    #endif
+    #if MAX_MULTIPLICITY>14
+DEF_INPUT(VERTEX_ATTRIB_NAME,17)
+    #endif
+    #if MAX_MULTIPLICITY>15
+DEF_INPUT(VERTEX_ATTRIB_NAME,18)
+    #endif
+  #else//UNIVERSAL
+    #if MAX_MULTIPLICITY>0
+DEF_INPUT(VERTEX_ATTRIB_NAME,2)
+    #endif
+    #if MAX_MULTIPLICITY>1
+DEF_INPUT(VERTEX_ATTRIB_NAME,3)
+    #endif
+    #if MAX_MULTIPLICITY>2
+DEF_INPUT(VERTEX_ATTRIB_NAME,4)
+    #endif
+    #if MAX_MULTIPLICITY>3
+DEF_INPUT(VERTEX_ATTRIB_NAME,5)
+    #endif
+    #if MAX_MULTIPLICITY>4
+DEF_INPUT(VERTEX_ATTRIB_NAME,6)
+    #endif
+    #if MAX_MULTIPLICITY>5
+DEF_INPUT(VERTEX_ATTRIB_NAME,7)
+    #endif
+    #if MAX_MULTIPLICITY>6
+DEF_INPUT(VERTEX_ATTRIB_NAME,8)
+    #endif
+    #if MAX_MULTIPLICITY>7
+DEF_INPUT(VERTEX_ATTRIB_NAME,9)
+    #endif
+    #if MAX_MULTIPLICITY>8
+DEF_INPUT(VERTEX_ATTRIB_NAME,10)
+    #endif
+    #if MAX_MULTIPLICITY>9
+DEF_INPUT(VERTEX_ATTRIB_NAME,11)
+    #endif
+    #if MAX_MULTIPLICITY>10
+DEF_INPUT(VERTEX_ATTRIB_NAME,12)
+    #endif
+    #if MAX_MULTIPLICITY>11
+DEF_INPUT(VERTEX_ATTRIB_NAME,13)
+    #endif
+    #if MAX_MULTIPLICITY>12
+DEF_INPUT(VERTEX_ATTRIB_NAME,14)
+    #endif
+    #if MAX_MULTIPLICITY>13
+DEF_INPUT(VERTEX_ATTRIB_NAME,15)
+    #endif
+    #if MAX_MULTIPLICITY>14
+DEF_INPUT(VERTEX_ATTRIB_NAME,16)
+    #endif
+    #if MAX_MULTIPLICITY>15
+DEF_INPUT(VERTEX_ATTRIB_NAME,17)
+    #endif
+  #endif//UNIVERSAL
+#endif//USE_VERTEX_ARRAY
+
+
+
+
+
+/////////////////////////////////////////////////////////////////////
+// Outputs
+/////////////////////////////////////////////////////////////////////
+
+#ifdef USE_ARRAY_TRANSFER
+out Opposite{vec4 Vertex[MAX_MULTIPLICITY];}O;
+#else
+  #define DEF_OUTPUT(x) out vec4 vOpposite##x;
+  #if MAX_MULTIPLICITY>0
+DEF_OUTPUT(0)
+  #endif
+  #if MAX_MULTIPLICITY>1
+DEF_OUTPUT(1)
+  #endif
+  #if MAX_MULTIPLICITY>2
+DEF_OUTPUT(2)
+  #endif
+  #if MAX_MULTIPLICITY>3
+DEF_OUTPUT(3)
+  #endif
+  #if MAX_MULTIPLICITY>4
+DEF_OUTPUT(4)
+  #endif
+  #if MAX_MULTIPLICITY>5
+DEF_OUTPUT(5)
+  #endif
+  #if MAX_MULTIPLICITY>6
+DEF_OUTPUT(6)
+  #endif
+  #if MAX_MULTIPLICITY>7
+DEF_OUTPUT(7)
+  #endif
+  #if MAX_MULTIPLICITY>8
+DEF_OUTPUT(8)
+  #endif
+  #if MAX_MULTIPLICITY>9
+DEF_OUTPUT(9)
+  #endif
+  #if MAX_MULTIPLICITY>10
+DEF_OUTPUT(10)
+  #endif
+  #if MAX_MULTIPLICITY>11
+DEF_OUTPUT(11)
+  #endif
+  #if MAX_MULTIPLICITY>12
+DEF_OUTPUT(12)
+  #endif
+  #if MAX_MULTIPLICITY>13
+DEF_OUTPUT(13)
+  #endif
+  #if MAX_MULTIPLICITY>14
+DEF_OUTPUT(14)
+  #endif
+  #if MAX_MULTIPLICITY>15
+DEF_OUTPUT(15)
+  #endif
+#endif//USE_ARRAY_TRANSFER
+
+out vec4 vVertexB;
+
+#ifdef UNIVERSAL
+out vec4 vNumberOfOppositeVertices;
+#endif
+
+
+
+
+
+/////////////////////////////////////////////////////////////////////
+// Main function
+/////////////////////////////////////////////////////////////////////
+
+void main(){
+
+#ifdef USE_VERTEX_ARRAY
+  #define DEF_FILLA(x) gl_Position=x[0];
+  #define DEF_FILLB(x) vVertexB=x[1];
+  #define DEF_FILLN(x) vNumberOfOppositeVertices=x[2];
+#else//USE_VERTEX_ARRAY
+  #define DEF_FILLA(x) gl_Position=PASTER(x,0);
+  #define DEF_FILLB(x) vVertexB=PASTER(x,1);
+  #define DEF_FILLN(x) vNumberOfOppositeVertices=PASTER(x,2);
+#endif//USE_VERTEX_ARRAY
+
+  //set vertex A
+  DEF_FILLA(VERTEX_ATTRIB_NAME)
+  //set vertex B
+  DEF_FILLB(VERTEX_ATTRIB_NAME)
+
+#ifdef UNIVERSAL
+  //set number of opposite vertices
+  DEF_FILLN(VERTEX_ATTRIB_NAME)
+#endif//UNIVERSAL
+
+//cycle can be used only when USE_VERTEX_ARRAY and
+//USE_ARRAY_TRANSFER
+//otherwise it has to be assign manually
+#if defined(USE_VERTEX_ARRAY) && defined(USE_ARRAY_TRANSFER)
+  #ifdef UNIVERSAL
+    #define DEF_FILL_RIGHT(x) x[3+o]
+  #else//UNIVERSAL
+    #define DEF_FILL_RIGHT(x) x[2+o]
+  #endif//UNIVERSAL
+  for(int o=0;o<MAX_MULTIPLICITY;++o)
+    O.Vertex[o]=DEF_FILL_RIGHT(VERTEX_ATTRIB_NAME);
+#else//defined(USE_VERTEX_ARRAY) && defined(USE_ARRAY_TRANSFER)
+  #ifdef USE_VERTEX_ARRAY
+    #ifdef USE_ARRAY_TRANSFER
+      #error this is Dormons fault
+    #else//USE_ARRAY_TRANSFER
+      #define DEF_FILL_LEFT(x)    vOpposite##x
+      #ifdef UNIVERSAL
+        #define DEF_FILL_RIGHT(x,y) x[y]
+      #else//UNIVERSAL
+        #define DEF_FILL_RIGHT(x,y) PASTER(x,[y])
+      #endif
+    #endif//USE_ARRAY_TRANSFER
+  #else//USE_VERTEX_ARRAY
+    #ifdef USE_ARRAY_TRANSFER
+      #define DEF_FILL_LEFT(x)    O.Vertex[x]
+      #define DEF_FILL_RIGHT(x,y) PASTER(x,y)
+    #else//USE_ARRAY_TRANSFER
+      #define DEF_FILL_LEFT(x)    vOpposite##x
+      #define DEF_FILL_RIGHT(x,y) PASTER(x,y)
+    #endif//USE_ARRAY_TRANSFER
+  #endif//USE_VERTEX_ARRAY
+
+  //assign all attribs
+  #ifdef UNIVERSAL
+    #if MAX_MULTIPLICITY>0
+  DEF_FILL_LEFT(0)=DEF_FILL_RIGHT(VERTEX_ATTRIB_NAME,3);
+    #endif
+    #if MAX_MULTIPLICITY>1
+  DEF_FILL_LEFT(1)=DEF_FILL_RIGHT(VERTEX_ATTRIB_NAME,4);
+    #endif
+    #if MAX_MULTIPLICITY>2
+  DEF_FILL_LEFT(2)=DEF_FILL_RIGHT(VERTEX_ATTRIB_NAME,5);
+    #endif
+    #if MAX_MULTIPLICITY>3
+  DEF_FILL_LEFT(3)=DEF_FILL_RIGHT(VERTEX_ATTRIB_NAME,6);
+    #endif
+    #if MAX_MULTIPLICITY>4
+  DEF_FILL_LEFT(4)=DEF_FILL_RIGHT(VERTEX_ATTRIB_NAME,7);
+    #endif
+    #if MAX_MULTIPLICITY>5
+  DEF_FILL_LEFT(5)=DEF_FILL_RIGHT(VERTEX_ATTRIB_NAME,8);
+    #endif
+    #if MAX_MULTIPLICITY>6
+  DEF_FILL_LEFT(6)=DEF_FILL_RIGHT(VERTEX_ATTRIB_NAME,9);
+    #endif
+    #if MAX_MULTIPLICITY>7
+  DEF_FILL_LEFT(7)=DEF_FILL_RIGHT(VERTEX_ATTRIB_NAME,10);
+    #endif
+    #if MAX_MULTIPLICITY>8
+  DEF_FILL_LEFT(8)=DEF_FILL_RIGHT(VERTEX_ATTRIB_NAME,11);
+    #endif
+    #if MAX_MULTIPLICITY>9
+  DEF_FILL_LEFT(9)=DEF_FILL_RIGHT(VERTEX_ATTRIB_NAME,12);
+    #endif
+    #if MAX_MULTIPLICITY>10
+  DEF_FILL_LEFT(10)=DEF_FILL_RIGHT(VERTEX_ATTRIB_NAME,13);
+    #endif
+    #if MAX_MULTIPLICITY>11
+  DEF_FILL_LEFT(11)=DEF_FILL_RIGHT(VERTEX_ATTRIB_NAME,14);
+    #endif
+    #if MAX_MULTIPLICITY>12
+  DEF_FILL_LEFT(12)=DEF_FILL_RIGHT(VERTEX_ATTRIB_NAME,15);
+    #endif
+    #if MAX_MULTIPLICITY>13
+  DEF_FILL_LEFT(13)=DEF_FILL_RIGHT(VERTEX_ATTRIB_NAME,16);
+    #endif
+    #if MAX_MULTIPLICITY>14
+  DEF_FILL_LEFT(14)=DEF_FILL_RIGHT(VERTEX_ATTRIB_NAME,17);
+    #endif
+    #if MAX_MULTIPLICITY>15
+  DEF_FILL_LEFT(15)=DEF_FILL_RIGHT(VERTEX_ATTRIB_NAME,18);
+    #endif
+  #else//UNIVERSAL
+    #if MAX_MULTIPLICITY>0
+  DEF_FILL_LEFT(0)=DEF_FILL_RIGHT(VERTEX_ATTRIB_NAME,2);
+    #endif
+    #if MAX_MULTIPLICITY>1
+  DEF_FILL_LEFT(1)=DEF_FILL_RIGHT(VERTEX_ATTRIB_NAME,3);
+    #endif
+    #if MAX_MULTIPLICITY>2
+  DEF_FILL_LEFT(2)=DEF_FILL_RIGHT(VERTEX_ATTRIB_NAME,4);
+    #endif
+    #if MAX_MULTIPLICITY>3
+  DEF_FILL_LEFT(3)=DEF_FILL_RIGHT(VERTEX_ATTRIB_NAME,5);
+    #endif
+    #if MAX_MULTIPLICITY>4
+  DEF_FILL_LEFT(4)=DEF_FILL_RIGHT(VERTEX_ATTRIB_NAME,6);
+    #endif
+    #if MAX_MULTIPLICITY>5
+  DEF_FILL_LEFT(5)=DEF_FILL_RIGHT(VERTEX_ATTRIB_NAME,7);
+    #endif
+    #if MAX_MULTIPLICITY>6
+  DEF_FILL_LEFT(6)=DEF_FILL_RIGHT(VERTEX_ATTRIB_NAME,8);
+    #endif
+    #if MAX_MULTIPLICITY>7
+  DEF_FILL_LEFT(7)=DEF_FILL_RIGHT(VERTEX_ATTRIB_NAME,9);
+    #endif
+    #if MAX_MULTIPLICITY>8
+  DEF_FILL_LEFT(8)=DEF_FILL_RIGHT(VERTEX_ATTRIB_NAME,10);
+    #endif
+    #if MAX_MULTIPLICITY>9
+   DEF_FILL_LEFT(9)=DEF_FILL_RIGHT(VERTEX_ATTRIB_NAME,11);
+    #endif
+    #if MAX_MULTIPLICITY>10
+  DEF_FILL_LEFT(10)=DEF_FILL_RIGHT(VERTEX_ATTRIB_NAME,12);
+    #endif
+    #if MAX_MULTIPLICITY>11
+  DEF_FILL_LEFT(11)=DEF_FILL_RIGHT(VERTEX_ATTRIB_NAME,13);
+    #endif
+    #if MAX_MULTIPLICITY>12
+  DEF_FILL_LEFT(12)=DEF_FILL_RIGHT(VERTEX_ATTRIB_NAME,14);
+    #endif
+    #if MAX_MULTIPLICITY>13
+  DEF_FILL_LEFT(13)=DEF_FILL_RIGHT(VERTEX_ATTRIB_NAME,15);
+    #endif
+    #if MAX_MULTIPLICITY>14
+  DEF_FILL_LEFT(14)=DEF_FILL_RIGHT(VERTEX_ATTRIB_NAME,16);
+    #endif
+    #if MAX_MULTIPLICITY>15
+  DEF_FILL_LEFT(15)=DEF_FILL_RIGHT(VERTEX_ATTRIB_NAME,17);
+    #endif
+  #endif//UNIVERSAL
+#endif//defined(USE_VERTEX_ARRAY) && defined(USE_ARRAY_TRANSFER)
+}

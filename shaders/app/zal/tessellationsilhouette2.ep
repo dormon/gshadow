@@ -1,0 +1,22 @@
+#version 430
+
+layout(quads,fractional_odd_spacing,ccw)in;
+
+patch in vec4 P[4];
+
+uniform mat4 mvp;
+patch in float TTT;
+
+int GetIndex(){
+	int x=int(round(gl_TessCoord.x*TTT))*2;
+	int y=int(round(gl_TessCoord.y));
+	int id=x+y;
+	int l=((id+2)/4)%2;
+	int t=(id%2)^((id/4)%2);
+	return t+l*2;
+}
+
+void main(){
+	gl_Position=mvp*P[GetIndex()];
+}
+

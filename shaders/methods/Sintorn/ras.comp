@@ -1,0 +1,198 @@
+#version 430
+
+//DO NOT EDIT ANYTHING BELOW THIS COMMENT
+
+#ifndef NUMBER_OF_LEVELS
+  #define NUMBER_OF_LEVELS 4
+#endif//NUMBER_OF_LEVELS
+
+#ifndef NUMBER_OF_LEVELS_MINUS_ONE
+  #define NUMBER_OF_LEVELS_MINUS_ONE 3
+#endif//NUMBER_OF_LEVELS_MINUS_ONE
+
+#ifndef WAVEFRONT_SIZE
+  #define WAVEFRONT_SIZE 64
+#endif//WAVEFRONT_SIZE
+
+#ifndef SHADOWFRUSTUMS_PER_WORKGROUP
+  #define SHADOWFRUSTUMS_PER_WORKGROUP 1
+#endif//SHADOWFRUSTUMS_PER_WORKGROUP
+
+#define VEC4_PER_SHADOWFRUSTUM 6
+#define UINT_BIT_SIZE 32
+
+#define RESULT_LENGHT_IN_UINT (WAVEFRONT_SIZE/UINT_BIT_SIZE)
+
+#if NUMBER_OF_LEVELS > 8
+#error Too many levels
+#endif
+
+#if WAVEFRONT_SIZE % UINT_BIT_SIZE != 0
+#error WAVEFRONT_SIZE is incommensurable by\
+  UINT_BIT_SIZE
+#endif
+
+#define FLOATS_PER_SHADOWFRUSTUM (VEC4_PER_SHADOWFRUSTUM*4)
+
+#define WORKGROUP_ID_IN_PROBLEM       (int(gl_WorkGroupID.x))
+#define SHADOWFRUSTUM_ID_IN_WORKGROUP (int(gl_LocalInvocationID.y))
+#define SHADOWFRUSTUM_ID_IN_PROBLEM   (WORKGROUP_ID_IN_PROBLEM*SHADOWFRUSTUMS_PER_WORKGROUP + SHADOWFRUSTUM_ID_IN_WORKGROUP)
+#define INVOCATION_ID_IN_WAVEFRONT    (int(gl_LocalInvocationID.x))
+
+#define TRIVIAL_ACCEPT 0xff
+#define TRIVIAL_REJECT 0x0f
+#define INTERSECTS     0x03
+#define SHADOW_VALUE   0
+
+layout(local_size_x=WAVEFRONT_SIZE,local_size_y=SHADOWFRUSTUMS_PER_WORKGROUP)in;
+
+layout(std430,binding=0)readonly buffer Input{float GlobalShadowFrusta[];};
+layout(std430,binding=1)buffer HDB{vec2 HDBData[];};
+layout(std430,binding=2)buffer HSB{uint HSBData[][RESULT_LENGHT_IN_UINT];};
+layout(r32ui,binding=0)uniform uimage2D FinalStencilMask;
+
+shared vec4 SharedShadowFrusta[SHADOWFRUSTUMS_PER_WORKGROUP][VEC4_PER_SHADOWFRUSTUM];
+
+/*
+   Tile size in different units.
+   TileSizeInTiles returns number of subtiles.
+   TileSizeInClipSpace returns x,y size of AABB in clip-space
+ */
+
+uniform ivec2 TileSizeInTiles     [NUMBER_OF_LEVELS];
+uniform  vec2 TileSizeInClipSpace [NUMBER_OF_LEVELS];
+uniform int   HSBOffset           [NUMBER_OF_LEVELS];
+
+uniform int NumberOfTriangles;
+
+ivec2 TileCoordInTiles(int SubTileID,int Level){
+  return ivec2(SubTileID%TileSizeInTiles[Level].x,
+      SubTileID/TileSizeInTiles[Level].y);
+}
+
+vec2 TrivialRejectCorner2D(vec2 Normal){
+  return vec2((ivec2(sign(Normal))+1)/2);
+}
+
+bool SampleInsideEdge(vec2 Sample,vec3 Edge){
+  return dot(vec3(Sample,1),Edge)<=0;
+}
+
+vec3 TrivialRejectCorner3D(vec3 Normal){
+  return vec3((ivec3(sign(Normal))+1)/2);
+}
+
+int TrivialRejectAcceptAABB(vec3 TileCorner,vec3 TileSize){
+  if(TileCorner.z>=1)return TRIVIAL_REJECT;//no direct lighting
+  vec3 TR[4],TA[4];//trivial reject & accept corners
+  for(int i=0;i<4;++i){//loop over planes
+    TR[i]=TrivialRejectCorner3D(SharedShadowFrusta[SHADOWFRUSTUM_ID_IN_WORKGROUP][i].xyz);
+    if(dot(vec4(TileCorner+TR[i]*TileSize,1),SharedShadowFrusta[SHADOWFRUSTUM_ID_IN_WORKGROUP][i])<0)
+      return TRIVIAL_REJECT;//trivial reject corner is behind a plane
+    TA[i]=1-TA[i];//compute trivial accept
+  }
+  bvec4 Accept;
+  for(int i=0;i<4;++i)//loop over planes
+    Accept[i]=dot(vec4(TileCorner+TA[i]*TileSize,1),SharedShadowFrusta[SHADOWFRUSTUM_ID_IN_WORKGROUP][i])>0;
+  if(all(Accept))return TRIVIAL_ACCEPT;
+  return INTERSECTS;
+}
+
+
+#define TEST_SHADOW_FRUSTUM_LAST(LEVEL)\
+  void TestShadowFrustumHDB##LEVEL (int StencilId,int DepthID,ivec2 Coord,vec2 ClipCoord){\
+    ivec2 ActCoord=Coord*TileSizeInTiles[LEVEL]+ivec2(INVOCATION_ID_IN_WAVEFRONT%TileSizeInTiles[LEVEL].x,INVOCATION_ID_IN_WAVEFRONT/TileSizeInTiles[LEVEL].x);\
+    vec2 ActClipCoord=ClipCoord+TileSizeInClipSpace[LEVEL]*ActCoord;\
+    vec4 SampleCoordInClipSpace=vec4(\
+        ActClipCoord+TileSizeInClipSpace[LEVEL]*.5,\
+        HDBData[DepthID+INVOCATION_ID_IN_WAVEFRONT].x,\
+        1);\
+    vec4 Test;\
+    for(int i=0;i<4;++i)Test[i]=dot(SampleCoordInClipSpace,SharedShadowFrusta[SHADOWFRUSTUM_ID_IN_WORKGROUP][i]);\
+    if(all(lessThanEqual(Test,vec4(0))))\
+    imageStore(FinalStencilMask,ActCoord,ivec4(SHADOW_VALUE));\
+  }
+
+#define TEST_SHADOW_FRUSTUM(LEVEL,NEXT_LEVEL)\
+  shared uint TestResultIntersect##LEVEL [RESULT_LENGHT_IN_UINT];\
+shared uint TestResultAccept##LEVEL [RESULT_LENGHT_IN_UINT];\
+void TestShadowFrustumHDB##LEVEL (\
+    int StencilId,\
+    int DepthId,\
+    ivec2 Coord,\
+    vec2 ClipCoord){\
+  ivec2 ActCoord=Coord*TileSizeInTiles[LEVEL]+ivec2(INVOCATION_ID_IN_WAVEFRONT%TileSizeInTiles[LEVEL].x,INVOCATION_ID_IN_WAVEFRONT/TileSizeInTiles[LEVEL].x);\
+  vec2 ActClipCoord=ClipCoord+TileSizeInClipSpace[LEVEL]*ActCoord;\
+  vec2 ZMinMax=HDBData[DepthId+INVOCATION_ID_IN_WAVEFRONT];\
+  vec3 AABBCorner=vec3(ActClipCoord,ZMinMax.x);\
+  vec3 AABBSize=vec3(TileSizeInClipSpace[LEVEL],ZMinMax.y-ZMinMax.x);\
+  int Result=TrivialRejectAcceptAABB(AABBCorner,AABBSize);\
+  if(Result==INTERSECTS){\
+    for(uint i=0;i<uint(SharedShadowFrusta[SHADOWFRUSTUM_ID_IN_WORKGROUP][4].w);++i){\
+      vec2 tr=ActClipCoord+TrivialRejectCorner2D(SharedShadowFrusta[SHADOWFRUSTUM_ID_IN_WORKGROUP][4+i].xy)*TileSizeInClipSpace[LEVEL];\
+      if(SampleInsideEdge(tr,SharedShadowFrusta[SHADOWFRUSTUM_ID_IN_WORKGROUP][4+i].xyz))Result=TRIVIAL_REJECT;\
+    }\
+  }\
+  TestResultIntersect##LEVEL [INVOCATION_ID_IN_WAVEFRONT/UINT_BIT_SIZE]|=uint(Result==INTERSECTS    )<<(INVOCATION_ID_IN_WAVEFRONT%UINT_BIT_SIZE);\
+  TestResultAccept##LEVEL    [INVOCATION_ID_IN_WAVEFRONT/UINT_BIT_SIZE]|=uint(Result==TRIVIAL_ACCEPT)<<(INVOCATION_ID_IN_WAVEFRONT%UINT_BIT_SIZE);\
+  memoryBarrierShared();\
+  if(INVOCATION_ID_IN_WAVEFRONT<RESULT_LENGHT_IN_UINT)\
+  atomicOr(HSBData[StencilId][INVOCATION_ID_IN_WAVEFRONT],TestResultAccept##LEVEL[INVOCATION_ID_IN_WAVEFRONT]);\
+  \
+  for(int i=0;i<RESULT_LENGHT_IN_UINT;++i){\
+    while(bitCount(TestResultIntersect##LEVEL[i])!=UINT_BIT_SIZE){\
+      int CurrentBit = (UINT_BIT_SIZE-1-bitCount(TestResultIntersect##LEVEL[i]));\
+      int CurrentTile=CurrentBit+i*UINT_BIT_SIZE;\
+      ivec2 CurrentCoord=Coord*TileSizeInTiles[LEVEL]+ivec2(CurrentTile%TileSizeInTiles[LEVEL].x,CurrentTile/TileSizeInTiles[LEVEL].x);\
+      vec2 CurrentClipCoord=ClipCoord+TileSizeInClipSpace[LEVEL]*CurrentCoord;\
+      TestShadowFrustumHDB##NEXT_LEVEL(StencilId*WAVEFRONT_SIZE+1+CurrentTile,(DepthId+CurrentTile)*WAVEFRONT_SIZE+WAVEFRONT_SIZE,CurrentCoord,CurrentClipCoord);\
+      TestResultIntersect##LEVEL[i]&=~(1<<CurrentBit);\
+    }\
+  }\
+  \
+}
+
+TEST_SHADOW_FRUSTUM_LAST(NUMBER_OF_LEVELS_MINUS_ONE)
+
+#if NUMBER_OF_LEVELS > 7
+TEST_SHADOW_FRUSTUM(6,7)
+#endif
+
+#if NUMBER_OF_LEVELS > 6
+TEST_SHADOW_FRUSTUM(5,6)
+#endif
+
+#if NUMBER_OF_LEVELS > 5
+TEST_SHADOW_FRUSTUM(4,5)
+#endif
+
+#if NUMBER_OF_LEVELS > 4
+TEST_SHADOW_FRUSTUM(3,4)
+#endif
+
+#if NUMBER_OF_LEVELS > 3
+TEST_SHADOW_FRUSTUM(2,3)
+#endif
+
+#if NUMBER_OF_LEVELS > 2
+TEST_SHADOW_FRUSTUM(1,2)
+#endif
+
+#if NUMBER_OF_LEVELS > 1
+TEST_SHADOW_FRUSTUM(0,1)
+#endif
+
+void main(){
+  if(SHADOWFRUSTUM_ID_IN_PROBLEM>=NumberOfTriangles)return;
+  if(INVOCATION_ID_IN_WAVEFRONT<FLOATS_PER_SHADOWFRUSTUM){
+    SharedShadowFrusta
+      [SHADOWFRUSTUM_ID_IN_WORKGROUP]
+      [INVOCATION_ID_IN_WAVEFRONT/4]
+      [INVOCATION_ID_IN_WAVEFRONT%4]=
+      GlobalShadowFrusta
+      [SHADOWFRUSTUM_ID_IN_PROBLEM*FLOATS_PER_SHADOWFRUSTUM
+      +INVOCATION_ID_IN_WAVEFRONT];
+  }
+  TestShadowFrustumHDB0(0,0,ivec2(0),vec2(-1));
+}
+

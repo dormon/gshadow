@@ -1,0 +1,236 @@
+#version 100
+
+// DO NOT CHANGE ANYTHING BELOW THIS COMMENT!!!
+// UNLESS, OF COURSE, YOU KNOW WHAT YOU ARE DOING.
+
+// parameters of shader that should be declared
+// VERTEX_ATTRIB_NAME
+// LIGHT_UNIFORM_NAME
+// MATRIX_UNIFORM_NAME
+// MODEL_MATRIX_UNIFORM_NAME
+// VIEW_MATRIX_UNIFORM_NAME
+// PROJECTION_MATRIX_UNIFORM_NAME
+// USE_INSTANCING
+// USE_MULTIDRAW
+// SIDE_ID_INPUT_NAME
+// VERTEX_ID_ATTRIB_NAME
+// SEPARATE_MATRICES
+
+
+#ifndef VERTEX_ATTRIB_NAME
+#define VERTEX_ATTRIB_NAME position
+#endif//VERTEX_ATTRIB_NAME
+
+#ifndef LIGHT_UNIFORM_NAME
+#define LIGHT_UNIFORM_NAME lightPosition
+#endif//LIGHT_UNIFORM_NAME
+
+#ifndef MATRIX_UNIFORM_NAME
+#define MATRIX_UNIFORM_NAME mvp
+#endif//MATRIX_UNIFORM_NAME
+
+#ifndef MODEL_MATRIX_UNIFORM_NAME
+#define MODEL_MATRIX_UNIFORM_NAME m
+#endif//MODEL_MATRIX_UNIFORM_NAME
+
+#ifndef VIEW_MATRIX_UNIFORM_NAME
+#define VIEW_MATRIX_UNIFORM_NAME v
+#endif//VIEW_MATRIX_UNIFORM_NAME
+
+#ifndef PROJECTION_MATRIX_UNIFORM_NAME
+#define PROJECTION_MATRIX_UNIFORM_NAME p
+#endif//PROJECTION_MATRIX_UNIFORM_NAME
+
+#ifndef SIDE_ID_INPUT_NAME
+#define SIDE_ID_INPUT_NAME side
+#endif//SIDE_ID_INPUT_NAME
+
+#ifndef VERTEX_ID_ATTRIB_NAME
+#define VERTEX_ID_ATTRIB_NAME vertexID
+#endif//VERTEX_ID_ATTRIB_NAME
+
+#ifndef FAR_CAP_INPUT_NAME
+#define FAR_CAP_INPUT_NAME far
+#endif//FAR_CAP_INPUT_NAME
+
+
+#ifdef GL_core_profile
+  #define CORE_PROFILE
+#endif
+
+#ifdef GL_compatibility_profile
+  #define COMPATIBILITY_PROFILE
+#endif
+
+#ifdef GL_ES
+  #define ES_PROFILE
+#endif
+
+#if !defined(GL_core_profile) && !defined(GL_compatibility_profile) && !defined(GL_ES)
+  #define CORE_PROFILE
+#endif
+
+#ifdef ES_PROFILE
+  #if __VERSION__ >= 300
+    #define LAYOUT_AVAILABLE
+    #define VERTEX_ID_AVAILABLE
+    #define INSTANCE_ID_AVAILABLE
+    #define IN_KEYWORD_AVAILABLE
+  #endif
+  #define INSTANCING_AVAILABLE
+#endif
+
+#ifdef CORE_PROFILE
+  #if __VERSION__ >= 130
+    #define VERTEX_ID_AVAILABLE
+    #define IMOD_AVAILABLE
+  #endif
+
+  #if __VERSION__ >= 140
+    #define LAYOUT_AVAILABLE
+    #define INSTANCING_AVAILABLE
+    #define INSTANCE_ID_AVAILABLE
+  #endif
+
+  #if __VERSION__ >= 150
+    #define VERTEX_ARRAY_INPUT_AVAILABLE
+  #endif
+#endif
+
+#if defined(USE_INSTANCING) && !defined(INSTANCING_AVAILABLE)
+  #error instancing is not available
+#endif
+
+
+/////////////////////////////////////////////////////////////////////
+// differences between versions
+/////////////////////////////////////////////////////////////////////
+
+#define PASTER_(x,y) x##y
+#define PASTER(x,y) PASTER_(x,y)
+
+#ifdef IN_KEYWORD_AVAILABLE
+  #define INPUT_KEYWORD in
+#else
+  #define INPUT_KEYWORD attribute
+#endif
+
+#ifdef IMOD_AVAILABLE
+  #define IMOD(X,Y) (X%Y)
+#else
+  #define IMOD(X,Y) int(mod(float(X),float(Y)))
+#endif
+
+#ifdef LAYOUT_AVAILABLE
+  #define DEF_INPUT( type,name,number) layout(location=number)INPUT_KEYWORD type PASTER(name,number);
+  #define DEF_INPUT2(type,name,number) layout(location=number)INPUT_KEYWORD type name;
+#else
+  #define DEF_INPUT( type,name,number)                        INPUT_KEYWORD type PASTER(name,number);
+  #define DEF_INPUT2(type,name,number)                        INPUT_KEYWORD type name;
+#endif
+
+
+#ifdef VERTEX_ARRAY_INPUT_AVAILABLE
+  layout(location=0)in vec4 VERTEX_ATTRIB_NAME[3];
+#else
+  DEF_INPUT(vec4,VERTEX_ATTRIB_NAME,0)
+  DEF_INPUT(vec4,VERTEX_ATTRIB_NAME,1)
+  DEF_INPUT(vec4,VERTEX_ATTRIB_NAME,2)
+#endif
+
+//declare VERTEX_ID
+#ifdef USE_INSTANCING
+  #ifndef VERTEX_ID_AVAILABLE
+    DEF_INPUT2(float,VERTEX_ID_ATTRIB_NAME,3)
+  #endif
+#endif
+
+
+#ifdef USE_MULTIDRAW
+uniform int FAR_CAP_INPUT_NAME;
+#else
+  #ifdef USE_INSTANCING
+    #ifndef INSTANCE_ID_AVAILABLE
+      #ifndef VERTEX_ID_AVAILABLE
+        DEF_INPUT2(float,FAR_CAP_INPUT_NAME,3+1)
+      #else
+        DEF_INPUT2(float,FAR_CAP_INPUT_NAME,3)
+      #endif
+    #endif
+  #endif
+#endif
+
+//set FAR_CAP
+#ifdef USE_MULTIDRAW
+  #define FAR_CAP float(FAR_CAP_INPUT_NAME)
+#else
+  #ifdef USE_INSTANCING
+    #ifdef INSTANCE_ID_AVAILABLE
+      #define FAR_CAP float(gl_InstanceID/2)
+    #else
+      #define FAR_CAP float(FAR_CAP_INPUT_NAME)
+    #endif
+  #else
+    #define FAR_CAP float(POINT_A.w>2)
+  #endif
+#endif
+
+//set VERTEX_ID
+#ifdef USE_INSTANCING
+  #ifdef VERTEX_ID_AVAILABLE
+    #define VERTEX_ID ((FAR_CAP>0)?3-int(gl_VertexID):int(gl_VertexID))
+  #else
+    #define VERTEX_ID ((FAR_CAP>0)?3-int(VERTEX_ID_ATTRIB_NAME):int(VERTEX_ID_ATTRIB_NAME))
+  #endif
+#else
+  #define VERTEX_ID int(IMOD(int(POINT_A.w),3))
+#endif
+
+
+
+uniform vec4 LIGHT_UNIFORM_NAME;
+uniform mat4 MATRIX_UNIFORM_NAME;
+
+int greaterVec(vec3 a,vec3 b){
+  return int(dot(sign(a-b),vec3(4.0,2.0,1.0)));
+}
+int computeMult(vec3 A,vec3 B,vec3 C,vec4 L){
+  vec3 n=cross(C-A,L.xyz-A*L.w);
+  return int(sign(dot(n,B-A)));
+}
+
+void swap(inout vec4 A,inout vec4 B){vec4 C=A;A=B;B=C;}
+
+#ifdef VERTEX_ARRAY_INPUT_AVAILABLE
+  #define POINT_A VERTEX_ATTRIB_NAME[0]
+  #define POINT_B VERTEX_ATTRIB_NAME[1]
+  #define POINT_C VERTEX_ATTRIB_NAME[2]
+#else
+  #define POINT_A PASTER(VERTEX_ATTRIB_NAME,0)
+  #define POINT_B PASTER(VERTEX_ATTRIB_NAME,1)
+  #define POINT_C PASTER(VERTEX_ATTRIB_NAME,2)
+#endif
+
+void main(){
+  vec4 A=POINT_A;
+  vec4 B=POINT_B;
+  vec4 C=POINT_C;
+  if(greaterVec(A.xyz,B.xyz)>0)swap(A,B);
+  if(greaterVec(B.xyz,C.xyz)>0)swap(B,C);
+  if(greaterVec(A.xyz,B.xyz)>0)swap(A,B);
+  int multiplicity=computeMult(A.xyz,B.xyz,C.xyz,LIGHT_UNIFORM_NAME);
+  if(multiplicity==0){gl_Position=vec4(0,0,0,1);return;}
+  if(multiplicity<0)swap(A,B);
+
+  int   vID    = VERTEX_ID;
+  float farCap = FAR_CAP;
+
+  vec4 P=A*float(vID==0)+B*float(vID==1)+C*float(vID==2);
+  
+  P.w=1.0;
+  P=P*(1.0-farCap)+vec4(P.xyz*LIGHT_UNIFORM_NAME.w-LIGHT_UNIFORM_NAME.xyz,0)*farCap;
+  P=MATRIX_UNIFORM_NAME*P;
+  P=P.xyww*(1.0-farCap)+P*farCap;//front cap
+  gl_Position=P;
+}
+

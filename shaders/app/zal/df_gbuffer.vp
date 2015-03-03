@@ -1,0 +1,18 @@
+#version 330
+
+uniform mat4 m,v,p;//model, view, projecion
+
+layout(location=0)in vec3 Pos;//vertex position
+layout(location=1)in vec3 Nor;//vertex normal
+layout(location=2)in vec2 Coord;//vertex texcoord
+
+out vec2 vCoord;
+out vec3 vPos;
+out vec3 vN;
+void main(){
+	mat4 mv=v*m;//modelview
+	vPos=(mv*vec4(Pos,1)).xyz;
+	vN=(mv*vec4(Nor,0)).xyz;
+	vCoord=Coord;
+	gl_Position=p*vec4(vPos,1);
+}

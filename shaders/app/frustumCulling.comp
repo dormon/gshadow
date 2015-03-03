@@ -1,0 +1,143 @@
+#version 440 core
+
+#ifndef FRUSTUMCULLING_BINDING_DIBO
+#define FRUSTUMCULLING_BINDING_DIBO 0
+#endif//FRUSTUMCULLING_BINDING_DIBO
+
+#ifndef FRUSTUMCULLING_BINDING_AABB
+#define FRUSTUMCULLING_BINDING_AABB 1
+#endif//FRUSTUMCULLING_BINDING_AABB
+
+#ifndef FRUSTUMCULLING_WORKGROUP_SIZE_X
+#define FRUSTUMCULLING_WORKGROUP_SIZE_X 64
+#endif//FRUSTUMCULLING_WORKGROUP_SIZE_X
+
+#define AABB_ID (gl_GlobalInvocationID.x)
+
+layout(local_size_x=FRUSTUMCULLING_WORKGROUP_SIZE_X)in;
+
+layout(std430,binding=FRUSTUMCULLING_BINDING_DIBO)buffer Dibo{uint dibo[];};
+layout(std430,binding=FRUSTUMCULLING_BINDING_AABB)buffer AABB{vec4 aabb[];};
+
+uniform uint numAABB=0;
+uniform mat4 mvp;
+
+/*
+M=A+t*(B-A)
+N=C+t*(D-C)
+X=M+l*(N-M)
+X=A+t*(B-A)+l*(C+t*(D-C) - (A+t*(B-A)))
+X=A + t*(B-A) + l*(C-A) + t*l*(D-C-B+A)
+X=A + t*(B-A) + l*(C-A) + t*l*((D-C)-(A-B))
+X=A + t*(B-A) + l*(C-A)
+X=a + t*b + l*c
+
+t=(-(a.y-a.x)-(c.y-c.x)*l)/(b.y-b.x)
+t=(-(a.z-a.x)-(c.z-c.x)*l)/(b.z-b.x)
+t=(m+n*l)/o
+t=(p+q*l)/r
+(m+n*l)/o = (p+q*l)/r
+(m+n*l)*r = (p+q*l)*o
+m*r+n*r*l = p*o+q*o*l
+l = (m*r-p*o)/(q*o-n*r)
+
+l=(-(a.y-a.x)-(b.y-b.x)*t)/(c.y-c.x)
+l=(-(a.z-a.x)-(b.z-b.x)*t)/(c.z-c.x)
+l=(m+o*t)/n
+l=(p+r*t)/q
+(m+o*t)/n = (p+r*t)/q
+(m+o*t)*q = (p+r*t)*n
+m*q+o*q*t = p*n+r*n*t
+t = (m*q-p*n)/(r*n-o*q)
+t = (m*q-p*n)/(n*r-q*o)
+t = (p*n-m*q)/(q*o-n*r)
+
+*/
+
+bool isEdgeVisible(in vec4 A,in vec4 B){
+	vec3 M=+A.xyz+A.www;
+	vec3 N=+B.xyz+B.www;
+	vec3 O=-A.xyz+A.www;
+	vec3 P=-B.xyz+B.www;
+	vec3 NM=N-M;
+	vec3 PO=P-O;
+	float Left=0;
+	float Right=1;
+	for(int i=0;i<3;++i){
+		if(NM[i]==0){
+			if(M[i]<0)return false;
+		}else{
+			if(NM[i]>0)Left=max(Left,-M[i]/NM[i]);
+			else Right=min(Right,-M[i]/NM[i]);
+		}
+ 	                                           
+		if(PO[i]==0){
+			if(O[i]<0)return false;
+		}else{
+			if(PO[i]>0)Left=max(Left,-O[i]/PO[i]);
+			else Right=min(Right,-O[i]/PO[i]);
+		}
+	}
+	return Left<=Right;
+}
+
+bool isAnyEdgeVisible(in vec4 corner[8]){
+  return
+    isEdgeVisible(corner[0],corner[1])||
+    isEdgeVisible(corner[0],corner[2])||
+    isEdgeVisible(corner[0],corner[4])||
+    isEdgeVisible(corner[1],corner[3])||
+    isEdgeVisible(corner[1],corner[5])||
+    isEdgeVisible(corner[2],corner[3])||
+    isEdgeVisible(corner[2],corner[6])||
+    isEdgeVisible(corner[3],corner[7])||
+    isEdgeVisible(corner[4],corner[5])||
+    isEdgeVisible(corner[4],corner[6])||
+    isEdgeVisible(corner[5],corner[7])||
+    isEdgeVisible(corner[6],corner[7]);
+}
+
+bool isFaceVisible(vec4 A,vec4 B,vec4 C){
+  vec4  a=A;
+  vec4  b=B-A;
+  vec4  c=C-A;
+  float m=-(a.y-a.x);
+  float n=-(c.y-c.x);
+  float o=-(b.y-b.x);
+  float p=-(a.z-a.x);
+  float q=-(c.z-c.x);
+  float r=-(b.z-b.x);
+  float divisor=(q*o-n*r);
+  if(divisor==0)return false;
+  float l=(m*r-p*o)/divisor;
+  float t=(p*n-m*q)/divisor;
+  vec4  X=a+t*b+l*c;
+  return(t>=0)&&(t<=1)&&(l>=0)&&(l<=1)&&
+    all(greaterThanEqual(X.xyz,-X.www))&&all(lessThanEqual(X.xyz,+X.www));
+}
+
+bool isAnyFaceVisible(in vec4 corner[8]){
+  return
+    isFaceVisible(corner[0],corner[1],corner[2])||
+    isFaceVisible(corner[4],corner[5],corner[6])||
+    isFaceVisible(corner[0],corner[4],corner[2])||
+    isFaceVisible(corner[1],corner[5],corner[3])||
+    isFaceVisible(corner[6],corner[7],corner[2])||
+    isFaceVisible(corner[4],corner[5],corner[0]);
+}
+
+void main(){
+  //dibo[(AABB_ID<<2)+1]=0;
+  if(AABB_ID>=numAABB)return;
+  uint visible=0;
+  vec3 minPoint=aabb[AABB_ID*2+0].xyz;
+  vec3 maxPoint=aabb[AABB_ID*2+1].xyz;
+  vec4 corner[8];
+  for(uint i=0;i<8;++i){
+    ivec3 cornerMask = ivec3((i>>0)&1,(i>>1)&1,(i>>2)&1);
+    corner[i]=mvp*vec4(minPoint*(1-cornerMask)+maxPoint*(cornerMask),1);
+  }
+  visible|=uint(isAnyFaceVisible(corner));
+  visible|=uint(isAnyEdgeVisible(corner));
+  dibo[(AABB_ID*4)+1]=uint(visible);
+}

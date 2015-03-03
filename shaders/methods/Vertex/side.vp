@@ -1,0 +1,395 @@
+#version 100
+
+// DO NOT CHANGE ANYTHING BELOW THIS COMMENT!!!
+// UNLESS, OF COURSE, YOU KNOW WHAT YOU ARE DOING.
+
+// parameters of shader that can be declared
+// VERTEX_ATTRIB_NAME
+// LIGHT_UNIFORM_NAME
+// MATRIX_UNIFORM_NAME
+// MODEL_MATRIX_UNIFORM_NAME
+// VIEW_MATRIX_UNIFORM_NAME
+// PROJECTION_MATRIX_UNIFORM_NAME
+// SIDE_ID_INPUT_NAME
+// VERTEX_ID_ATTRIB_NAME
+// MAX_MULTIPLICITY
+// USE_INSTANCING
+// USE_MULTIDRAW
+// UNIVERSAL
+// USE_INSTANCE_ID_INSTEAD_OF_SIDE_ID
+// SEPARATE_MATRICES
+
+
+#ifndef MAX_MULTIPLICITY
+#define MAX_MULTIPLICITY 3
+#endif//MAX_MULTIPLICITY
+
+#ifndef VERTEX_ATTRIB_NAME
+#define VERTEX_ATTRIB_NAME position
+#endif//VERTEX_ATTRIB_NAME
+
+#ifndef LIGHT_UNIFORM_NAME
+#define LIGHT_UNIFORM_NAME lightPosition
+#endif//LIGHT_UNIFORM_NAME
+
+#ifndef MATRIX_UNIFORM_NAME
+#define MATRIX_UNIFORM_NAME mvp
+#endif//MATRIX_UNIFORM_NAME
+
+#ifndef MODEL_MATRIX_UNIFORM_NAME
+#define MODEL_MATRIX_UNIFORM_NAME m
+#endif//MODEL_MATRIX_UNIFORM_NAME
+
+#ifndef VIEW_MATRIX_UNIFORM_NAME
+#define VIEW_MATRIX_UNIFORM_NAME v
+#endif//VIEW_MATRIX_UNIFORM_NAME
+
+#ifndef PROJECTION_MATRIX_UNIFORM_NAME
+#define PROJECTION_MATRIX_UNIFORM_NAME p
+#endif//PROJECTION_MATRIX_UNIFORM_NAME
+
+#ifndef SIDE_ID_INPUT_NAME
+#define SIDE_ID_INPUT_NAME side
+#endif//SIDE_ID_INPUT_NAME
+
+#ifndef VERTEX_ID_ATTRIB_NAME
+#define VERTEX_ID_ATTRIB_NAME vertexID
+#endif//VERTEX_ID_ATTRIB_NAME
+
+#ifdef GL_core_profile
+  #define CORE_PROFILE
+#endif
+
+#ifdef GL_compatibility_profile
+  #define COMPATIBILITY_PROFILE
+#endif
+
+#ifdef GL_ES
+  #define ES_PROFILE
+#endif
+
+#if !defined(GL_core_profile) && !defined(GL_compatibility_profile) && !defined(GL_ES)
+  #define CORE_PROFILE
+#endif
+
+#ifdef ES_PROFILE
+  #if __VERSION__ >= 300
+    #define LAYOUT_AVAILABLE
+    #define VERTEX_ID_AVAILABLE
+    #define INSTANCE_ID_AVAILABLE
+    #define IN_KEYWORD_AVAILABLE
+  #endif
+  #define INSTANCING_AVAILABLE
+#endif
+
+#ifdef CORE_PROFILE
+  #if __VERSION__ >= 130
+    #define IN_KEYWORD_AVAILABLE
+    #define VERTEX_ID_AVAILABLE
+    #define IMOD_AVAILABLE
+  #endif
+
+  #if __VERSION__ >= 140
+    #define LAYOUT_AVAILABLE
+    #define INSTANCING_AVAILABLE
+    #define INSTANCE_ID_AVAILABLE
+  #endif
+
+  #if __VERSION__ >= 150
+    #define VERTEX_ARRAY_INPUT_AVAILABLE
+  #endif
+#endif
+
+#if defined(USE_INSTANCING) && defined(ES_PROFILE)
+  #define USE_INSTANCING_ES
+#endif
+
+#if defined(USE_INSTANCING) && !defined(INSTANCING_AVAILABLE)
+  #error instancing is not available
+#endif
+
+#if defined(USE_INSTANCING) && defined(ES_PROFILE)
+  #if defined(USE_MULTIDRAW)
+    #if MAX_MULTIPLICITY > 13
+      #error Max multiplicity cannot be greater than 13 when using instancing with multidraw on ES
+    #endif
+  #else
+    #if MAX_MULTIPLICITY > 12
+      #error Max multiplicity cannot be greater than 13 when using instancing on ES
+    #endif
+  #endif
+#else
+  #if MAX_MULTIPLICITY > 14 && defined(USE_INSTANCING) && !defined(ES_PROFILE) && defined(USE_MULTIDRAW)
+    #error Max multiplicity cannot be greater than 14
+  #endif
+#endif
+
+/////////////////////////////////////////////////////////////////////
+// differences between versions
+/////////////////////////////////////////////////////////////////////
+
+
+#define PASTER_(x,y) x##y
+#define PASTER(x,y) PASTER_(x,y)
+
+#ifdef IN_KEYWORD_AVAILABLE
+  #define INPUT_KEYWORD in
+#else
+  #define INPUT_KEYWORD attribute
+#endif
+
+#ifdef IMOD_AVAILABLE
+  #define IMOD(X,Y) (X%Y)
+#else
+  #define IMOD(X,Y) int(mod(float(X),float(Y)))
+#endif
+
+#ifdef LAYOUT_AVAILABLE
+  #define DEF_INPUT( type,name,number) layout(location=number)INPUT_KEYWORD type PASTER(name,number);
+  #define DEF_INPUT2(type,name,number) layout(location=number)INPUT_KEYWORD type name;
+#else
+  #define DEF_INPUT( type,name,number)                        INPUT_KEYWORD type PASTER(name,number);
+  #define DEF_INPUT2(type,name,number)                        INPUT_KEYWORD type name;
+#endif
+
+#ifdef VERTEX_ARRAY_INPUT_AVAILABLE
+  layout(location=0)in vec4 VERTEX_ATTRIB_NAME[MAX_MULTIPLICITY+2];
+#else
+  DEF_INPUT(vec4,VERTEX_ATTRIB_NAME,0)
+  DEF_INPUT(vec4,VERTEX_ATTRIB_NAME,1)
+
+  #if MAX_MULTIPLICITY>0
+  DEF_INPUT(vec4,VERTEX_ATTRIB_NAME,2)
+  #endif
+  #if MAX_MULTIPLICITY>1
+  DEF_INPUT(vec4,VERTEX_ATTRIB_NAME,3)
+  #endif
+  #if MAX_MULTIPLICITY>2
+  DEF_INPUT(vec4,VERTEX_ATTRIB_NAME,4)
+  #endif
+  #if MAX_MULTIPLICITY>3
+  DEF_INPUT(vec4,VERTEX_ATTRIB_NAME,5)
+  #endif
+  #if MAX_MULTIPLICITY>4
+  DEF_INPUT(vec4,VERTEX_ATTRIB_NAME,6)
+  #endif
+  #if MAX_MULTIPLICITY>5
+  DEF_INPUT(vec4,VERTEX_ATTRIB_NAME,7)
+  #endif
+  #if MAX_MULTIPLICITY>6
+  DEF_INPUT(vec4,VERTEX_ATTRIB_NAME,8)
+  #endif
+  #if MAX_MULTIPLICITY>7
+  DEF_INPUT(vec4,VERTEX_ATTRIB_NAME,9)
+  #endif
+  #if MAX_MULTIPLICITY>8
+  DEF_INPUT(vec4,VERTEX_ATTRIB_NAME,10)
+  #endif
+  #if MAX_MULTIPLICITY>9
+  DEF_INPUT(vec4,VERTEX_ATTRIB_NAME,11)
+  #endif
+  #if MAX_MULTIPLICITY>10
+  DEF_INPUT(vec4,VERTEX_ATTRIB_NAME,12)
+  #endif
+  #if MAX_MULTIPLICITY>11
+  DEF_INPUT(vec4,VERTEX_ATTRIB_NAME,13)
+  #endif
+  #if MAX_MULTIPLICITY>12
+  DEF_INPUT(vec4,VERTEX_ATTRIB_NAME,14)
+  #endif
+  #if MAX_MULTIPLICITY>13
+  DEF_INPUT(vec4,VERTEX_ATTRIB_NAME,15)
+  #endif
+#endif
+
+//declare vertexID
+#ifdef USE_INSTANCING
+  #ifndef VERTEX_ID_AVAILABLE
+    DEF_INPUT2(float,VERTEX_ID_ATTRIB_NAME,MAX_MULTIPLICITY+2)
+  #endif
+#endif
+
+//declare sideID
+#ifdef USE_MULTIDRAW
+uniform int SIDE_ID_INPUT_NAME;
+#else
+  #ifdef VERTEX_ID_AVAILABLE
+    #ifndef INSTANCE_ID_AVAILABLE
+      DEF_INPUT2(float,SIDE_ID_INPUT_NAME,MAX_MULTIPLICITY+2)
+    #endif
+  #else
+    #ifndef INSTANCE_ID_AVAILABLE
+      DEF_INPUT2(float,SIDE_ID_INPUT_NAME,MAX_MULTIPLICITY+2+1)
+    #endif
+  #endif
+#endif
+
+//set VERTEX_ID
+#ifdef USE_INSTANCING
+  #ifdef VERTEX_ID_AVAILABLE
+    #define VERTEX_ID int(gl_VertexID)
+  #else
+    #define VERTEX_ID int(VERTEX_ID_ATTRIB_NAME)
+  #endif
+#endif
+
+//set SIDE_ID
+#ifdef  USE_MULTIDRAW
+  #define SIDE_ID int(SIDE_ID_INPUT_NAME) 
+#else //USE_MULTIDRAW
+  #ifdef  USE_INSTANCING
+    #ifdef  INSTANCE_ID_AVAILABLE
+      #define SIDE_ID int(IMOD(gl_InstanceID,MAX_MULTIPLICITY))
+    #else //INSTANCE_ID_AVAILABLE
+      #ifdef  USE_INSTANCE_ID_INSTEAD_OF_SIDE_ID
+        #define SIDE_ID int(IMOD(int(SIDE_ID_INPUT_NAME),MAX_MULTIPLICITY))
+      #else //USE_INSTANCE_ID_INSTEAD_OF_SIDE_ID
+        #define SIDE_ID int(SIDE_ID_INPUT_NAME)
+      #endif//USE_INSTANCE_ID_INSTEAD_OF_SIDE_ID
+    #endif//INSTANCE_ID_AVAILABLE
+  #else //USE_INSTANCING
+    #define SIDE_ID int(int(POINT_B.w)/(4*4))
+  #endif//USE_INSTANCING
+#endif//USE_MULTIDRAW
+
+uniform vec4 LIGHT_UNIFORM_NAME;
+
+#ifdef  SEPARATE_MATRICES
+uniform mat4 MODEL_MATRIX_UNIFORM_NAME;
+uniform mat4 VIEW_MATRIX_UNIFORM_NAME;
+uniform mat4 PROJECTION_MATRIX_UNIFORM_NAME;
+#else //SEPARATE_MATRICES
+uniform mat4 MATRIX_UNIFORM_NAME;
+#endif//SEPARATE_MATRICES
+
+int greaterVec(vec3 a,vec3 b){
+  return int(dot(sign(a-b),vec3(4.0,2.0,1.0)));
+}
+int computeMult(vec3 A,vec3 B,vec3 C,vec4 L){
+  vec3 n=cross(C-A,L.xyz-A*L.w);
+  return int(sign(dot(n,B-A)));
+}
+
+#define CURRENT_MULTIPLICITY(mult,T0,T1,O)\
+  if(greaterVec(T0,O.xyz)>0)/*T[2] T[0] T[1]? */\
+    mult+=computeMult(O.xyz,T0,T1,LIGHT_UNIFORM_NAME);\
+  else if(greaterVec(T1,O.xyz)>0)/*T[0] T[2] T[1]?*/\
+    mult-=computeMult(T0,O.xyz,T1,LIGHT_UNIFORM_NAME);\
+  else/*T[0] T[1] T[2]?*/\
+    mult+=computeMult(T0,T1,O.xyz,LIGHT_UNIFORM_NAME);\
+
+#define CURRENT_MULTIPLICITY_IF(mult,T0,T1,nofOpposite,opposite)\
+  if(opposite-2<nofOpposite)\
+    CURRENT_MULTIPLICITY(mult,T0,T1,PASTER(VERTEX_ATTRIB_NAME,opposite))
+
+#ifdef VERTEX_ARRAY_INPUT_AVAILABLE
+  #define POINT_A VERTEX_ATTRIB_NAME[0]
+  #define POINT_B VERTEX_ATTRIB_NAME[1]
+#else
+  #define POINT_A PASTER(VERTEX_ATTRIB_NAME,0)
+  #define POINT_B PASTER(VERTEX_ATTRIB_NAME,1)
+#endif
+
+#ifdef  USE_INSTANCING
+  #define VERTEX_IDCCW_IN_SIDE int(VERTEX_ID>2?VERTEX_ID-2:2-VERTEX_ID)
+  #define VERTEX_IDCW_IN_SIDE  int(VERTEX_ID>2?6-VERTEX_ID:VERTEX_ID)
+#else //USE_INSTANCING
+  #define VERTEX_IDCCW_IN_SIDE int(IMOD(int(POINT_B.w)  ,4))
+  #define VERTEX_IDCW_IN_SIDE  int(IMOD(int(POINT_B.w)/4,4))
+#endif//USE_INSTANCING
+
+
+#ifdef UNIVERSAL
+  #define NOF_OPPOSITE int(POINT_A.w)
+#else
+  #define NOF_OPPOSITE MAX_MULTIPLICITY
+#endif
+
+void main(){
+  #ifdef  SEPARATE_MATRICES
+  mat4 MATRIX_UNIFORM_NAME=PROJECTION_MATRIX_UNIFORM_NAME*VIEW_MATRIX_UNIFORM_NAME*MODEL_MATRIX_UNIFORM_NAME;
+  #endif //SEPARATE_MATRICES
+
+  int vertexIDCCW = VERTEX_IDCCW_IN_SIDE;
+  int vertexIDCW  = VERTEX_IDCW_IN_SIDE;
+  int sideID      = SIDE_ID;
+
+  vec4 P[4];
+  P[0]=vec4(POINT_A.xyz,1);
+  P[1]=vec4(POINT_B.xyz,1);
+  P[2]=vec4(P[0].xyz*LIGHT_UNIFORM_NAME.w-LIGHT_UNIFORM_NAME.xyz,0);
+  P[3]=vec4(P[1].xyz*LIGHT_UNIFORM_NAME.w-LIGHT_UNIFORM_NAME.xyz,0);
+
+  int multiplicity=0;
+  #ifdef VERTEX_ARRAY_INPUT_AVAILABLE
+    #ifdef UNIVERSAL
+      for(uint m=0;m<NOF_OPPOSITE;++m)
+        CURRENT_MULTIPLICITY(multiplicity,P[0].xyz,P[1].xyz,VERTEX_ATTRIB_NAME[m+2])
+    #else
+      for(uint m=0;m<MAX_MULTIPLICITY;++m)
+        CURRENT_MULTIPLICITY(multiplicity,P[0].xyz,P[1].xyz,VERTEX_ATTRIB_NAME[m+2])
+    #endif
+  #else
+    #if MAX_MULTIPLICITY > 0
+    CURRENT_MULTIPLICITY_IF(multiplicity,P[0].xyz,P[1].xyz,NOF_OPPOSITE,2)
+    #endif
+    #if MAX_MULTIPLICITY > 1
+    CURRENT_MULTIPLICITY_IF(multiplicity,P[0].xyz,P[1].xyz,NOF_OPPOSITE,3)
+    #endif
+    #if MAX_MULTIPLICITY > 2
+    CURRENT_MULTIPLICITY_IF(multiplicity,P[0].xyz,P[1].xyz,NOF_OPPOSITE,4)
+    #endif
+    #if MAX_MULTIPLICITY > 3
+    CURRENT_MULTIPLICITY_IF(multiplicity,P[0].xyz,P[1].xyz,NOF_OPPOSITE,5)
+    #endif
+    #if MAX_MULTIPLICITY > 4
+    CURRENT_MULTIPLICITY_IF(multiplicity,P[0].xyz,P[1].xyz,NOF_OPPOSITE,6)
+    #endif
+    #if MAX_MULTIPLICITY > 5
+    CURRENT_MULTIPLICITY_IF(multiplicity,P[0].xyz,P[1].xyz,NOF_OPPOSITE,7)
+    #endif
+    #if MAX_MULTIPLICITY > 6
+    CURRENT_MULTIPLICITY_IF(multiplicity,P[0].xyz,P[1].xyz,NOF_OPPOSITE,8)
+    #endif
+    #if MAX_MULTIPLICITY > 7
+    CURRENT_MULTIPLICITY_IF(multiplicity,P[0].xyz,P[1].xyz,NOF_OPPOSITE,9)
+    #endif
+    #if MAX_MULTIPLICITY > 8
+    CURRENT_MULTIPLICITY_IF(multiplicity,P[0].xyz,P[1].xyz,NOF_OPPOSITE,10)
+    #endif
+    #if MAX_MULTIPLICITY > 9
+    CURRENT_MULTIPLICITY_IF(multiplicity,P[0].xyz,P[1].xyz,NOF_OPPOSITE,11)
+    #endif
+    #if MAX_MULTIPLICITY > 10
+    CURRENT_MULTIPLICITY_IF(multiplicity,P[0].xyz,P[1].xyz,NOF_OPPOSITE,12)
+    #endif
+    #if MAX_MULTIPLICITY > 11
+    CURRENT_MULTIPLICITY_IF(multiplicity,P[0].xyz,P[1].xyz,NOF_OPPOSITE,13)
+    #endif
+    #if MAX_MULTIPLICITY > 12
+    CURRENT_MULTIPLICITY_IF(multiplicity,P[0].xyz,P[1].xyz,NOF_OPPOSITE,14)
+    #endif
+    #if MAX_MULTIPLICITY > 13
+    CURRENT_MULTIPLICITY_IF(multiplicity,P[0].xyz,P[1].xyz,NOF_OPPOSITE,15)
+    #endif
+  #endif
+
+  if(sideID<int(abs(float(multiplicity)))){
+    if(multiplicity>0)
+      #ifdef ES_PROFILE
+      for(int i=0;i<4;++i)
+        if(i==vertexIDCCW)gl_Position=MATRIX_UNIFORM_NAME*P[i];
+      #else
+      gl_Position=MATRIX_UNIFORM_NAME*P[vertexIDCCW];
+      #endif
+    if(multiplicity<0)
+      #ifdef ES_PROFILE
+      for(int i=0;i<4;++i)
+        if(i==vertexIDCW)gl_Position=MATRIX_UNIFORM_NAME*P[i];
+      #else
+      gl_Position=MATRIX_UNIFORM_NAME*P[vertexIDCW];
+      #endif
+  }else
+    gl_Position=vec4(0,0,0,0);
+}
+

@@ -1,0 +1,56 @@
+#version 330
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack:enable
+
+layout(location=0) in vec4 Position00;
+layout(location=1) in vec4 Position01;
+layout(location=2) in vec4 Num;
+layout(location=3) in vec4 Position03;
+layout(location=4) in vec4 Position04;
+layout(location=5) in vec4 Position05;
+layout(location=6) in vec4 Position06;
+layout(location=7) in vec4 Position07;
+layout(location=8) in vec4 Position08;
+layout(location=9) in vec4 Position09;
+layout(location=10)in vec4 Position10;
+layout(location=11)in vec4 Position11;
+layout(location=12)in vec4 Position12;
+layout(location=13)in vec4 Position13;
+layout(location=14)in vec4 Position14;
+layout(location=15)in vec4 Position15;
+
+out vec4 vPosition01;
+out vec4 vNum;
+out vec4 vPosition03;
+out vec4 vPosition04;
+out vec4 vPosition05;
+out vec4 vPosition06;
+out vec4 vPosition07;
+out vec4 vPosition08;
+out vec4 vPosition09;
+out vec4 vPosition10;
+out vec4 vPosition11;
+out vec4 vPosition12;
+out vec4 vPosition13;
+out vec4 vPosition14;
+out vec4 vPosition15;
+
+
+void main(){
+	gl_Position=Position00;
+	vPosition01=Position01;
+	vNum=Num;
+	vPosition03=Position03;
+	vPosition04=Position04;
+	vPosition05=Position05;
+	vPosition06=Position06;
+	vPosition07=Position07;
+	vPosition08=Position08;
+	vPosition09=Position09;
+	vPosition10=Position10;
+	vPosition11=Position11;
+	vPosition12=Position12;
+	vPosition13=Position13;
+	vPosition14=Position14;
+	vPosition15=Position15;
+}

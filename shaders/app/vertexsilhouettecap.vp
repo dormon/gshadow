@@ -1,0 +1,24 @@
+#version 100
+
+attribute vec4 Position0;
+attribute vec4 Position1;
+attribute vec4 Position2;
+
+uniform vec4 LightPosition;
+uniform mat4 mvp;
+
+//LF:  0,1,2,5,4,3 -> 0,1,2,2,1,0
+//LBF: 0,1,2,5,4,3 -> 2,1,0,0,1,2
+void main(){
+	int VertexID=int(Position0.w);///8;
+	int VID=VertexID%3;
+	float FarCap=float(VertexID>2);
+	vec3 N=cross(Position1.xyz-Position0.xyz,Position2.xyz-Position0.xyz);
+	int Swap=(int(-sign(dot(vec4(N,-dot(N,Position0.xyz)),LightPosition)))+1)/2;
+	VID=Swap*(2-VID)+(1-Swap)*VID;
+	vec4 P=Position0*float(VID==0)+Position1*float(VID==1)+Position2*float(VID==2);
+	P.w=1.0;
+	P=P*(1.0-FarCap)+vec4(P.xyz*LightPosition.w-LightPosition.xyz,0)*FarCap;
+	gl_Position=mvp*P;
+	//gl_Position=vec4(VID%2,VID/2,0,1);
+}

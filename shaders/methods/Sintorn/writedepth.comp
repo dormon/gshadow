@@ -1,0 +1,49 @@
+#version 430 core
+
+//DO NOT EDIT ANYTHING BELOW THIS LINE
+
+#ifndef MAX_LEVELS
+  #define MAX_LEVELS 100
+#endif//MAX_LEVELS
+
+#ifndef LOCAL_TILE_SIZE_X
+  #define LOCAL_TILE_SIZE_X 8
+#endif//LOCAL_TILE_SIZE_X
+
+#ifndef LOCAL_TILE_SIZE_Y
+  #define LOCAL_TILE_SIZE_Y 8
+#endif//LOCAL_TILE_SIZE_Y
+
+/*
+2D work group
+2D Dispatch
+*/
+
+#define WAVEFRONT_SIZE (LOCAL_TILE_SIZE_X*LOCAL_TILE_SIZE_Y)
+
+layout(local_size_x=LOCAL_TILE_SIZE_X,local_size_y=LOCAL_TILE_SIZE_Y)in;
+layout(location=0)uniform sampler2DRect Depth;
+layout(std430,binding=0)writeonly buffer HDB{vec2 HDBData[];};
+
+uniform uvec2 WindowSize;
+uniform uvec2 TileDivisibility[MAX_LEVELS];
+uniform uvec2 TileSizeInPixels[MAX_LEVELS];
+uniform uint  NumLevels;
+
+void main(){
+  //are we outside of bounds of window?
+  if(any(greaterThanEqual(gl_GlobalInvocationID.xy,WindowSize)))return;
+  //now we are going to compute correct 1D index of sample inside the HDB
+  uvec2 LocalCoord=gl_GlobalInvocationID.xy;
+  uint SampleIndex=0;
+  for(uint level=0;level<NumLevels;++level){//loop over levels
+    uvec2 TileCoord  = LocalCoord/TileSizeInPixels[level];
+    uint  TileIndex  = uint(dot(TileCoord,uvec2(1u,TileDivisibility[level].x)));
+    SampleIndex     *= WAVEFRONT_SIZE;
+    SampleIndex     += TileIndex; 
+    LocalCoord      &= (TileSizeInPixels[level]-1);
+  }
+
+  HDBData[SampleIndex]=vec2(texelFetch(Depth,ivec2(gl_GlobalInvocationID.xy)).r*2-1);
+}
+

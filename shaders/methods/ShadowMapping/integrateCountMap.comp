@@ -1,0 +1,42 @@
+#version 440 core
+
+#ifndef WAVEFRONT_SIZE
+  #define WAVEFRONT_SIZE 64
+#endif//WAVEFRONT_SIZE
+
+#ifndef ROWS_PER_WORKGROUP
+  #define ROWS_PER_WORKGROUP 1
+#endif//ROWS_PER_WORKGROUP
+
+#define WORKGROUP_SIZE_X WAVEFRONT_SIZE
+#define WORKGROUP_SIZE_Y ROWS_PER_WORKGROUP
+#define ROW_ID_IN_WORKGROUP        gl_LocalInvocationID.y
+#define ROW_ID_IN_DISPATCH         gl_GlobalInvocationID.y
+#define INVOCATION_ID_IN_WAVEFRONT gl_LocalInvocationID.x
+#define DATA_ID_IN_ROW             gl_GlobalInvocationID.x
+
+
+layout(local_size_x=WORKGROUP_SIZE_X,local_size_y=WORKGROUP_SIZE_Y)in;
+
+
+
+
+
+layout(r32ui,binding=0) readonly uniform uimage2D countMap;
+layout(r32ui,binding=1)writeonly uniform uimage2D integratedCountMap;
+
+
+
+shared uint rowPart[ROWS_PER_WORKGROUP][WAVEFRONT_SIZE];
+
+
+void main(){
+  //cooperative read to shared memory
+  rowPart[ROW_ID_IN_WORKGROUP][INVOCATION_ID_IN_WAVEFRONT]=imageLoad(integratedCountMap,ivec2(DATA_ID_IN_ROW,ROW_ID_IN_DISPATCH)).x;
+  //part A
+  for(uint i=1;i<WAVEFRONT_SIZE;i<<=1){
+    if(INVOCATION_ID_IN_WAVEFRONT)
+      rowPart[ROW_ID_IN_WORKGROUP][(INVOCATION_ID_IN_WAVEFRONT<<i)+(1<<i)-1]+=rowPart[ROW_ID_IN_WORKGROUP][(INVOCATION_ID_IN_WAVEFRONT<<1)+(1<<(i-1))-1]
+  }
+  //part B
+}

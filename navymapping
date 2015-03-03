@@ -1,0 +1,21 @@
+Camera Pixel = Cixel
+Camera Resolution = Rc
+Light Pixel = Lixel
+Light Resolution = Lc
+
+Scene is composed of line segmenets Xi(t).
+Xi(t),Ai,Bi € R^2
+S={Xi(t)=Ai+t*(Bi-Ai),t€<0,1>}
+k-Cixels center:
+C(k)=(0,k), k € N, k>=0,k<Rc, P(k) € R^2
+Center of camera projection (camera position)
+C € R^2
+k-Lixels center:
+L(k)=L0+k/(Lc-1)*(L1-L0)
+L(k), L0, L1 € R^2
+Center of light projection (light position)
+L € R^2
+
+
+
+

@@ -1,0 +1,119 @@
+{
+  name
+  Memcheck:Cond
+  ...
+  obj:/usr/lib/fglrx/dri/fglrx_dri.so
+  ...
+}
+
+{
+  name
+  Memcheck:Free
+  ...
+  obj:/usr/lib/fglrx/dri/fglrx_dri.so
+  ...
+}
+
+{
+  name
+  Memcheck:Value8
+  ...
+  obj:/usr/lib/fglrx/dri/fglrx_dri.so
+  ...
+}
+
+{
+  name
+  Memcheck:Value2
+  ...
+  obj:/usr/lib/fglrx/dri/fglrx_dri.so
+  ...
+}
+
+{
+  name
+  Memcheck:Param
+  ...
+  obj:/usr/lib/fglrx/dri/fglrx_dri.so
+  ...
+}
+
+{
+  name
+  Memcheck:Addr1
+  ...
+  obj:/usr/lib/fglrx/dri/fglrx_dri.so
+  ...
+}
+
+{
+  name
+  Memcheck:Addr2
+  ...
+  obj:/usr/lib/fglrx/dri/fglrx_dri.so
+  ...
+}
+
+{
+  name
+  Memcheck:Addr4
+  ...
+  obj:/usr/lib/fglrx/dri/fglrx_dri.so
+  ...
+}
+
+{
+  name
+  Memcheck:Addr8
+  ...
+  obj:/usr/lib/fglrx/dri/fglrx_dri.so
+  ...
+}
+
+
+{
+  name
+  Memcheck:Value8
+  ...
+  obj:/usr/lib/valgrind/vgpreload_memcheck-amd64-linux.so
+  ...
+}
+
+{
+  name
+  Memcheck:Leak
+  fun:*alloc
+  ...
+  obj:/usr/lib/fglrx/dri/fglrx_dri.so
+  ...
+}
+
+{
+  name
+  Memcheck:Leak
+  ...
+  obj:/usr/lib/fglrx/dri/fglrx_dri.so
+  ...
+}
+
+{
+  name
+  Memcheck:Param
+  ioctl(generic)
+  ...
+  obj:/usr/lib/fglrx/dri/fglrx_dri.so
+  ...
+}
+
+
+
+{
+  name
+  Memcheck:Leak
+  ...
+  obj:/usr/lib/x86_64-linux-gnu/libX11.so.6.3.0
+  ...
+}
+
+
+

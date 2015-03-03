@@ -1,0 +1,59 @@
+#version 440 core
+
+/*
+udrzovat si reprezentaci objektu na na gpu
+udrzovat si seznam renderablu na gpu
+*/
+
+#ifndef SORTRENDERABLE_BINDING_RENDERABLE
+#define SORTRENDERABLE_BINDING_RENDERABLE 0
+#endif//SORTRENDERABLE_BINDING_RENDERABLE
+
+#define CEIL(x,y) (x/y+uint(x%y!=0))
+
+#ifndef UINT_BIT_SIZE
+#define UINT_BIT_SIZE 32
+#endif//UINT_BIT_SIZE
+
+#ifndef MAX_VIEWPORTS
+#define MAX_VIEWPORTS 16
+#endif//MAX_VIEWPORTS
+
+struct FramebufferBox{
+  
+}
+struct DepthState{
+  uint depthFunc    ;//8 3
+  uint depthMask    ;//2 1
+  uint depthEnable  ;//2 1
+};
+
+struct StencilState{
+  uint stencilMask  ;//2 1
+  uint stencilMaskSeparate;//4 2
+};
+
+struct ScissorState{
+  uint scissorEnable[CEIL(MAX_VIEWPORTS,UINT_BIT_SIZE)];
+  uint scissorLeft  [MAX_VIEWPORTS];
+  uint scissorRight [MAX_VIEWPORTS];
+  uint scissorBottom[MAX_VIEWPORTS];
+  uint scissorTop   [MAX_VIEWPORTS];
+};
+
+struct Renderable{
+  uint colorMask    ;//16 4
+  uint colorMaski   ;//2^4*i 4*i
+
+  uint fbo          ;
+  uint program      ;
+  uint vao          ;
+  uint primitiveType;
+  uint drawType     ;
+};
+
+layout(std430,binding=SORTRENDERABLE_BINDING_RENDERABLE)buffer SRenderable{Renderable renderable[];};
+
+void main(){
+
+}
