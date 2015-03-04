@@ -2,7 +2,6 @@
 
 #define USE_BALLOT
 
-
 //DO NOT EDIT ANYTHING BELOW THIS COMMENT
 
 #ifdef USE_BALLOT
@@ -10,7 +9,9 @@
   #extension GL_AMD_gpu_shader_int64 : enable
 #endif
 
-#define JOIN(x,y) x##y
+#define JOIN__(x,y) x##y
+#define JOIN_(x,y) JOIN__(x,y)
+#define JOIN(x,y) JOIN_(x,y)
 
 #ifndef NUMBER_OF_LEVELS
   #define NUMBER_OF_LEVELS 4

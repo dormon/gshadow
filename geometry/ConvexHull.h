@@ -26,6 +26,7 @@ namespace geometry{
           unsigned cS,unsigned cE,bool bi,
           std::vector<PointC*>usefull,
           std::vector<PointC*>useless);
+      void _getSilhouetteVertices(std::vector<PointC*>&sil,glm::vec3 p);
 
       void _getUsefulPoints(
           std::vector<PointC*>&useful,
@@ -55,6 +56,8 @@ namespace geometry{
   };
 
   void camera2Plane(Plane*plane,unsigned*numPlanes,glm::mat4 p,glm::mat4 v);
+
+  void getMinimalVP(glm::mat4*lp,glm::mat4*lv,glm::mat4 p,glm::mat4 v,glm::vec3 minPoint,glm::vec3 maxPoint,glm::vec3 light);
 
  
 }

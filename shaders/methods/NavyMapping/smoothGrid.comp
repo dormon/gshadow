@@ -27,7 +27,7 @@ layout(r32f  ,binding=BINDING_SMOOTH)uniform  image2D smoothedGrid;
 
 vec2 getGrid(uint i){
   uvec2 data=imageLoad(grid,ivec2(i,gl_GlobalInvocationID.y)).rg;
-  return vec2(2.*data.x/SHADOWMAP_SIZE-1,data.y);
+  return vec2(2.*float(data.x)/SHADOWMAP_SIZE-1,data.y);
 }
 
 uniform int gridSize=4;

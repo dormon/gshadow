@@ -60,7 +60,7 @@ vec4 getColor(float t){
 void main(){
   uint sampleCount=imageLoad(unwarpXCountMap,ivec2((gCoord.yx*.5+.5)*SHADOWMAP_SIZE)).x;
   fColor=getColor(sampleCount);
-  fColor=getColor(sampleCount/50.);
+  fColor=getColor(float(sampleCount)/50.);
   /*if(sampleCount>1)fColor=vec4(1);
   else fColor=vec4(0);*/
   //fColor=vec4(1,0,0,1);

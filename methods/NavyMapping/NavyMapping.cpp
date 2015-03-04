@@ -82,8 +82,6 @@ NavyMapping::NavyMapping(
 			ShaderDir+"methods/ShadowMapping/createshadowmap.vp",
 			ShaderDir+"methods/ShadowMapping/createshadowmap.fp");
 
-  std::cerr<<"ahahsd"<<std::endl;
-
 	this->CNM = new ge::gl::ProgramObject(
 			ShaderDir+"methods/NavyMapping/createNavyMap.vp",
       ge::gl::ShaderObject::define("SHADOWMAP_SIZE",(int)this->ShadowMapSize   )+
@@ -135,6 +133,7 @@ NavyMapping::NavyMapping(
       ge::gl::ShaderObject::define("WRITECM_BINDING_POSITIONMAP",WRITECM_BINDING_POSITIONMAP)+
       ge::gl::ShaderObject::define("WRITECM_BINDING_COUNTMAP"   ,WRITECM_BINDING_COUNTMAP   )+
       "");
+  std::cerr<<"jojo\n";
 
   this->prefixSumXProgram = new ge::gl::ProgramObject(
       ShaderDir+"methods/NavyMapping/prefixSum.comp",
@@ -173,6 +172,7 @@ NavyMapping::NavyMapping(
       ShaderDir+"methods/NavyMapping/drawGrid.fp",
       "");
 
+  std::cerr<<"jojasdo\n";
   this->smoothGridProgram = new ge::gl::ProgramObject(
       ShaderDir+"methods/NavyMapping/smoothGrid.comp",
       ge::gl::ShaderObject::define("BINDING_GRID"       ,SMOOTHGRID_BINDING_GRID    )+
@@ -182,6 +182,7 @@ NavyMapping::NavyMapping(
       ge::gl::ShaderObject::define("WALKING_WINDOW_SIZE",WALKING_WINDOW_SIZE        )+
       "");
 
+  std::cerr<<"jojo2\n";
   this->unwarpXProgram = new ge::gl::ProgramObject(
       ShaderDir+"methods/NavyMapping/unwarpx.vp",
       ShaderDir+"methods/NavyMapping/unwarpx.gp",
@@ -193,6 +194,7 @@ NavyMapping::NavyMapping(
       ge::gl::ShaderObject::define("SHADOWMAP_SIZE"                 ,(int)this->ShadowMapSize       )+
       "");
 
+  std::cerr<<"jojo3\n";
   this->drawUnwarpXProgram = new ge::gl::ProgramObject(
       ShaderDir+"methods/NavyMapping/drawUnwarpX.vp",
       ShaderDir+"methods/NavyMapping/drawUnwarpX.gp",
@@ -201,6 +203,7 @@ NavyMapping::NavyMapping(
       ge::gl::ShaderObject::define("SHADOWMAP_SIZE"                     ,(int)this->ShadowMapSize                )+
       "");
 
+  std::cerr<<"jojoasssdsd\n";
   this->countMap = new ge::gl::TextureObject(GL_TEXTURE_2D,GL_R32UI,1,
       this->ShadowMapSize,this->ShadowMapSize);
   this->countMap->texParameteri(GL_TEXTURE_MAG_FILTER,GL_NEAREST);

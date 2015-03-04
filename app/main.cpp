@@ -472,7 +472,8 @@ int main(int Argc,char*Argv[]){
   }
 
 
-  ge::gl::setDefaultDebugMessage();
+  //ge::gl::setDefaultDebugMessage();
+  ge::gl::setHighDebugMessage();
 
   EmptyVAO=new ge::gl::VertexArrayObject();
   //todo addAttrib
@@ -1303,7 +1304,8 @@ void Idle(){
     simpleDraw->setView(View);
     simpleDraw->setProjection(Projection);
     simpleDraw->setColor(1,0,0,2);
-
+    
+    
     geometry::ConvexHull*sceneHull=new geometry::ConvexHull(sceneAABB->minPoint,sceneAABB->maxPoint);
     geometry::ConvexTriangles*sceneHullTriangles=new geometry::ConvexTriangles(sceneHull);
 

@@ -109,7 +109,7 @@ vec3  Ka        = vec3((color.xyz>>0)&0xff)/0xff;
 vec3  Kd        = Ka;
 vec3  Ks        = vec3((color.xyz>>8)&0xff)/0xff;
 float Shininess = 50;//shininess factor
-float specularFactor = color.w/255.;
+float specularFactor = float(color.w)/255.;
 
 vec3 ComputeDiffuseSpecular(){
 	vec3  gPosition    = texelFetch(Position,Coord,0).xyz;

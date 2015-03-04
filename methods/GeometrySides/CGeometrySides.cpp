@@ -92,10 +92,12 @@ std::string traslateBoolean(GLboolean boolean){
 CGeometrySides::CGeometrySides(
     SAdjecency*Adjacency,
     SGeometryTemplate t){
+  std::cerr<<"ASDASDASDASD\n";
   this->Adjacency=Adjacency;
   this->Universal=t.Universal;
   //generate VBO
   if(this->Universal){
+    std::cerr<<"UNIVERSAL\n";
     unsigned NumV=2+1+this->Adjacency->MaxOpposite;
     this->UVBO=new ge::gl::BufferObject(
         sizeof(float)*4*NumV*this->Adjacency->NumEdges,NULL,GL_STATIC_DRAW);
@@ -127,17 +129,17 @@ CGeometrySides::CGeometrySides(
     }
     this->UVBO->unmap();
   }else{
+
     this->SVBO=new ge::gl::BufferObject*[this->Adjacency->MaxOpposite];
     for(unsigned m=0;m<this->Adjacency->MaxOpposite;++m){//loop over multiplicities
       if(this->Adjacency->ClassCard[m]==0)continue;//skip empty classes
-      //std::cerr<<"CARD: "<<m+1<<" : "<<this->Adjacency->ClassCard[m]<<std::endl;
+      std::cerr<<"CARD: "<<m+1<<" : "<<this->Adjacency->ClassCard[m]<<std::endl;
       unsigned NumV=2+(m+1);
       this->SVBO[m]=new ge::gl::BufferObject(
-          sizeof(float)*4*NumV*this->Adjacency->ClassCard[m],NULL,GL_STATIC_DRAW);
+          sizeof(float)*4*NumV*this->Adjacency->ClassCard[m],NULL,GL_DYNAMIC_DRAW);
       float*Ptr=(float*)this->SVBO[m]->map();
       unsigned ec=0;
       for(unsigned e=0;e<this->Adjacency->NumEdges;++e){//loop over edges
-
         if(this->Adjacency->EdgeOppositeNum[e]!=m+1)continue;//this is different class
         //A
         for(int k=0;k<3;++k)
@@ -209,6 +211,7 @@ CGeometrySides::CGeometrySides(
       this->SVBO[m]->unbind(GL_ARRAY_BUFFER);
     }
   }
+  std::cerr<<"i tady"<<std::endl;
 
   if(this->uvao){
     std::cerr<<this->uvao->getInfo();

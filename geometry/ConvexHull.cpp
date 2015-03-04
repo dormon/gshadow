@@ -718,6 +718,8 @@ std::string ConvexHull::allToStr(){
 unsigned ConvexHull::extend(glm::vec3 p){
   if(this->inside(p))return this->points.size();
 
+  glm::vec3 center=this->getCenter();
+
   std::vector<bool>frontFacing;
   std::vector<bool>backFacing;
   std::vector<PlaneC*>frontFacingPlanes;
@@ -821,7 +823,6 @@ unsigned ConvexHull::extend(glm::vec3 p){
   backFacingPoints.clear();
 
 
-  glm::vec3 center=this->getCenter();
 
   PointC*newPoint=new PointC(p);
 
@@ -868,4 +869,74 @@ unsigned ConvexHull::extend(glm::vec3 p){
 void ConvexHull::sortFaces(){
   for(unsigned i=0;i<this->planes.size();++i)
     this->planes[i]->sortPoints();
+}
+
+void ConvexHull::_getSilhouetteVertices(std::vector<PointC*>&sil,glm::vec3 p){
+  if(this->inside(p))return;
+
+  std::vector<bool>frontFacing;
+  std::vector<bool>backFacing;
+  std::vector<PlaneC*>frontFacingPlanes;
+  std::vector<PlaneC*>backFacingPlanes;
+  std::vector<PointC*>frontFacingPoints;
+  std::vector<PointC*>backFacingPoints;
+  for(unsigned i=0;i<this->points.size();++i){
+    frontFacing.push_back(false);
+    backFacing.push_back(false);
+  }
+
+  for(unsigned i=0;i<this->planes.size();++i){
+    PlaneC*currentPlane=this->planes[i];
+    if(currentPlane->plane.distance(p)<0){
+      backFacingPlanes.push_back(currentPlane);
+      for(unsigned j=0;j<currentPlane->points.size();++j)
+        backFacing[currentPlane->points[j]->index]=true;
+    }else{
+      frontFacingPlanes.push_back(currentPlane);
+      for(unsigned j=0;j<currentPlane->points.size();++j)
+        frontFacing[currentPlane->points[j]->index]=true;
+    }
+  }
+  std::vector<PointC*>silhouetteVertices;
+  for(unsigned i=0;i<this->points.size();++i)
+    if(frontFacing[i]&&backFacing[i])
+      silhouetteVertices.push_back(this->points[i]);
+    else{
+      if(frontFacing[i])frontFacingPoints.push_back(this->points[i]);
+      if(backFacing[i])backFacingPoints.push_back(this->points[i]);
+    }
+
+  std::vector<bool>used;
+  for(unsigned i=0;i<silhouetteVertices.size();++i)used.push_back(false);
+
+  for(unsigned i=0;i<silhouetteVertices.size();++i)
+    sil.push_back(NULL);
+
+  PointC*last=silhouetteVertices[0];
+  PointC*lastlast=silhouetteVertices[0];
+  unsigned counter=0;
+  while(counter<silhouetteVertices.size()){
+    for(unsigned i=0;i<silhouetteVertices.size();++i){
+      PointC*c=silhouetteVertices[i];
+      if((void*)c==(void*)last)continue;
+      if((void*)c==(void*)lastlast)continue;
+      PlaneC*pa;
+      PlaneC*pb;
+      if(last->onLineSegment(&pa,&pb,c)){
+        bool aback=false;
+        bool bback=false;
+        for(unsigned k=0;k<backFacingPlanes.size();++k){
+          if(backFacingPlanes[k]==pa)aback=true;
+          if(backFacingPlanes[k]==pb)bback=true;
+          if(aback&&bback)break;
+        }
+        if(((aback)&&(bback))||((!aback)&&(!bback)))continue;
+        lastlast=last;
+        last=silhouetteVertices[i];
+        sil[counter]=last;
+        counter++;
+        break;
+      }
+    }
+  }
 }
