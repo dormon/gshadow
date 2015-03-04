@@ -62,22 +62,9 @@ void ConvexHull::setPlanes(std::vector<Plane>&planes){
   //std::cerr<<"allPlanes.size(): "<<allPlanes.size()<<std::endl;
 
 
-  std::vector<PointC*>allPoints;
-  this->_getNewPoints(allPoints,allPlanes,0,2,allPlanes,1,1,true,allPlanes,1,0,true);
-
-  //std::cerr<<"allPoints.size(): "<<allPoints.size()<<std::endl;
-  //for(unsigned i=0;i<allPoints.size();++i){
-  //  std::cerr<<allPoints[i]->toStr()<<std::endl;
-  //  std::cerr<<allPoints[i]->dataToStr()<<std::endl;
-  //}
-
   std::vector<PointC*>usefulPoints;
-  std::vector<PointC*>uselessPoints;
-  this->_getUsefulPoints(usefulPoints,uselessPoints,allPoints,allPlanes);
-
-  //std::cerr<<"usefulPoints.size(): "<<usefulPoints.size()<<std::endl;
-  //std::cerr<<"uselessPoints.size(): "<<uselessPoints.size()<<std::endl;
-
+  std::vector<PointC*>empty;
+  this->_getNewPoints(usefulPoints,allPlanes,0,2,allPlanes,1,1,true,allPlanes,1,0,true,empty,empty);
 
   std::vector<PlaneC*>usefulPlanes;
   std::vector<PlaneC*>uselessPlanes;
@@ -91,12 +78,6 @@ void ConvexHull::setPlanes(std::vector<Plane>&planes){
     for(unsigned j=0;j<uselessPlanes.size();++j)
       usefulPoints[i]->removePlane(uselessPlanes[j]);
 
-  for(unsigned i=0;i<usefulPlanes.size();++i)
-    for(unsigned j=0;j<uselessPoints.size();++j)
-      usefulPlanes[i]->removePoint(uselessPoints[j]);
-
-  for(unsigned i=0;i<uselessPoints.size();++i)
-    delete uselessPoints[i];
   for(unsigned i=0;i<uselessPlanes.size();++i)
     delete uselessPlanes[i];
 
@@ -271,7 +252,9 @@ void ConvexHull::_getNewPoints(
     std::vector<PlaneC*>&bPlanes,
     unsigned bS,unsigned bE,bool ai,
     std::vector<PlaneC*>&cPlanes,
-    unsigned cS,unsigned cE,bool bi){
+    unsigned cS,unsigned cE,bool bi,
+    std::vector<PointC*>useful,
+    std::vector<PointC*>useless){
   for(unsigned i=aS;i<aPlanes.size()-aE;++i){
     for(unsigned j=i*ai+bS;j<bPlanes.size()-bE;++j){
       for(unsigned k=j*bi+cS;k<cPlanes.size()-cE;++k){
@@ -282,9 +265,48 @@ void ConvexHull::_getNewPoints(
         glm::vec3 p=geometry::planes2Point(pa->plane,pb->plane,pc->plane);
         if(glm::any(glm::isnan(p)))continue;
 
+        PointC*newPoint=new PointC(p,pa,pb,pc);
+        for(unsigned l=0;l<useful.size();++l){
+          if(useful[l]->eqByAny(newPoint)){
+            useful[l]->addCreator(newPoint);
+            delete newPoint;
+            newPoint=NULL;
+            break;
+          }
+        }
+        if(!newPoint)continue;
+        for(unsigned l=0;l<useless.size();++l){
+          if(useless[l]->eqByAny(newPoint)){
+            useless[l]->addCreator(newPoint);
+            delete newPoint;
+            newPoint=NULL;
+            break;
+          }
+        }
+        if(!newPoint)continue;
+        if(!this->_isUseful(newPoint,aPlanes)){
+          delete newPoint;
+          newPoint=NULL;
+        }
+        if(!newPoint)continue;
+        if(bPlanes!=aPlanes){
+          if(!this->_isUseful(newPoint,bPlanes)){
+            delete newPoint;
+            newPoint=NULL;
+          }
+        }
+        if(!newPoint)continue;
+        if(cPlanes!=aPlanes||cPlanes!=bPlanes){
+          if(!this->_isUseful(newPoint,cPlanes)){
+            delete newPoint;
+            newPoint=NULL;
+          }
+        }
+        if(!newPoint)continue;
         bool same=false;
+
         for(unsigned l=0;l<newPoints.size();++l)
-          if(newPoints[l]->point==p){
+          if(newPoints[l]->point==newPoint->point){
             if(newPoints[l]->pushOnlyPlane(pa))pa->pushPoint(newPoints[l]);
             if(newPoints[l]->pushOnlyPlane(pb))pb->pushPoint(newPoints[l]);
             if(newPoints[l]->pushOnlyPlane(pc))pc->pushPoint(newPoints[l]);
@@ -295,7 +317,6 @@ void ConvexHull::_getNewPoints(
             break;
           }
         if(!same){
-          PointC*newPoint=new PointC(p,pa,pb,pc);
           newPoint->pushOnlyPlane(pa);
           newPoint->pushOnlyPlane(pb);
           newPoint->pushOnlyPlane(pc);
@@ -303,7 +324,7 @@ void ConvexHull::_getNewPoints(
           pb->pushPoint(newPoint);
           pc->pushPoint(newPoint);
           newPoints.push_back(newPoint);
-        }
+        }else delete newPoint;
       }
     }
   }
@@ -341,8 +362,23 @@ void ConvexHull::_getUsefulPoints(
   }
 }
 
+bool ConvexHull::_isUseful(
+    PointC*newPoint,
+    std::vector<PlaneC*>planes){
+  for(unsigned j=0;j<planes.size();++j){
+    PlaneC*curPlane=planes[j];
+    bool skip=false;
+    if(newPoint->doesCreatorsContain(curPlane->plane))skip=true;
+    if(newPoint->doesPlanesContain  (curPlane->plane))skip=true;
+    if(skip)continue;
+    if(curPlane->plane.distance(newPoint->point)<0)return false;
+  }
+  return true;
+}
+
+
 ConvexHull*ConvexHull::intersect(ConvexHull*b){
-  std::cerr<<"TADY-1"<<std::endl;
+  //std::cerr<<"TADY-1"<<std::endl;
   ConvexHull*a=this;
   ConvexHull*hull[2]={a,b};
 
@@ -376,10 +412,11 @@ ConvexHull*ConvexHull::intersect(ConvexHull*b){
         allPlanes[planeOffset[h]+i]->pushPoint(allPoints[pointOffset[h]+hull[h]->planes[i]->points[j]->index]);
     }
   }
-
-  for(unsigned i=0;i<allPlanes.size();++i){
-    std::cerr<<allPlanes[i]->toStr()<<std::endl;
-  }
+  /*
+     for(unsigned i=0;i<allPlanes.size();++i){
+     std::cerr<<allPlanes[i]->toStr()<<std::endl;
+     }
+     */
   //COPY IS READY
 
   std::vector<unsigned>equalPoint;
@@ -406,19 +443,17 @@ ConvexHull*ConvexHull::intersect(ConvexHull*b){
     }
   }
   //EQUIVALENCE READY
-  
-  std::cerr<<"TADY0"<<std::endl;
 
   std::vector<PointC*>uniqPoints;
   for(unsigned i=0;i<allPoints.size();++i){
-    if(equalPoint[i]==i){
+    if(equalPoint[i]==i){//this point i uniq
       PointC*curPoint=allPoints[i];
       for(unsigned j=0;j<curPoint->planes.size();++j){
         unsigned planeID=curPoint->planes[j]->index;
         if(equalPlane[planeID]<planeID)curPoint->planes[j]=allPlanes[equalPlane[planeID]];
       }
       uniqPoints.push_back(curPoint);
-    }else if(equalPoint[i]>i){
+    }else if(equalPoint[i]>i){//there exist redundant point with greater index
       PointC*curPoint = allPoints[i];
       PointC*eqPoint  = allPoints[equalPoint[i]];
       for(unsigned j=0;j<eqPoint->planes.size();++j){
@@ -428,16 +463,54 @@ ConvexHull*ConvexHull::intersect(ConvexHull*b){
       }
       curPoint->addCreator(eqPoint);
       uniqPoints.push_back(curPoint);
-    }else delete allPoints[i];
+    }else{//this point i redundant
+      for(unsigned j=0;j<allPlanes.size();++j)
+        if(allPlanes[j]->removePoint(allPoints[i]))
+          allPlanes[j]->pushPoint(allPoints[equalPoint[i]]);
+      delete allPoints[i];
+      allPoints[i]=NULL;
+    }
+  }
+  for(unsigned i=0;i<allPlanes.size();++i){
+    if(equalPlane[i]<i){
+      delete allPlanes[i];
+      allPlanes[i]=NULL;
+    }
   }
 
-  std::cerr<<"TADY1"<<std::endl;
+  for(unsigned i=0;i<allPlanes.size();++i){
+    if(!allPlanes[i])continue;
+    allPlanes[i]->pushContainedPoints(uniqPoints);
+  }
+  for(unsigned i=0;i<uniqPoints.size();++i){
+    if(!uniqPoints[i])continue;
+    uniqPoints[i]->pushContainedPlanes(allPlanes);
+  }
+
+  /*
+  std::cerr<<"{{{{{{{{{{{{{{{{1\n";
+  for(unsigned i=0;i<allPoints.size();++i)
+    if(allPoints[i])std::cerr<<allPoints[i]->toStr();
+  std::cerr<<"}}}}}}}}}}}}}}}}1\n";
+
+  std::cerr<<"[[[[[[[[[[[[[[[[1\n";
+  for(unsigned i=0;i<allPlanes.size();++i)
+    if(allPlanes[i])std::cerr<<allPlanes[i]->toStr();
+  std::cerr<<"]]]]]]]]]]]]]]]]1\n";
+  // */
+
+  /*
+     for(unsigned i=0;i<uniqPoints.size();++i)
+     std::cerr<<uniqPoints[i]->dataToStr()<<std::endl;
+     std::cerr<<"TADY1"<<std::endl;
+     */
 
   std::vector<PlaneC*>uniqPlanes;
   std::vector<PlaneC*>aPlanes;
   std::vector<PlaneC*>bPlanes;
   std::vector<unsigned>planeOrigin;
   for(unsigned i=0;i<allPlanes.size();++i){
+    if(!allPlanes[i])continue;
     bool uniq=false;
     for(unsigned j=0;j<uniqPoints.size();++j)
       if(uniqPoints[j]->doesPlanesContain(allPlanes[i]->plane)){
@@ -449,10 +522,21 @@ ConvexHull*ConvexHull::intersect(ConvexHull*b){
       if(i<a->planes.size())aPlanes.push_back(allPlanes[i]);
       else bPlanes.push_back(allPlanes[i]);
     }
-    else delete allPlanes[i];
+    else delete allPlanes[i];//TODO REMOVE FROM POINTS?
   }
   //MERGED SAME DATA
-  std::cerr<<"TADY2"<<std::endl;
+  /*
+     for(unsigned i=0;i<uniqPlanes.size();++i)
+     std::cerr<<uniqPlanes[i]->plane.toStr()<<std::endl;
+     std::cerr<<"TADY2"<<std::endl;
+     */
+  /*
+  std::cerr<<"(((((((((((0\n";
+  for(unsigned i=0;i<uniqPlanes.size();++i){
+    std::cerr<<uniqPlanes[i]->toStr();
+  }
+  std::cerr<<")))))))))))0\n";
+  // */
 
   std::vector<PointC*>usefulPoints;
   std::vector<PointC*>uselessPoints;
@@ -460,58 +544,78 @@ ConvexHull*ConvexHull::intersect(ConvexHull*b){
       usefulPoints,
       uselessPoints,
       uniqPoints,
-      uniqPlanes);
-  std::cerr<<"TADY3"<<std::endl;
+      uniqPlanes);//TODO TODO
+  /*
+  std::cerr<<"(((((((((((.5\n";
+  for(unsigned i=0;i<uniqPlanes.size();++i){
+    std::cerr<<uniqPlanes[i]->toStr();
+  }
+  std::cerr<<"))))))))))).5\n";
+  // */
+
+  /*
+     std::cerr<<"usefulPoints.size(): "<<usefulPoints.size()<<std::endl;
+     std::cerr<<"uselessPoints.size(): "<<uselessPoints.size()<<std::endl;
+     for(unsigned i=0;i<usefulPoints.size();++i)
+     std::cerr<<usefulPoints[i]->dataToStr()<<std::endl;
+
+     std::cerr<<"TADY3"<<std::endl;
+     */
+  /*
+  std::cerr<<"(((((((((((.5\n";
+  for(unsigned i=0;i<bPlanes.size();++i){
+    std::cerr<<bPlanes[i]->toStr()<<" "<<bPlanes[i]->plane.toStr()<<std::endl;
+  }
+  std::cerr<<"))))))))))).5\n";
+  // */
 
   std::vector<PointC*>newPoints;
-  this->_getNewPoints(newPoints,aPlanes,0,1,aPlanes,1,0,true,bPlanes,0,0,false);
-  this->_getNewPoints(newPoints,bPlanes,0,1,bPlanes,1,0,true,aPlanes,0,0,false);
-  std::cerr<<"TADY4"<<std::endl;
-
-  std::vector<PointC*>unclassifiedPoints;
+  this->_getNewPoints(newPoints,aPlanes,0,1,aPlanes,1,0,true,bPlanes,0,0,false,usefulPoints,uselessPoints);
+  this->_getNewPoints(newPoints,bPlanes,0,1,bPlanes,1,0,true,aPlanes,0,0,false,usefulPoints,uselessPoints);
+  //std::cerr<<"newPoints.size(): "<<newPoints.size()<<std::endl;
+  /*
+  std::cerr<<"(((((((((((.75\n";
   for(unsigned i=0;i<newPoints.size();++i){
-    PointC*curPoint=newPoints[i];
-    bool alreadyUseful=false;
-    for(unsigned j=0;j<usefulPoints.size();++j){
-      if(usefulPoints[j]->eqByAny(curPoint)){
-        usefulPoints[j]->addCreator(newPoints[i]);
-        alreadyUseful=true;
-        delete newPoints[i];
-        break;
-      }
-    }
-    if(alreadyUseful)continue;
-    bool alreadyUseless=false;
-    for(unsigned j=0;j<uselessPoints.size();++j){
-      if(uselessPoints[j]->eqByAny(curPoint)){
-        alreadyUseless=true;
-        delete newPoints[i];
-        break;
-      }
-    }
-    if(alreadyUseless)continue;
-    unclassifiedPoints.push_back(newPoints[i]);
+    std::cerr<<newPoints[i]->toStr();
   }
-  std::cerr<<"TADY5"<<std::endl;
+  std::cerr<<"))))))))))).75\n";
+  // */
+  /*
+  std::cerr<<"(((((((((((.85\n";
+  for(unsigned i=0;i<bPlanes.size();++i){
+    std::cerr<<bPlanes[i]->toStr();
+  }
+  std::cerr<<"))))))))))).85\n";
+  // */
 
-  std::vector<PointC*>usefulNewPoints;
-  std::vector<PointC*>uselessNewPoints;
-  this->_getUsefulPoints(
-      usefulNewPoints,
-      uselessNewPoints,
-      unclassifiedPoints,
-      uniqPlanes);
-  std::cerr<<"TADY6"<<std::endl;
-
+  //std::cerr<<"TADY4"<<std::endl;
+  /*
+  std::cerr<<"(((((((((((.75\n";
   for(unsigned i=0;i<uniqPlanes.size();++i){
-    uniqPlanes[i]->removePoints(uselessNewPoints);
-    uniqPlanes[i]->removePoints(uselessPoints);
+    std::cerr<<uniqPlanes[i]->toStr();
   }
-  for(unsigned i=0;i<uselessNewPoints.size();++i)
-    delete uselessNewPoints[i];
-  for(unsigned i=0;i<uselessPoints.size();++i)
-    delete uselessPoints[i];
-  std::cerr<<"TADY7"<<std::endl;
+  std::cerr<<"))))))))))).75\n";
+  // */
+
+
+  for(unsigned i=0;i<uniqPlanes.size();++i)uniqPlanes[i]->removePoints(uselessPoints);
+  for(unsigned i=0;i<uselessPoints.size();++i)delete uselessPoints[i];
+  /*
+  std::cerr<<"(((((((((((.86\n";
+  for(unsigned i=0;i<bPlanes.size();++i){
+    std::cerr<<bPlanes[i]->toStr();
+  }
+  std::cerr<<"))))))))))).86\n";
+  // */
+
+  /*
+  std::cerr<<"(((((((((((2\n";
+  for(unsigned i=0;i<uniqPlanes.size();++i){
+    std::cerr<<uniqPlanes[i]->toStr();
+  }
+  std::cerr<<")))))))))))2\n";
+  // */
+
 
   ConvexHull*newHull=new ConvexHull();
 
@@ -520,12 +624,24 @@ ConvexHull*ConvexHull::intersect(ConvexHull*b){
     usefulPoints[i]->setIndex(i);
   }
 
-  for(unsigned i=0;i<usefulNewPoints.size();++i){
-    newHull->points.push_back(usefulNewPoints[i]);
-    usefulNewPoints[i]->setIndex(usefulPoints.size()+i);
+  for(unsigned i=0;i<newPoints.size();++i){
+    newHull->points.push_back(newPoints[i]);
+    newPoints[i]->setIndex(usefulPoints.size()+i);
   }
 
-  std::cerr<<"TADY8"<<std::endl;
+  //std::cerr<<"TADY8"<<std::endl;
+  /*
+  std::cerr<<"[[[[[[[[[[[[[[[[1\n";
+  for(unsigned i=0;i<newHull->points.size();++i)
+    std::cerr<<newHull->points[i]->toStr();
+  std::cerr<<"]]]]]]]]]]]]]]]]1\n";
+
+  std::cerr<<"(((((((((((3\n";
+  for(unsigned i=0;i<uniqPlanes.size();++i){
+    std::cerr<<uniqPlanes[i]->toStr();
+  }
+  std::cerr<<")))))))))))3\n";
+  // */
 
   for(unsigned i=0,counter=0;i<uniqPlanes.size();++i){
     if(uniqPlanes[i]->contain3(newHull->points)){
@@ -537,8 +653,8 @@ ConvexHull*ConvexHull::intersect(ConvexHull*b){
       delete uniqPlanes[i];
     }
   }
-  std::cerr<<"TADY9"<<std::endl;
-  std::cerr<<newHull->allToStr();
+  //std::cerr<<"TADY9"<<std::endl;
+  //std::cerr<<newHull->allToStr();
   return newHull;
 }
 

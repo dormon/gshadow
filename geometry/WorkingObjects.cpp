@@ -34,6 +34,20 @@ bool PointC::pushOnlyCreator(Plane p){
   return true;
 }
 
+void PointC::pushContainedPlane(PlaneC*p){
+  if(!p)return;
+  for(unsigned i=0;i<p->points.size();++i)
+    if((void*)p->points[i]==(void*)this){
+      this->pushOnlyPlane(p);
+      return;
+    }
+}
+
+void PointC::pushContainedPlanes(std::vector<PlaneC*>p){
+  for(unsigned i=0;i<p.size();++i)
+    this->pushContainedPlane(p[i]);
+}
+
 bool PointC::removePlane(PlaneC*p){
   bool found=false;
   for(unsigned i=0;i<this->planes.size();++i){
@@ -125,29 +139,66 @@ bool PointC::eqByPlanes(PlaneC*pa,PlaneC*pb,PlaneC*pc){
 
 bool PointC::eqByAny(PointC*p){
   if(this->point==p->point)return true;
+  std::vector<Plane>checked;
   unsigned nofSame=0;
   for(unsigned i=0;i<this->planes.size();++i)
     for(unsigned j=0;j<p->planes.size();++j)
-      if(this->planes[i]->plane.data==p->planes[j]->plane.data)
+      if(this->planes[i]->plane.data==p->planes[j]->plane.data){
+        bool skip=false;
+        for(unsigned k=0;k<checked.size();++k)
+          if(checked[k].data==this->planes[i]->plane.data){
+            skip=true;
+            break;
+          }
+        if(skip)break;
         nofSame++;
+        checked.push_back(this->planes[i]->plane);
+      }
   if(nofSame>2)return true;
 
   for(unsigned i=0;i<this->planes.size();++i)
     for(unsigned j=0;j<p->creators.size();++j)
-      if(this->planes[i]->plane.data==p->creators[j].data)
+      if(this->planes[i]->plane.data==p->creators[j].data){
+        bool skip=false;
+        for(unsigned k=0;k<checked.size();++k)
+          if(checked[k].data==this->planes[i]->plane.data){
+            skip=true;
+            break;
+          }
+        if(skip)break;
         nofSame++;
+        checked.push_back(this->planes[i]->plane);
+      }
   if(nofSame>2)return true;
 
   for(unsigned i=0;i<this->creators.size();++i)
     for(unsigned j=0;j<p->planes.size();++j)
-      if(this->creators[i].data==p->planes[j]->plane.data)
+      if(this->creators[i].data==p->planes[j]->plane.data){
+        bool skip=false;
+        for(unsigned k=0;k<checked.size();++k)
+          if(checked[k].data==this->creators[i].data){
+            skip=true;
+            break;
+          }
+        if(skip)break;
         nofSame++;
+        checked.push_back(this->creators[i]);
+      }
   if(nofSame>2)return true;
 
   for(unsigned i=0;i<this->creators.size();++i)
     for(unsigned j=0;j<p->creators.size();++j)
-      if(this->creators[i].data==p->creators[j].data)
+      if(this->creators[i].data==p->creators[j].data){
+        bool skip=false;
+        for(unsigned k=0;k<checked.size();++k)
+          if(checked[k].data==this->creators[i].data){
+            skip=true;
+            break;
+          }
+        if(skip)break;
         nofSame++;
+        checked.push_back(this->creators[i]);
+      }
   if(nofSame>2)return true;
   return false;
 }
@@ -188,11 +239,29 @@ bool PlaneC::eq(PlaneC*p){
 }
 
 void PlaneC::pushPoint(PointC*p){
+  if(!p)return;
+  for(unsigned i=0;i<this->points.size();++i)
+    if((void*)this->points[i]==(void*)p)return;
   this->points.push_back(p);
 }
 
+void PlaneC::pushContainedPoint(PointC*p){
+  if(!p)return;
+  bool contain=false;
+  for(unsigned i=0;i<p->creators.size();++i)
+    if(p->creators[i].data==this->plane.data){
+      contain=true;
+      break;
+    }
+  if(!contain)return;
+  this->pushPoint(p);
+}
+void PlaneC::pushContainedPoints(std::vector<PointC*>&p){
+  for(unsigned i=0;i<p.size();++i)
+    this->pushContainedPoint(p[i]);
+}
 
-void PlaneC::removePoint(PointC*p){
+bool PlaneC::removePoint(PointC*p){
   bool found=false;
   for(unsigned i=0;i<this->points.size();++i){
     if(((void*)this->points[i])==((void*)p)){
@@ -202,6 +271,7 @@ void PlaneC::removePoint(PointC*p){
     }
   }
   if(found)this->points.pop_back();
+  return found;
 }
 
 void PlaneC::removePoints(std::vector<PointC*>&p){
@@ -242,17 +312,17 @@ void PlaneC::sortPoints(){
     used.push_back(i==0);
 
   /*
-  std::cerr<<"end1 "<<this->points.size()<<std::endl;
-  std::cerr<<this->pointsToStr()<<std::endl;
-  std::cerr<<"this plane: "<<this->index<<std::endl;
-  for(unsigned i=0;i<this->points.size();++i){
-    std::cerr<<"  "<<this->points[i]->index<<" ";
-    for(unsigned j=0;j<this->points[i]->planes.size();++j){
-      std::cerr<<this->points[i]->planes[j]->index<<" ";
-    }
-    std::cerr<<" "<<this->points[i]->dataToStr();
-    std::cerr<<std::endl;
-  }
+     std::cerr<<"end1 "<<this->points.size()<<std::endl;
+     std::cerr<<this->pointsToStr()<<std::endl;
+     std::cerr<<"this plane: "<<this->index<<std::endl;
+     for(unsigned i=0;i<this->points.size();++i){
+     std::cerr<<"  "<<this->points[i]->index<<" ";
+     for(unsigned j=0;j<this->points[i]->planes.size();++j){
+     std::cerr<<this->points[i]->planes[j]->index<<" ";
+     }
+     std::cerr<<" "<<this->points[i]->dataToStr();
+     std::cerr<<std::endl;
+     }
   // */
   while(sorted.size()!=this->points.size()){
     for(unsigned j=0;j<this->points.size();++j){
@@ -261,9 +331,9 @@ void PlaneC::sortPoints(){
       PlaneC*pb;
       if(current->onLineSegment(&pa,&pb,this->points[j])){
         /*
-        std::cerr<<current->index<<" : "<<this->points[j]->index
-          <<" - "<<
-          pa->index<<" : "<<pb->index<<std::endl;
+           std::cerr<<current->index<<" : "<<this->points[j]->index
+           <<" - "<<
+           pa->index<<" : "<<pb->index<<std::endl;
         // */
         sorted.push_back(this->points[j]);
         used[j]=true;

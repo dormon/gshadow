@@ -23,13 +23,19 @@ namespace geometry{
           std::vector<PlaneC*>&bPlanes,
           unsigned bS,unsigned bE,bool ai,
           std::vector<PlaneC*>&cPlanes,
-          unsigned cS,unsigned cE,bool bi);
+          unsigned cS,unsigned cE,bool bi,
+          std::vector<PointC*>usefull,
+          std::vector<PointC*>useless);
 
       void _getUsefulPoints(
           std::vector<PointC*>&useful,
           std::vector<PointC*>&useless,
           std::vector<PointC*>newPoints,
           std::vector<PlaneC*>newPlanes);
+      bool _isUseful(
+          PointC*newPoint,
+          std::vector<PlaneC*>planes);
+
     public:
       ConvexHull();
       ConvexHull(std::vector<Plane>&planes);

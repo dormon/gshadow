@@ -17,6 +17,8 @@ namespace geometry{
       PointC(glm::vec3 point,PlaneC*a,PlaneC*b,PlaneC*c);
       bool pushOnlyPlane(PlaneC*p);
       bool pushOnlyCreator(Plane p);
+      void pushContainedPlane(PlaneC*p);
+      void pushContainedPlanes(std::vector<PlaneC*>p);
 
       bool removePlane(PlaneC*p);//cant remove creators
       bool doesPlanesContain(Plane plane);
@@ -42,8 +44,10 @@ namespace geometry{
       PlaneC(Plane plane,PointC*a,PointC*b,PointC*c);
       bool eq(PlaneC*p);
       void pushPoint(PointC*p);
+      void pushContainedPoint(PointC*p);
+      void pushContainedPoints(std::vector<PointC*>&p);
       void pushCreator(PointC*p);
-      void removePoint(PointC*p);
+      bool removePoint(PointC*p);
       void removePoints(std::vector<PointC*>&p);
       void setIndex(unsigned index);
       bool contain(PointC*p);

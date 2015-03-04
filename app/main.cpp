@@ -308,7 +308,7 @@ int main(int Argc,char*Argv[]){
 
   Args=new ge::util::ArgumentObject(Argc,Argv);
 
-  ModelFile          = Args->getArg("-m","models/2quads.obj");
+  ModelFile          = Args->getArg("-m","models/o/o.3ds");
   ShaderDir          = Args->getArg("--shader-directory","shaders/");
   DisableAnttweakbar = Args->isPresent("--disable-anttweakbar");
 
@@ -1307,26 +1307,46 @@ void Idle(){
     geometry::ConvexHull*sceneHull=new geometry::ConvexHull(sceneAABB->minPoint,sceneAABB->maxPoint);
     geometry::ConvexTriangles*sceneHullTriangles=new geometry::ConvexTriangles(sceneHull);
 
+    //std::cerr<<sceneHull->allToStr();
+    //sceneHull->extend(glm::vec3(light.position));
+    //std::cerr<<"################################################\n";
+    //std::cerr<<sceneHull->allToStr();
+    //std::cerr<<"------------------------------------------------\n";
+
+    //geometry::ConvexHull*scsc=new geometry::ConvexHull(sceneAABB->minPoint,sceneAABB->maxPoint);
+    //geometry::ConvexHull*scHull=sceneHull->intersect(scsc);
+    //delete scsc;
+    //std::cerr<<scHull->allToStr();
+    //delete scHull;
+
+
+    
     geometry::ConvexHull*cameraHull=new geometry::ConvexHull(camProj,camView);
     geometry::ConvexTriangles*cameraHullTriangles=new geometry::ConvexTriangles(cameraHull);
 
     geometry::ConvexHull*sceneCameraHull = sceneHull->intersect(cameraHull);
     geometry::ConvexTriangles*sceneCameraHullTriangles=new geometry::ConvexTriangles(sceneCameraHull);
 
-    //sceneCameraHull->extend(glm::vec3(light.position));
-    //geometry::ConvexTriangles*sceneCameraExtendedHullTriangles=new geometry::ConvexTriangles(sceneCameraHull);
+    //std::cerr<<sceneCameraHull->allToStr();
+    //std::cerr<<"######################################################\n";
 
-    //geometry::ConvexHull*sceneCameraExtendedLimitedHull=sceneCameraHull->intersect(sceneHull);
+    sceneCameraHull->extend(glm::vec3(light.position));
+    geometry::ConvexTriangles*sceneCameraExtendedHullTriangles=new geometry::ConvexTriangles(sceneCameraHull);
 
+    //std::cerr<<sceneCameraHull->allToStr();
+    //std::cerr<<".....................................................\n";
+    geometry::ConvexHull*sceneCameraExtendedLimitedHull=sceneCameraHull->intersect(sceneHull);
     //std::cerr<<sceneCameraExtendedLimitedHull->allToStr();
-    //geometry::ConvexTriangles*sceneCameraExtendedLimitedHullTriangles=new geometry::ConvexTriangles(sceneCameraExtendedLimitedHull);
+    //exit(0);
+    //std::cerr<<sceneCameraExtendedLimitedHull->allToStr();
+    geometry::ConvexTriangles*sceneCameraExtendedLimitedHullTriangles=new geometry::ConvexTriangles(sceneCameraExtendedLimitedHull);
 
 
     if(drawSceneHull)sceneHullTriangles->draw(simpleDraw);
     if(drawCameraHull)cameraHullTriangles->draw(simpleDraw);
     if(drawSceneCameraHull)sceneCameraHullTriangles->draw(simpleDraw);
-    //if(drawSceneCameraExtendedHull)sceneCameraExtendedHullTriangles->draw(simpleDraw);
-    //if(drawSceneCameraExtendedLimitedHull)sceneCameraExtendedLimitedHullTriangles->draw(simpleDraw);
+    if(drawSceneCameraExtendedHull)sceneCameraExtendedHullTriangles->draw(simpleDraw);
+    if(drawSceneCameraExtendedLimitedHull)sceneCameraExtendedLimitedHullTriangles->draw(simpleDraw);
 
 
 
@@ -1352,9 +1372,9 @@ void Idle(){
     delete cameraHullTriangles;
     delete sceneCameraHull;
     delete sceneCameraHullTriangles;
-    //delete sceneCameraExtendedHullTriangles;
-    //delete sceneCameraExtendedLimitedHull;
-    //delete sceneCameraExtendedLimitedHullTriangles;
+    delete sceneCameraExtendedHullTriangles;
+    delete sceneCameraExtendedLimitedHull;
+    delete sceneCameraExtendedLimitedHullTriangles;
 
 
     simpleDraw->beginTriangles();
