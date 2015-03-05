@@ -941,7 +941,7 @@ void ConvexHull::_getSilhouetteVertices(std::vector<PointC*>&sil,glm::vec3 p){
   }
 }
 
-void geometry::getMinVP(
+bool geometry::getMinVP(
     glm::mat4*lp,
     glm::mat4*lv,
     glm::mat4 p,
@@ -953,7 +953,7 @@ void geometry::getMinVP(
   geometry::ConvexHull*camera      = new geometry::ConvexHull(p,v);
   geometry::ConvexHull*sceneCamera = scene->intersect(camera);
   //glm::vec3 center=sceneCamera->getCenter();
-  if(sceneCamera->inside(light))return;
+  if(sceneCamera->inside(light))return false;
   sceneCamera->extend(light);
   geometry::ConvexHull*final=sceneCamera->intersect(scene);
 
@@ -1027,7 +1027,10 @@ void geometry::getMinVP(
         break;
       }
     }
-    if(!rfound)std::cerr<<"r not found\n";
+    if(!rfound){
+      continue;
+      std::cerr<<"r not found\n";
+    }
 
     bool bfound=false;
     for(unsigned j=0;j<sil2.size();++j){
@@ -1038,7 +1041,10 @@ void geometry::getMinVP(
         break;
       }
     }
-    if(!bfound)std::cerr<<"b not found\n";
+    if(!bfound){
+      continue;
+      std::cerr<<"b not found\n";
+    }
     
     bool tfound=false;
     for(unsigned j=0;j<sil2.size();++j){
@@ -1049,7 +1055,10 @@ void geometry::getMinVP(
         break;
       }
     }
-    if(!tfound)std::cerr<<"t not found\n";
+    if(!tfound){
+      continue;
+      std::cerr<<"t not found\n";
+    }
     float alpha = glm::acos(glm::dot(glm::vec3(left.data),glm::vec3(-right.data)));
     float beta  = glm::acos(glm::dot(glm::vec3(bottom.data),glm::vec3(-top.data)));
     float area=glm::tan(alpha/2)*glm::tan(beta/2);
@@ -1122,6 +1131,6 @@ void geometry::getMinVP(
 
   delete nn;
   // */
-
+  return true;
 
 }

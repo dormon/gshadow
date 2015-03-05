@@ -16,8 +16,8 @@ using namespace std;
 //#include<GL/gl.h>
 #include<SDL2/SDL.h>
 
-#include<glm/glm.hpp>
 #define GLM_FORCE_RADIANS
+#include<glm/glm.hpp>
 #include<glm/gtc/matrix_transform.hpp>
 #include<glm/gtc/type_ptr.hpp>
 #include<glm/gtc/matrix_access.hpp>
@@ -91,6 +91,8 @@ using namespace std;
 #include"../geometry/Geometry.h"
 #include"../simulationData/SimulationData.h"
 #include"../argumentLoader/ArgumentLoader.h"
+
+#include"testConvexHull.h"
 
 #define ILUT_USE_OPENGL
 #include <IL/il.h>

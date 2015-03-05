@@ -57,7 +57,7 @@ namespace geometry{
 
   void camera2Plane(Plane*plane,unsigned*numPlanes,glm::mat4 p,glm::mat4 v);
 
-  void getMinVP(glm::mat4*lp,glm::mat4*lv,glm::mat4 p,glm::mat4 v,glm::vec3 minPoint,glm::vec3 maxPoint,glm::vec3 light);
+  bool getMinVP(glm::mat4*lp,glm::mat4*lv,glm::mat4 p,glm::mat4 v,glm::vec3 minPoint,glm::vec3 maxPoint,glm::vec3 light);
 
  
 }

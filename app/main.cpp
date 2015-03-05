@@ -280,6 +280,7 @@ CubeShadowMappingTemplate cubeShadowMappingParam,cubeShadowMappingParamLast;
 simulation::SimulationData*simData=NULL;
 
 int main(int Argc,char*Argv[]){
+
   //*
   ge::util::ArgumentLoader*argLoader;
   try{
@@ -298,7 +299,7 @@ int main(int Argc,char*Argv[]){
   /*
      std::cerr<<simData->toStr()<<std::endl;
      std::cerr<<simData->define("");
-     delete argLoader;
+     delete argLoader
      delete simData;
      exit(0);
      */
@@ -686,14 +687,6 @@ void TestIdle(){
 }
 
 glm::mat4 camView=glm::mat4(1.f),camProj=glm::perspective(1.5f,1.f,1.f,1000.f);
-
-bool drawCameraHull      = false;
-bool drawExtendedHull    = false;
-bool drawSceneHull       = false;
-bool drawSceneCameraHull = false;
-bool drawSceneCameraExtendedHull = false;
-bool drawSceneCameraExtendedLimitedHull = false;
-bool drawMinShadowHull   = false;
 
 void Idle(){
   if(CameraParam.Far>=10000)CameraParam.Far=std::numeric_limits<float>::infinity();
@@ -1102,7 +1095,8 @@ void Idle(){
             if(Window->isKeyOn('p')){
               glm::mat4 pp;
               glm::mat4 vv;
-              if(geometry::getMinimalVP(&pp,&vv,Projection,View,sceneAABB->minPoint,sceneAABB->maxPoint,glm::vec3(LightList[l]->position)))
+//              if(geometry::getMinimalVP(&pp,&vv,Projection,View,sceneAABB->minPoint,sceneAABB->maxPoint,glm::vec3(LightList[l]->position)))
+              if(geometry::getMinVP(&pp,&vv,Projection,View,sceneAABB->minPoint,sceneAABB->maxPoint,glm::vec3(LightList[l]->position)))
                 Shadowmapping->setMatrices(pp,vv);
             }
             mm->createShadowMask();
@@ -1207,236 +1201,15 @@ void Idle(){
   }
 
   if(navyMapping){
-    /*
-       geometry::ConvexHullPlanes lightFrustumPlanesHull(navyMapping->LightProjection,navyMapping->LightView);
-       geometry::ConvexHullPlanes cameraFrustumPlanesHull(Projection,View);
-
-       geometry::ConvexHullPlanes scenePlanesHull(sceneAABB->minPoint,sceneAABB->maxPoint);
-
-       geometry::ConvexHullPoints     scenePointsHull    (scenePlanesHull    );
-       geometry::ConvexHullPointPlane scenePointPlaneHull(scenePointsHull    );
-       geometry::ConvexHullFaces      sceneFaces         (scenePointPlaneHull);
-       geometry::ConvexHullTriangles  sceneTriangles     (sceneFaces         );
-
-
-       geometry::ConvexHullPoints     lightScenePointsHull=geometry::intersect(scenePlanesHull,lightFrustumPlanesHull);
-       geometry::ConvexHullPointPlane lightScenePointPlaneHull(lightScenePointsHull);
-    //std::cerr<<lightScenePointPlaneHull.toStr();
-    geometry::ConvexHullFaces      lightSceneFaces(lightScenePointPlaneHull);
-    //std::cerr<<lightSceneFaces.toStr();
-
-
-    geometry::ConvexHullTriangles  lightSceneTriangles(lightSceneFaces);
-
-    //std::cerr<<"hull planes: "<<lightFrustumPlanesHull.planes.size()<<std::endl;
-
-    geometry::ConvexHullPoints lightFrustumPointsHull(lightFrustumPlanesHull);
-
-    geometry::ConvexHullPointPlane lightFrustumPointPlaneHull(lightFrustumPointsHull);
-
-
-    geometry::ConvexHullFaces lightFrustumFaces(lightFrustumPointPlaneHull);
-    //std::cerr<<lightFrustumFaces.toStr();
-
-    geometry::ConvexHullSortedFaces lightSceneSortedFaces(lightSceneFaces);
-    //std::cerr<<lightSceneSortedFaces.toStr();
-
-    geometry::ConvexHullPointLineSegments lightScenePointLineSegments(lightSceneSortedFaces);
-    //std::cerr<<lightScenePointLineSegments.toStr();
-    geometry::ConvexHullSilhouette lightSceneSilhouette(lightScenePointLineSegments,glm::vec3(-Pos));
-    //std::cerr<<lightSceneSilhouette.toStr();
-
-    geometry::ConvexHullTriangles lightFrustumTriangles(lightFrustumFaces);
-
-    geometry::ConvexHullPoints            min0=geometry::intersect(lightFrustumPlanesHull,scenePlanesHull);
-    geometry::ConvexHullPointPlane        min1=geometry::ConvexHullPointPlane(min0);
-    geometry::ConvexHullFaces             min2=geometry::ConvexHullFaces(min1);
-    geometry::ConvexHullSortedFaces       min3=geometry::ConvexHullSortedFaces(min2);
-    geometry::ConvexHullLineSegments      min4=geometry::ConvexHullLineSegments(min3);
-    //std::cerr<<min4.toStr();
-    geometry::MinFrustumPlanes            min5=geometry::MinFrustumPlanes(min4,glm::vec3(light.position));
-    geometry::ConvexHullPlanes            min6;
-    min6.insert(min5.bestL);
-    min6.insert(min5.bestR);
-    min6.insert(min5.bestB);
-    min6.insert(min5.bestT);
-    min6.insert(min5.bestF);
-    min6.insert(min5.bestN);
-
-    //std::cerr<<min6.toStr();
-
-    geometry::ConvexHullTriangles min11(min6);
-
-    //std::cerr<<"##############"<<std::endl;
-    //std::cerr<<lightFrustumPlanesHull.toStr();
-    */
     if(Window->isKeyDown('z')){
       camView=View;
       camProj=Projection;
     }
-
-
-
-    /*
-       geometry::ConvexHullPoints extendedHullPoints=geometry::getExtendedHull(camProj,camView,sceneAABB->minPoint,sceneAABB->maxPoint,glm::vec3(light.position));
-       std::cerr<<"Abod"<<std::endl;
-       geometry::ConvexHullPoints sceneCameraHullPoints = geometry::intersect(geometry::ConvexHullPlanes(camProj,camView),scenePlanesHull);
-       std::cerr<<"Bbod"<<std::endl;
-       sceneCameraHullPoints.points.push_back(glm::vec3(light.position));
-       geometry::ConvexHullPlanes sceneCameraExtendedHullPlane(sceneCameraHullPoints);
-    //glm::mat4 minView,minProj;
-    //geometry::getMinimalVP(&minProj,&minView,camProj,camView,sceneAABB->minPoint,sceneAABB->maxPoint,glm::vec3(light.position));
-
-
-    geometry::ConvexHullTriangles extendedHull(extendedHullPoints);
-    geometry::ConvexHullTriangles cameraHull(geometry::ConvexHullPlanes(camProj,camView));
-    geometry::ConvexHullTriangles sceneHull(scenePlanesHull);
-    geometry::ConvexHullTriangles sceneCameraHull(sceneCameraHullPoints);
-    geometry::ConvexHullTriangles sceneCameraExtendedHull(sceneCameraExtendedHullPlane);
-    //geometry::ConvexHullTriangles minShadowHull(geometry::intersect(geometry::ConvexHullPlanes(minProj,minView),scenePlanesHull));
-    */
-
-
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
-
-    simpleDraw->beginTriangles();
-    simpleDraw->setView(View);
-    simpleDraw->setProjection(Projection);
-    simpleDraw->setColor(1,0,0,2);
-    
-    
-    geometry::ConvexHull*sceneHull=new geometry::ConvexHull(sceneAABB->minPoint,sceneAABB->maxPoint);
-    geometry::ConvexTriangles*sceneHullTriangles=new geometry::ConvexTriangles(sceneHull);
-
-    geometry::ConvexHull*cameraHull=new geometry::ConvexHull(camProj,camView);
-    geometry::ConvexTriangles*cameraHullTriangles=new geometry::ConvexTriangles(cameraHull);
-
-    geometry::ConvexHull*sceneCameraHull = sceneHull->intersect(cameraHull);
-    geometry::ConvexTriangles*sceneCameraHullTriangles=new geometry::ConvexTriangles(sceneCameraHull);
-
-    sceneCameraHull->extend(glm::vec3(light.position));
-    geometry::ConvexTriangles*sceneCameraExtendedHullTriangles=new geometry::ConvexTriangles(sceneCameraHull);
-
-    geometry::ConvexHull*sceneCameraExtendedLimitedHull=sceneCameraHull->intersect(sceneHull);
-    geometry::ConvexTriangles*sceneCameraExtendedLimitedHullTriangles=new geometry::ConvexTriangles(sceneCameraExtendedLimitedHull);
-
-    glm::mat4 lp,lv;
-    geometry::getMinVP(&lp,&lv,camProj,camView,sceneAABB->minPoint,sceneAABB->maxPoint,glm::vec3(light.position));
-    geometry::ConvexHull*minFrustumHull=new geometry::ConvexHull(lp,lv);
-    geometry::ConvexTriangles*minFrustumHullTriangles=new geometry::ConvexTriangles(minFrustumHull);
-
-    if(drawSceneHull)sceneHullTriangles->draw(simpleDraw);
-    if(drawCameraHull)cameraHullTriangles->draw(simpleDraw);
-    if(drawSceneCameraHull)sceneCameraHullTriangles->draw(simpleDraw);
-    if(drawSceneCameraExtendedHull)sceneCameraExtendedHullTriangles->draw(simpleDraw);
-    if(drawSceneCameraExtendedLimitedHull)sceneCameraExtendedLimitedHullTriangles->draw(simpleDraw);
-    if(drawMinShadowHull)minFrustumHullTriangles->draw(simpleDraw);
-
-    std::vector<geometry::PointC*>sil;
-    sceneCameraExtendedLimitedHull->_getSilhouetteVertices(sil,glm::vec3(light.position));
-
-    simpleDraw->beginLine();
-    simpleDraw->setView(View);
-    simpleDraw->setProjection(Projection);
-    simpleDraw->setColor(1,1,0,.5);
-    for(unsigned i=0;i<sil.size();++i){
-      simpleDraw->line(
-          sil[i]->point,
-          sil[(i+1)%sil.size()]->point);
-    }
-
-
-    /*
-       if(drawCameraHull)cameraHull.draw(simpleDraw);
-       if(drawExtendedHull)extendedHull.draw(simpleDraw);
-       if(drawSceneCameraHull)sceneCameraHull.draw(simpleDraw);
-       if(drawSceneCameraExtendedHull)sceneCameraExtendedHull.draw(simpleDraw);
-       if(drawMinShadowHull){}
-       */
-
-
-    //*
-    simpleDraw->beginPlanes();
-    simpleDraw->setView(View);
-    simpleDraw->setProjection(Projection);
-    simpleDraw->setColor(1,0,0,.5);
-    //simpleDraw->plane(cameraHull->planes[5]->plane.data,0);
-
-    delete sceneHull;
-    delete sceneHullTriangles;
-    delete cameraHull;
-    delete cameraHullTriangles;
-    delete sceneCameraHull;
-    delete sceneCameraHullTriangles;
-    delete sceneCameraExtendedHullTriangles;
-    delete sceneCameraExtendedLimitedHull;
-    delete sceneCameraExtendedLimitedHullTriangles;
-    delete minFrustumHull;
-    delete minFrustumHullTriangles;
-
-
-    simpleDraw->beginTriangles();
-    simpleDraw->setView(View);
-    simpleDraw->setProjection(Projection);
-    simpleDraw->setColor(1,0,0,2);
-
-
-
-    /*
-       if(Window->isKeyOn('h'))
-       for(unsigned t=0;t<sceneTriangles.triangles.size()/3;++t){
-       simpleDraw->triangle(
-       sceneTriangles.points[sceneTriangles.triangles[t*3+0]],
-       sceneTriangles.points[sceneTriangles.triangles[t*3+1]],
-       sceneTriangles.points[sceneTriangles.triangles[t*3+2]]);
-       }
-       else{
-       if(Window->isKeyOn('k')){
-       if(Window->isKeyOn('l'))
-       {
-       for(unsigned t=0;t<min11.triangles.size()/3;++t)
-       simpleDraw->triangle(
-       min11.points[min11.triangles[t*3+0]],
-       min11.points[min11.triangles[t*3+1]],
-       min11.points[min11.triangles[t*3+2]]);
-       }
-       simpleDraw->beginLine();
-       simpleDraw->setView(View);
-       simpleDraw->setProjection(Projection);
-       simpleDraw->setColor(1,1,1,1);
-       for(unsigned l=0;l<min4.line.size();l+=2){
-       simpleDraw->line(
-       min4.points[min4.line[l+0]],
-       min4.points[min4.line[l+1]]);
-       }
-       }
-
-       else
-       for(unsigned t=0;t<lightFrustumTriangles.triangles.size()/3;++t){
-       simpleDraw->triangle(
-       lightFrustumTriangles.points[lightFrustumTriangles.triangles[t*3+0]],
-       lightFrustumTriangles.points[lightFrustumTriangles.triangles[t*3+1]],
-       lightFrustumTriangles.points[lightFrustumTriangles.triangles[t*3+2]]);
-       }
-       }
-    // */
-
-
-    simpleDraw->end();
-
-    simpleDraw->beginPoint();
-    simpleDraw->setColor(1,1,1,1);
-    /*
-       for(unsigned p=0;p<lightScenePointsHull.points.size();++p){
-       simpleDraw->point(lightScenePointsHull.points[p],.03);
-       }*/
-    simpleDraw->end();
-
-    // */
-
-    glDisable(GL_BLEND);
-
+    test::drawConvexHull(
+        View,Projection,
+        camProj,camView,
+        sceneAABB->minPoint,sceneAABB->maxPoint,
+        glm::vec3(light.position));
   }
 
 
@@ -2367,14 +2140,7 @@ void Init(){
   TwAddVarRW(Bar,"Draw Every Silhouette" ,TW_TYPE_BOOLCPP,&DSDrawEverything     ," help='Toggle drawing of every Silhouettes'" );
 
 
-  TwBar*geobar=TwNewBar("GeoBar");
-  TwAddVarRW(geobar,"drawCameraHull"             ,TW_TYPE_BOOLCPP,&drawCameraHull             ," help='drawCameraHull' "             );
-  //TwAddVarRW(geobar,"drawExtendedHull"           ,TW_TYPE_BOOLCPP,&drawExtendedHull           ," help='drawExtendedHull' "           );
-  TwAddVarRW(geobar,"drawSceneHull"              ,TW_TYPE_BOOLCPP,&drawSceneHull              ," help='drawSceneHull' "              );
-  TwAddVarRW(geobar,"drawSceneCameraHull"        ,TW_TYPE_BOOLCPP,&drawSceneCameraHull        ," help='drawSceneCameraHull' "        );
-  TwAddVarRW(geobar,"drawSceneCameraExtendedHull",TW_TYPE_BOOLCPP,&drawSceneCameraExtendedHull," help='drawSceneCameraExtendedHull' ");
-  TwAddVarRW(geobar,"drawSceneCameraExtendedLimitedHull",TW_TYPE_BOOLCPP,&drawSceneCameraExtendedLimitedHull," help='drawSceneCameraExtendedLimitedHull' ");
-  TwAddVarRW(geobar,"drawMinShadowHull"          ,TW_TYPE_BOOLCPP,&drawMinShadowHull          ," help='drawMinShadowHull' "          );
+  test::setTestConvexHull(simpleDraw);
 
 
 
