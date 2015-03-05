@@ -25,32 +25,32 @@ layout(local_size_x=WORKGROUP_SIZE_X)in;
 layout(rg32ui,binding=BINDING_GRID  )uniform uimage2D         grid;
 layout(r32f  ,binding=BINDING_SMOOTH)uniform  image2D smoothedGrid;
 
+
+#define GRID_LINE_ID gl_GlobalInvocationID.y
+#define GRID_PART    gl_GlobalInvocationID.x
+
 vec2 getGrid(uint i){
-  uvec2 data=imageLoad(grid,ivec2(i,gl_GlobalInvocationID.y)).rg;
+  uvec2 data=imageLoad(grid,ivec2(i,GRID_LINE_ID)).rg;
   return vec2(2.*float(data.x)/SHADOWMAP_SIZE-1,data.y);
 }
 
 uniform int gridSize=4;
 
+#define GETPOS(data) (data.x)
+#define GETWEIGHT(data) (data.y)
+
 void main(){
-  if(gl_GlobalInvocationID.x>=SHADOWMAP_SIZE)return;
-  /*
-  if(gl_GlobalInvocationID.y==0||gl_GlobalInvocationID.y==gridSize){
-    imageStore(smoothedGrid,ivec2(gl_GlobalInvocationID.x,gl_GlobalInvocationID.y),vec4(getGrid(gl_GlobalInvocationID.x)));
-    return;
-  }*/
+  if(GRID_PART>=SHADOWMAP_SIZE)return;
   float x=0;
-  uint counterX=0;
+  uint counter=0;
   for(int k=-WALKING_WINDOW_SIZE;k<=WALKING_WINDOW_SIZE;++k){
-    if(gl_GlobalInvocationID.x+k>=0&&gl_GlobalInvocationID.x+k<SHADOWMAP_SIZE){
-      vec2 data=getGrid(gl_GlobalInvocationID.x+k);
-      x+=data.x*data.y;
-      counterX+=uint(data.y);
-      //x+=getGrid(gl_GlobalInvocationID.x+k);
-      //counterX++;
+    if(GRID_PART+k>=0&&GRID_PART+k<SHADOWMAP_SIZE){
+      vec2 data=getGrid(GRID_PART+k);
+      x+=GETPOS(data)*GETWEIGHT(data);//data.x*data.y;
+      counter+=uint(GETWEIGHT(data));
     }
   }
-  x/=counterX;
-  imageStore(smoothedGrid,ivec2(gl_GlobalInvocationID.x,gl_GlobalInvocationID.y),vec4(x));
+  x/=counter;
+  imageStore(smoothedGrid,ivec2(GRID_PART,GRID_LINE_ID),vec4(x));
 }
 
