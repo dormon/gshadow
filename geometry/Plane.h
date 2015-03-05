@@ -19,6 +19,7 @@ namespace geometry{
       int relation(Plane p);
       std::string toStr();
       void draw(DrawPrimitive*drawer);
+      int relation(std::vector<glm::vec3>&p,unsigned sa,unsigned sb);
   };
 
   glm::vec3 planes2Point(Plane a,Plane b,Plane c);

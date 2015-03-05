@@ -96,4 +96,16 @@ glm::vec3 geometry::planes2Point(Plane a,Plane b,Plane c){
   return result/dt;
 }
 
-
+int Plane::relation(std::vector<glm::vec3>&p,unsigned sa,unsigned sb){
+  bool inFrontOf=false;
+  bool behind=false;
+  for(unsigned i=0;i<p.size();++i){
+    if(i==sa)continue;
+    if(i==sb)continue;
+    if(this->distance(p[i])<0)behind=true;
+    else inFrontOf=true;
+    if(inFrontOf&&behind)return 0;
+  }
+  if(inFrontOf)return 1;
+  return-1;
+}

@@ -1309,47 +1309,42 @@ void Idle(){
     geometry::ConvexHull*sceneHull=new geometry::ConvexHull(sceneAABB->minPoint,sceneAABB->maxPoint);
     geometry::ConvexTriangles*sceneHullTriangles=new geometry::ConvexTriangles(sceneHull);
 
-    //std::cerr<<sceneHull->allToStr();
-    //sceneHull->extend(glm::vec3(light.position));
-    //std::cerr<<"################################################\n";
-    //std::cerr<<sceneHull->allToStr();
-    //std::cerr<<"------------------------------------------------\n";
-
-    //geometry::ConvexHull*scsc=new geometry::ConvexHull(sceneAABB->minPoint,sceneAABB->maxPoint);
-    //geometry::ConvexHull*scHull=sceneHull->intersect(scsc);
-    //delete scsc;
-    //std::cerr<<scHull->allToStr();
-    //delete scHull;
-
-
-    
     geometry::ConvexHull*cameraHull=new geometry::ConvexHull(camProj,camView);
     geometry::ConvexTriangles*cameraHullTriangles=new geometry::ConvexTriangles(cameraHull);
 
     geometry::ConvexHull*sceneCameraHull = sceneHull->intersect(cameraHull);
     geometry::ConvexTriangles*sceneCameraHullTriangles=new geometry::ConvexTriangles(sceneCameraHull);
 
-    //std::cerr<<sceneCameraHull->allToStr();
-    //std::cerr<<"######################################################\n";
-
     sceneCameraHull->extend(glm::vec3(light.position));
     geometry::ConvexTriangles*sceneCameraExtendedHullTriangles=new geometry::ConvexTriangles(sceneCameraHull);
 
-    //std::cerr<<sceneCameraHull->allToStr();
-    //std::cerr<<".....................................................\n";
     geometry::ConvexHull*sceneCameraExtendedLimitedHull=sceneCameraHull->intersect(sceneHull);
-    //std::cerr<<sceneCameraExtendedLimitedHull->allToStr();
-    //exit(0);
-    //std::cerr<<sceneCameraExtendedLimitedHull->allToStr();
     geometry::ConvexTriangles*sceneCameraExtendedLimitedHullTriangles=new geometry::ConvexTriangles(sceneCameraExtendedLimitedHull);
 
+    glm::mat4 lp,lv;
+    geometry::getMinVP(&lp,&lv,camProj,camView,sceneAABB->minPoint,sceneAABB->maxPoint,glm::vec3(light.position));
+    geometry::ConvexHull*minFrustumHull=new geometry::ConvexHull(lp,lv);
+    geometry::ConvexTriangles*minFrustumHullTriangles=new geometry::ConvexTriangles(minFrustumHull);
 
     if(drawSceneHull)sceneHullTriangles->draw(simpleDraw);
     if(drawCameraHull)cameraHullTriangles->draw(simpleDraw);
     if(drawSceneCameraHull)sceneCameraHullTriangles->draw(simpleDraw);
     if(drawSceneCameraExtendedHull)sceneCameraExtendedHullTriangles->draw(simpleDraw);
     if(drawSceneCameraExtendedLimitedHull)sceneCameraExtendedLimitedHullTriangles->draw(simpleDraw);
+    if(drawMinShadowHull)minFrustumHullTriangles->draw(simpleDraw);
 
+    std::vector<geometry::PointC*>sil;
+    sceneCameraExtendedLimitedHull->_getSilhouetteVertices(sil,glm::vec3(light.position));
+
+    simpleDraw->beginLine();
+    simpleDraw->setView(View);
+    simpleDraw->setProjection(Projection);
+    simpleDraw->setColor(1,1,0,.5);
+    for(unsigned i=0;i<sil.size();++i){
+      simpleDraw->line(
+          sil[i]->point,
+          sil[(i+1)%sil.size()]->point);
+    }
 
 
     /*
@@ -1377,6 +1372,8 @@ void Idle(){
     delete sceneCameraExtendedHullTriangles;
     delete sceneCameraExtendedLimitedHull;
     delete sceneCameraExtendedLimitedHullTriangles;
+    delete minFrustumHull;
+    delete minFrustumHullTriangles;
 
 
     simpleDraw->beginTriangles();
@@ -2377,8 +2374,7 @@ void Init(){
   TwAddVarRW(geobar,"drawSceneCameraHull"        ,TW_TYPE_BOOLCPP,&drawSceneCameraHull        ," help='drawSceneCameraHull' "        );
   TwAddVarRW(geobar,"drawSceneCameraExtendedHull",TW_TYPE_BOOLCPP,&drawSceneCameraExtendedHull," help='drawSceneCameraExtendedHull' ");
   TwAddVarRW(geobar,"drawSceneCameraExtendedLimitedHull",TW_TYPE_BOOLCPP,&drawSceneCameraExtendedLimitedHull," help='drawSceneCameraExtendedLimitedHull' ");
-
-  //TwAddVarRW(geobar,"drawMinShadowHull"          ,TW_TYPE_BOOLCPP,&drawMinShadowHull          ," help='drawMinShadowHull' "          );
+  TwAddVarRW(geobar,"drawMinShadowHull"          ,TW_TYPE_BOOLCPP,&drawMinShadowHull          ," help='drawMinShadowHull' "          );
 
 
 

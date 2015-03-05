@@ -940,3 +940,188 @@ void ConvexHull::_getSilhouetteVertices(std::vector<PointC*>&sil,glm::vec3 p){
     }
   }
 }
+
+void geometry::getMinVP(
+    glm::mat4*lp,
+    glm::mat4*lv,
+    glm::mat4 p,
+    glm::mat4 v,
+    glm::vec3 minPoint,
+    glm::vec3 maxPoint,
+    glm::vec3 light){
+  geometry::ConvexHull*scene       = new geometry::ConvexHull(minPoint,maxPoint);
+  geometry::ConvexHull*camera      = new geometry::ConvexHull(p,v);
+  geometry::ConvexHull*sceneCamera = scene->intersect(camera);
+  //glm::vec3 center=sceneCamera->getCenter();
+  if(sceneCamera->inside(light))return;
+  sceneCamera->extend(light);
+  geometry::ConvexHull*final=sceneCamera->intersect(scene);
+
+  delete scene;
+  delete camera;
+  delete sceneCamera;
+
+  std::vector<PointC*>sil;
+  glm::vec3 center=final->getCenter();
+  final->_getSilhouetteVertices(sil,light);
+  std::vector<glm::vec3>sil2;
+  for(unsigned i=0;i<sil.size();++i)
+    sil2.push_back(sil[i]->point);
+
+  geometry::Plane bestNear;
+  geometry::Plane bestFar;
+  glm::vec3 nearNormal =  glm::normalize(center-light);
+  glm::vec3 farNormal  = -nearNormal;
+  float farMax=0;
+  float nearMin=10e10;
+  unsigned fi=0;
+  unsigned ni=0;
+  for(unsigned i=0;i<final->points.size();++i){
+    //(n.l,-n.p)
+    float df=glm::abs(glm::dot(farNormal ,light)-glm::dot(farNormal ,final->points[i]->point));
+    float dn=glm::abs(glm::dot(nearNormal,light)-glm::dot(nearNormal,final->points[i]->point));
+    if(df>farMax){
+      farMax=df;
+      fi=i;
+    }
+    if(dn<nearMin){
+      nearMin=dn;
+      ni=i;
+    }
+  }
+  //std::cerr<<"nearMin: "<<nearMin<<std::endl;
+  //std::cerr<<"farMax: "<<farMax<<std::endl;
+  bestNear.data = glm::vec4(nearNormal,-glm::dot(nearNormal,final->points[ni]->point));
+  bestFar.data  = glm::vec4(farNormal ,-glm::dot(farNormal ,final->points[fi]->point));
+  //std::cerr<<"mnear: "<<bestNear.distance(light)<<std::endl;
+  //std::cerr<<"mfar: "<<bestFar.distance(light)<<std::endl;
+
+  std::vector<Plane>leftPlanes;
+  for(unsigned i=0;i<sil2.size();++i){
+    geometry::Plane plane(sil2[i],sil2[(i+1)%sil2.size()],light);
+    if(plane.distance(center)<0)leftPlanes.push_back(plane.neg());
+    else leftPlanes.push_back(plane);
+  }
+
+  geometry::Plane bestLeft;
+  geometry::Plane bestRight;
+  geometry::Plane bestBottom;
+  geometry::Plane bestTop;
+  float bestArea=10e10;
+
+  for(unsigned i=0;i<leftPlanes.size();++i){
+    glm::vec3 up=glm::normalize(glm::cross(glm::vec3(leftPlanes[i].data),glm::vec3(bestNear.data)));
+    glm::vec3 ri=glm::normalize(glm::cross(glm::vec3(bestNear.data),up));
+    geometry::Plane left = leftPlanes[i];
+    geometry::Plane right;
+    geometry::Plane bottom;
+    geometry::Plane top;
+    if(left.relation(sil2,i,(i+1)%sil2.size())<=0)continue;
+
+    bool rfound=false;
+    for(unsigned j=0;j<sil2.size();++j){
+      if(j==i)continue;
+      right = geometry::Plane(light,sil2[j]+up,sil2[j]);
+      if(right.relation(sil2,j,j)>0){
+        rfound=true;
+        break;
+      }
+    }
+    if(!rfound)std::cerr<<"r not found\n";
+
+    bool bfound=false;
+    for(unsigned j=0;j<sil2.size();++j){
+      if(j==i)continue;
+      bottom = geometry::Plane(light,sil2[j]+ri,sil2[j]);
+      if(bottom.relation(sil2,j,j)>0){
+        bfound=true;
+        break;
+      }
+    }
+    if(!bfound)std::cerr<<"b not found\n";
+    
+    bool tfound=false;
+    for(unsigned j=0;j<sil2.size();++j){
+      if(j==i)continue;
+      top = geometry::Plane(light,sil2[j]+ri,sil2[j]);
+      if(top.relation(sil2,j,j)<0){
+        tfound=true;
+        break;
+      }
+    }
+    if(!tfound)std::cerr<<"t not found\n";
+    float alpha = glm::acos(glm::dot(glm::vec3(left.data),glm::vec3(-right.data)));
+    float beta  = glm::acos(glm::dot(glm::vec3(bottom.data),glm::vec3(-top.data)));
+    float area=glm::tan(alpha/2)*glm::tan(beta/2);
+    if(area<=0)continue;
+    if(area<bestArea){
+      bestArea    = area;
+      bestLeft    = left;
+      bestRight   = right;
+      bestBottom  = bottom;
+      bestTop     = top;
+    }
+  }
+  delete final;
+  /*
+  std::cerr<<"#####################################\n";
+  for(unsigned i=0;i<sil2.size();++i){
+    float dl=bestLeft.distance(sil2[i]);
+    float dr=bestRight.distance(sil2[i]);
+    float db=bestBottom.distance(sil2[i]);
+    float dt=bestTop.distance(sil2[i]);
+    float dn=bestNear.distance(sil2[i]);
+    float df=bestFar.distance(sil2[i]);
+    if(dl<0.)std::cerr<<"dl: "<<dl<<std::endl;
+    if(dr<0.)std::cerr<<"dr: "<<dr<<std::endl;
+    if(db<0.)std::cerr<<"db: "<<db<<std::endl;
+    if(dt<0.)std::cerr<<"dt: "<<dt<<std::endl;
+    if(dn<0.)std::cerr<<"dn: "<<dn<<std::endl;
+    if(df<0.)std::cerr<<"df: "<<df<<std::endl;
+  }
+  std::cerr<<".....................................\n";
+  // */
+
+  glm::vec3 camPos     = light;
+  glm::vec3 viewvector = glm::normalize(glm::vec3(bestNear.data));
+  //glm::vec3 x          = glm::normalize(glm::vec3(bestLeft.data-bestRight.data));
+  //glm::vec3 x = glm::normalize(glm::cross(glm::vec3(bestNear.data),glm::vec3(bestBottom.data)));
+  //glm::vec3 upVector   = glm::normalize(glm::cross(x,viewvector));
+  glm::vec3 upVector = glm::normalize(glm::cross(glm::vec3(bestLeft.data),glm::vec3(bestNear.data)));
+  *lv        = glm::lookAt(camPos,camPos+viewvector,upVector);
+  float near = glm::abs(bestNear.distance(camPos));
+  float far  = glm::abs(bestFar .distance(camPos));
+  //std::cerr<<"near: "<<near<<std::endl;
+  //std::cerr<<"far:  "<<far<<std::endl;
+
+  glm::vec3 nlb=geometry::planes2Point(bestNear,bestLeft ,bestBottom);
+  glm::vec3 nlt=geometry::planes2Point(bestNear,bestLeft ,bestTop);
+  glm::vec3 nrb=geometry::planes2Point(bestNear,bestRight,bestBottom);
+  glm::vec3 cntr = camPos+glm::vec3(bestNear.data)*near;
+  glm::vec3 xx=nrb-nlb;
+  glm::vec3 yy=nlt-nlb;
+  glm::vec3 vv=cntr-nlb;
+  float xSize=glm::length(xx);
+  float ySize=glm::length(yy);
+  float xOffset=glm::dot(glm::normalize(xx),vv);
+  float yOffset=glm::dot(glm::normalize(yy),vv);
+  float left   = -xOffset;
+  float bottom = -yOffset;
+  float right  = left+xSize;
+  float top    = bottom+ySize;
+  *lp = glm::frustum(left,right,bottom,top,near,far);
+  
+  /*
+  geometry::ConvexHull*nn=new ConvexHull(*lp,*lv);
+  for(unsigned i=0;i<sil2.size();++i){
+    for(unsigned j=0;j<nn->planes.size();++j){
+      float d=nn->planes[j]->plane.distance(sil2[i]);
+      if(d<0.)std::cerr<<"d: "<<d<<std::endl;
+    }
+  }
+
+  delete nn;
+  // */
+
+
+}
