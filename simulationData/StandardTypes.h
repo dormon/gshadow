@@ -42,6 +42,7 @@ namespace simulation{
       SimType type;
       virtual std::string toStr()=0;
       virtual bool operator==(Data*)=0;
+      virtual ~Data(){}
   };
 
   class Bool: public Data{

@@ -46,7 +46,7 @@ void drawNavyMapping(simulation::Light*Light);
 void drawCubeShadowmapShadow(simulation::Light*Light);
 
 ge::util::ArgumentObject*Args;
-ge::util::CameraObject*Camera;
+
 ge::util::CameraPath*CameraMation;
 std::string CameraMationFile="tadyjeprulet";
 
@@ -96,14 +96,6 @@ float*RawTriangles;
 
 SAdjecency ModelAdjacency;
 SSpecificEdge SE;
-//CShadowShader*ShadowShader;
-
-//Test
-
-//float LightPos[4]={0,-10,0,1};
-//simulation::Light Light;
-simulation::Light light(glm::vec4(10.f,10.f,100.f,1.f),glm::vec3(1.f),glm::vec3(1.f));
-simulation::Light light2(glm::vec4(0.f,0.f,0.f,1.f),glm::vec3(1.f),glm::vec3(1.f));
 
 //sintorn
 ge::gl::BufferObject*SintornVBO;
@@ -138,17 +130,6 @@ ge::gl::BufferObject*VertexSilhouetteUniversalCap;
 ge::gl::ProgramObject*VertexSilhouetteShaderCap;
 GLuint VertexSilhouetteVAOCap;
 
-/*
-   ge::gl::CShaderProgram*TessellationEdgeSilhouetteShader;
-   ge::gl::BufferObject*TessellationEdgeSilhouetteUniversal;
-   ge::gl::BufferObject*TessellationEdgeSilhouetteUniversalElements;
-   ge::gl::VertexArrayObject*TessEdgeSidesVAO;
-   GLuint TessellationEdgeSilhouetteVAO;
-   unsigned MaxMultiplicityTSE=4;
-
-   ge::gl::CShaderProgram*TessellationEdge2SilhouetteShader;
-   */
-
 ge::gl::ProgramObject*DrawSilhouetteShader;
 ge::gl::BufferObject*DrawSilhouetteBuffer;
 GLuint DrawSilhouetteVAO;
@@ -169,7 +150,6 @@ ge::gl::ProgramObject *DrawHDB                     = NULL;
 ge::gl::ProgramObject *ManifoldHullCap             = NULL;
 ge::gl::ProgramObject *drawAABBProgram             = NULL;
 ge::gl::ProgramObject *drawOBBProgram              = NULL;
-ge::gl::ProgramObject *drawTriangleProgram         = NULL;
 ge::gl::BufferObject  *ManifoldHullCapBuffer       = NULL;
 
 DrawPrimitive*simpleDraw = NULL;
@@ -251,12 +231,6 @@ bool DisableAnttweakbar=false;
 ge::util::ContextParam contextParam;
 ge::util::WindowParam  windowParam;
 
-struct SCameraParam{
-  float Near;
-  float Far;
-  float Fovy;
-}CameraParam;
-
 struct STestParam{
   bool Test;
   std::string CameraMationFile;
@@ -319,22 +293,8 @@ int main(int Argc,char*Argv[]){
   contextParam.profile="compatibility";
   contextParam.version=200;
 
-  //camera args
-  CameraParam.Near = Args->getArgf("-near","1");
-  CameraParam.Far  = Args->getArgf("-far" ,"9999");
-  CameraParam.Fovy = Args->getArgf("-fovy","45" );
-
-  //light args
-  light.position[0] = Args->getArgf("--light-start","--light-end",0,"10");
-  light.position[1] = Args->getArgf("--light-start","--light-end",1,"10");
-  light.position[2] = Args->getArgf("--light-start","--light-end",2,"10");
-  light.position[3] = Args->getArgf("--light-start","--light-end",3,"1");
-  light.diffuse [0] = Args->getArgf("--light-start","--light-end",4,"1");
-  light.diffuse [1] = Args->getArgf("--light-start","--light-end",5,"1");
-  light.diffuse [2] = Args->getArgf("--light-start","--light-end",6,"1");
-  light.specular[0] = Args->getArgf("--light-start","--light-end",7,"1");
-  light.specular[1] = Args->getArgf("--light-start","--light-end",8,"1");
-  light.specular[2] = Args->getArgf("--light-start","--light-end",9,"1");
+  objconf::setCamera(Args,windowParam.size);
+  objconf::setLight(Args);
 
   //test args
   TestParam.Test             = Args->isPresent("--test"                     );
@@ -450,7 +410,6 @@ int main(int Argc,char*Argv[]){
       contextParam.profile,
       contextParam.flag);
 
-  //glBinding::binding::initialize();
   glewExperimental=GL_TRUE;
   glewInit();
 
@@ -461,19 +420,14 @@ int main(int Argc,char*Argv[]){
     std::cerr<<e<<std::endl;
   }
 
-
   try{
     GPA=new NDormon::CGpuPerfApi(Window->getContext());
     GPA->EnableComputeShader();
-    //GPA->EnableTiming();
-    //GPA->EnableLocalMemory();
   }catch(std::string&e){
     std::cerr<<e<<std::endl;
     GPAavalable=false;
   }
 
-
-  //ge::gl::setDefaultDebugMessage();
   ge::gl::setHighDebugMessage();
 
   EmptyVAO=new ge::gl::VertexArrayObject();
@@ -484,12 +438,13 @@ int main(int Argc,char*Argv[]){
   glDisable(GL_CULL_FACE);
 
   //create camera
+  /*
   Camera=new ge::util::CameraObject(
       windowParam.size,
       CameraParam.Near,
       CameraParam.Far,
       CameraParam.Fovy);
-  Camera->down(15);
+  objconf::getCamera()->down(15);*/
 
   if(TestParam.Test)TestInit();
   else Init();
@@ -603,22 +558,24 @@ void TestIdle(){
   if(CameraMation){
     ge::util::CameraKeyPoint Point;
     CameraMation->getCameraPoint(&Point,MeasureTime);
-    Camera->setView(Point.position,Point.viewVector,Point.upVector);
-    Camera->setFovy(Point.fovy);
+    objconf::getCamera()->setView(Point.position,Point.viewVector,Point.upVector);
+    objconf::getCamera()->setFovy(Point.fovy);
   }else{
-    Camera->fpsCamera(Angle[0],Angle[1],Angle[2]);
-    Camera->right  ((Window->isKeyDown('d')-Window->isKeyDown('a'))*Speed);
-    Camera->up     ((Window->isKeyDown(' ')-Window->isKeyDown('c'))*Speed);
-    Camera->forward((Window->isKeyDown('w')-Window->isKeyDown('s'))*Speed);
+    objconf::getCamera()->fpsCamera(Angle[0],Angle[1],Angle[2]);
+    objconf::getCamera()->right  ((Window->isKeyDown('d')-Window->isKeyDown('a'))*Speed);
+    objconf::getCamera()->up     ((Window->isKeyDown(' ')-Window->isKeyDown('c'))*Speed);
+    objconf::getCamera()->forward((Window->isKeyDown('w')-Window->isKeyDown('s'))*Speed);
   }
-  Pos=Camera->getPosition();
+  Pos=objconf::getCamera()->getPosition();
 
-  Camera->getView(&View);
-  Camera->getProjection(&Projection);
+  objconf::getCamera()->getView(&View);
+  objconf::getCamera()->getProjection(&Projection);
   mvp=Projection*View;
 
-  if(Window->isKeyDown('g'))light.position[1]-=0.01;
-  if(Window->isKeyDown('t'))light.position[1]+=0.01;
+  //if(Window->isKeyDown('g'))light.position[1]-=0.01;
+  //if(Window->isKeyDown('t'))light.position[1]+=0.01;
+  if(Window->isKeyDown('g'))objconf::getLight()->position[1]-=0.01;
+  if(Window->isKeyDown('t'))objconf::getLight()->position[1]+=0.01;
   simData->setAsChanged("light");
 
 
@@ -630,40 +587,40 @@ void TestIdle(){
 
   switch(TestParam.Method){
     case SS_GEOMETRY:
-      DrawGeometry(&light);
+      DrawGeometry(objconf::getLight());
       break;
     case SS_GEOMETRY_SIDES_CAPS:
-      DrawGeometrySidesCaps(&light);
+      DrawGeometrySidesCaps(objconf::getLight());
       break;
     case SS_COMPUTE_SOE_PLANE:
-      DrawComputeSOEPlane(&light);
+      DrawComputeSOEPlane(objconf::getLight());
       break;
     case SS_COMPUTE_SOE:
-      DrawComputeSOE(&light);
+      DrawComputeSOE(objconf::getLight());
       break;
     case SS_COMPUTE:
-      DrawCompute(&light);
+      DrawCompute(objconf::getLight());
       break;
     case SS_VS:
-      DrawVertex(&light);
+      DrawVertex(objconf::getLight());
       break;
     case SS_TS:
-      DrawTessellation(&light);
+      DrawTessellation(objconf::getLight());
       break;
     case SS_SHADOWMAP:
       mm=Shadowmapping;
       mm->createShadowMask();
       //Shadowmapping->createShadowMask();
-      drawDiffuseSpecular(true,&light);
+      drawDiffuseSpecular(true,objconf::getLight());
       break;
     case SS_NAVYMAPPING:
-      drawNavyMapping(&light);
+      drawNavyMapping(objconf::getLight());
       break;
     case SS_CUBESHADOWMAP:
-      drawCubeShadowmapShadow(&light);
+      drawCubeShadowmapShadow(objconf::getLight());
       break;
     case SS_SINTORN:
-      DrawSintorn(&light);
+      DrawSintorn(objconf::getLight());
       break;
     case SS_NO:
       break;
@@ -689,9 +646,10 @@ void TestIdle(){
 glm::mat4 camView=glm::mat4(1.f),camProj=glm::perspective(1.5f,1.f,1.f,1000.f);
 
 void Idle(){
+  /*
   if(CameraParam.Far>=10000)CameraParam.Far=std::numeric_limits<float>::infinity();
-  Camera->setNearFar(CameraParam.Near,CameraParam.Far);
-
+  objconf::getCamera()->setNearFar(CameraParam.Near,CameraParam.Far);
+  */
 
   Elapsed+=Window->getDeltaIdleTime();
   framelen+=Window->getDeltaIdleTime();
@@ -724,20 +682,22 @@ void Idle(){
   Diff=Curr-Last;
   Last=Curr;
 
-  Camera->fpsCamera(Angle[0],Angle[1],Angle[2]);
-  Camera->right  ((Window->isKeyDown('d')-Window->isKeyDown('a'))*Speed);
-  Camera->up     ((Window->isKeyDown(' ')-Window->isKeyDown('c'))*Speed);
-  Camera->forward((Window->isKeyDown('w')-Window->isKeyDown('s'))*Speed);
-  Pos=Camera->getPosition();
+  objconf::getCamera()->fpsCamera(Angle[0],Angle[1],Angle[2]);
+  objconf::getCamera()->right  ((Window->isKeyDown('d')-Window->isKeyDown('a'))*Speed);
+  objconf::getCamera()->up     ((Window->isKeyDown(' ')-Window->isKeyDown('c'))*Speed);
+  objconf::getCamera()->forward((Window->isKeyDown('w')-Window->isKeyDown('s'))*Speed);
+  Pos=objconf::getCamera()->getPosition();
 
-  Camera->getView(&View);
-  Camera->getProjection(&Projection);
+  objconf::getCamera()->getView(&View);
+  objconf::getCamera()->getProjection(&Projection);
   mvp=Projection*View;
 
 
 
-  if(Window->isKeyDown('g')){light.position[1]-=0.4;simData->setAsChanged("light");}
-  if(Window->isKeyDown('t')){light.position[1]+=0.4;simData->setAsChanged("light");}
+  //if(Window->isKeyDown('g')){light.position[1]-=0.4;simData->setAsChanged("light");}
+  //if(Window->isKeyDown('t')){light.position[1]+=0.4;simData->setAsChanged("light");}
+  if(Window->isKeyDown('g')){objconf::getLight()->position[1]-=0.4;simData->setAsChanged("light");}
+  if(Window->isKeyDown('t')){objconf::getLight()->position[1]+=0.4;simData->setAsChanged("light");}
 
 
   simData->sendUpdate();
@@ -746,8 +706,7 @@ void Idle(){
   //std::cerr<<"AFTER KEYBOARD"<<std::endl;
 
   simulation::Light*LightList[]={
-    &light,
-    &light2
+    objconf::getLight(0)
   };
 
   if(SSEnable){
@@ -1095,7 +1054,6 @@ void Idle(){
             if(Window->isKeyOn('p')){
               glm::mat4 pp;
               glm::mat4 vv;
-//              if(geometry::getMinimalVP(&pp,&vv,Projection,View,sceneAABB->minPoint,sceneAABB->maxPoint,glm::vec3(LightList[l]->position)))
               if(geometry::getMinVP(&pp,&vv,Projection,View,sceneAABB->minPoint,sceneAABB->maxPoint,glm::vec3(LightList[l]->position)))
                 Shadowmapping->setMatrices(pp,vv);
             }
@@ -1209,12 +1167,12 @@ void Idle(){
         View,Projection,
         camProj,camView,
         sceneAABB->minPoint,sceneAABB->maxPoint,
-        glm::vec3(light.position));
+        glm::vec3(objconf::getLight()->position));
   }
 
 
 
-  if(SSMethod==SS_NAVYMAPPING&&false){
+  if(SSMethod==SS_NAVYMAPPING){
     //navyMapping->drawShadowMap(0,0,.5);
     navyMapping->writeViewSamples(Deferred.position->getId());
     //navyMapping->drawCountMap(0,0,.5);
@@ -1743,7 +1701,7 @@ void DrawShadowless(){
   glBlendEquation(GL_FUNC_ADD);
 
   glDepthFunc(GL_ALWAYS);
-  DrawDiffuseSpecular(false,false,&light);
+  DrawDiffuseSpecular(false,false,objconf::getLight());
   glDepthFunc(GL_LESS);
 
   glDepthMask(GL_TRUE);
@@ -1900,27 +1858,6 @@ void TestInit(){
 void Init(){
   std::cerr<<"Init()"<<std::endl;
 
-  /*
-     simulation::SimulationData *sData=new simulation::SimulationData();
-     sData->insertVariable("necoi",new simulation::Int(12));
-     sData->insertVariable("necof",new simulation::Float(3.4));
-     sData->insertVariable("geom.cull",new simulation::Int(1));
-     sData->insertVariable("geom.array",new simulation::Int(4));
-     sData->insertVariable("geom.name",new simulation::String("mvp"));
-     sData->insertVariable("geom.cap.inf",new simulation::Int(0));
-     sData->insertVariable("geom.cap.amd",new simulation::Int(43));
-     sData->insertVariable("geom.cap.size",new simulation::Vec2(glm::vec2(12.f,14.f)));
-     sData->insertVariable("geom.cap.so",new simulation::Vec4(glm::vec4(12.f,14.f,32.f,1.f)));
-
-
-     std::cerr<<sData->toStr()<<std::endl;
-     exit(0);
-     */
-
-
-
-
-
   glGenQueries(1,&QueryTime);
   MergeQuery=new ge::gl::AsynchronousQueryObject(GL_TIME_ELAPSED,GL_QUERY_RESULT_NO_WAIT,ge::gl::AsynchronousQueryObject::UINT64);
   MergeTextureQuery     = new ge::gl::AsynchronousQueryObject(MergeQuery);
@@ -2002,11 +1939,6 @@ void Init(){
       ShaderDir+"app/drawaabb.fp");
   std::cerr<<"asasas3"<<std::endl;
 
-  drawTriangleProgram = new ge::gl::ProgramObject(
-      ShaderDir+"app/drawTriangle.vp",
-      ShaderDir+"app/drawTriangle.gp",
-      ShaderDir+"app/drawTriangle.fp");
-  std::cerr<<"asasas4"<<std::endl;
 
 
   simpleDraw = new DrawPrimitive(ShaderDir+"app/");
@@ -2060,13 +1992,6 @@ void Init(){
      &SintornParam.ShadowFrustaPerWorkGroup,
      " label='Shadow Frusta Per Work Group' min=1 max=10 step=8");
 
-     TwBar*Bar2;
-     Bar2=TwNewBar("Camera");
-     TwAddVarRW(Bar2,"Fovy",TW_TYPE_FLOAT,&Camera->Fovy,
-     " label='Field of view' min=1 max=179 step=1");
-     TwAddVarRW(Bar2,"Near",TW_TYPE_FLOAT,&Camera->Near,
-     " label='Near Plane' min=0.1 max=10000 step=0.1");
-
 
      TwBar*Bar3;
      Bar3=TwNewBar("CameraMation");
@@ -2086,9 +2011,10 @@ void Init(){
      TwAddVarRW(Bar3, "CameraMationFile", TW_TYPE_STDSTRING, &TestParam.CameraMationFile, 
      " label='Save file' group=StdString help='Define a title for the new tweak bar.' ");
      */
-  TwBar*cameraBar=TwNewBar("cameraBar");
-  TwAddVarRW(cameraBar,"near",TW_TYPE_FLOAT,&CameraParam.Near," label='near' help='near plane' min='0.1' max='1000' step=0.1");
-  TwAddVarRW(cameraBar,"far" ,TW_TYPE_FLOAT,&CameraParam.Far ," label='far' help='far plane' min='10' max='10000' step=1"    );
+  
+  objconf::setCameraAntTweakBar();
+  objconf::setLightAntTweakBar();
+  test::setTestConvexHull(simpleDraw);
 
 
   TwBar*Bar;
@@ -2140,7 +2066,7 @@ void Init(){
   TwAddVarRW(Bar,"Draw Every Silhouette" ,TW_TYPE_BOOLCPP,&DSDrawEverything     ," help='Toggle drawing of every Silhouettes'" );
 
 
-  test::setTestConvexHull(simpleDraw);
+
 
 
 
@@ -2154,14 +2080,14 @@ void Init(){
 
   simData->insertVariable("emptyVAO" ,new simulation::Object(EmptyVAO       ));
   simData->insertVariable("sceneVAO" ,new simulation::Object(sceneVAO       ));
-  simData->insertVariable("light"    ,&light                                 );
+  simData->insertVariable("light"    ,objconf::getLight()                                 );
   simData->insertVariable("adjacency",new simulation::Object(&ModelAdjacency));
   simData->insertVariable("gbuffer.position",new simulation::Object(Deferred.position));
   simData->insertVariable("gbuffer.fbo"     ,new simulation::Object(Deferred.fbo     ));
   simData->insertVariable("shadowMask",new simulation::Object(shadowMask));
   simData->insertVariable("measure.shadowMap.createShadowMap" ,new simulation::Gauge());
   simData->insertVariable("measure.shadowMap.createShadowMask",new simulation::Gauge());
-  simData->insertVariable("camera",new simulation::Object(Camera));
+  simData->insertVariable("camera",new simulation::Object(/*Camera*/objconf::getCamera()));
 
 
   std::cerr<<simData->toStr()<<std::endl;
@@ -2174,8 +2100,8 @@ void Init(){
 }
 
 void SetMatrix(){
-  Camera->getProjection(&Projection);
-  Camera->getView(&View);
+  objconf::getCamera()->getProjection(&Projection);
+  objconf::getCamera()->getView(&View);
   Model=glm::mat4(1.);
   mvp=Projection*View*Model;
 }

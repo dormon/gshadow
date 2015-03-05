@@ -1,4 +1,4 @@
-SOURCEDIRS=app/ standard/ mymath/ methods/ GPUPerfApi/ geometry/ drawPrimitive/ simulationData/ argumentLoader/
+SOURCEDIRS=app/ standard/ mymath/ methods/ GPUPerfApi/ geometry/ drawPrimitive/ simulationData/ argumentLoader/ objectConfiguration/
 #patsubst
 #-include ${DEPS}
 #-MMD

@@ -93,6 +93,9 @@ using namespace std;
 #include"../argumentLoader/ArgumentLoader.h"
 
 #include"testConvexHull.h"
+#include"../objectConfiguration/lightConfiguration.h"
+#include"../objectConfiguration/cameraConfiguration.h"
+
 
 #define ILUT_USE_OPENGL
 #include <IL/il.h>
