@@ -488,6 +488,7 @@ void RTWBack::drawGrid(float x,float y,float sx,float sy){
       sy*GETUVEC2(WINDOWSIZE).y);
   this->_drawGridProgram->use();
   this->_drawGridProgram->set("shadowMapSize",GETUINT(RESOLUTION));
+
   this->_sumX->bind(GL_TEXTURE0);
   this->_sumY->bind(GL_TEXTURE1);
   this->_emptyVAO->bind();
