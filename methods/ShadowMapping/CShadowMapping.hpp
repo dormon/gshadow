@@ -39,6 +39,7 @@ class CShadowMapping: public simulation::SimulationObject, public ShadowMethod
     void _computeMatrices();
     void _createShadowMapFBO();
   public:
+    ge::gl::TextureObject*getShadowMap();
     void setMatrices(glm::mat4 lp,glm::mat4 lv);
     void createShadowMask();
     unsigned getNofDependentVariables();

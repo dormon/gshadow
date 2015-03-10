@@ -1,0 +1,36 @@
+#version 440 core
+
+#ifndef WORKGROUP_SIZE_X
+#define WORKGROUP_SIZE_X 64
+#endif//WORKGROUP_SIZE_X
+
+layout(local_size_x=WORKGROUP_SIZE_X)in;
+
+layout(rgba32f,binding=0)uniform image1D importance1D;
+layout(rgba32f,binding=1)uniform image1D smooth1D;
+
+#define COORD (gl_GlobalInvocationID.x)
+
+uniform uint shadowMapSize = 1024u;
+uniform uint windowSize = 16u;
+
+void main(){
+  if(COORD>=shadowMapSize)return;
+
+  vec4 acc=vec4(0);
+  uint counter=0;
+
+  for(int i=-int(windowSize);i<int(windowSize);++i){
+    int pos=int(COORD)+i;
+    if(pos<0)continue;
+    if(pos>=int(shadowMapSize))continue;
+    vec4 newData=imageLoad(importance1D,int(pos));
+    if(newData.y==0)continue;
+    acc+=newData;
+    counter++;
+  }
+  if(counter==0)acc=vec4(0);
+  else acc/=float(counter);
+  imageStore(smooth1D,int(COORD),acc);
+}
+

@@ -9,24 +9,22 @@
 
 #include"shaderdir.hpp"
 
+#include"../ShadowMethod.h"
+
 class CComputeSides
 {
   private:
-    ge::gl::ProgramObject*ComputeProgram;
-    ge::gl::ProgramObject*DrawProgram;
-    ge::gl::BufferObject*Input;
-    ge::gl::BufferObject*Counter;
-    ge::gl::BufferObject*Output;
-    ge::gl::VertexArrayObject*VAO;
-    SAdjecency*Adjacency;
-    std::string GenerateCompute(
-        unsigned WorkGroupSize,
-        unsigned MaxMultiplicity,
-        bool CullSides);
+    ge::gl::ProgramObject*     _computeProgram;
+    ge::gl::ProgramObject*     _drawProgram;
+    ge::gl::BufferObject*      _input;
+    ge::gl::BufferObject*      _counter;
+    ge::gl::BufferObject*      _output;
+    ge::gl::VertexArrayObject* _vao;
+    SAdjecency*                _adjacency;
+    unsigned                   _workGroupSize;
   public:
-    CComputeSides(SAdjecency*Adjacency,
-        unsigned WorkGroupSize,bool CullSides);
-    ~CComputeSides();
+    CComputeSides(SAdjecency*Adjacency,unsigned WorkGroupSize,bool CullSides);
+    virtual ~CComputeSides();
     void ComputeSides(float*mvp,simulation::Light*Light);
     void DrawSides(float*mvp,simulation::Light*Light);
 };

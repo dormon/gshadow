@@ -119,13 +119,6 @@ NavyMapping::NavyMapping(
       ShaderDir+"methods/ShadowMapping/drawsm.gp",
       ShaderDir+"methods/ShadowMapping/drawsm.fp");
 
-  this->DCM = new ge::gl::ProgramObject(
-      ShaderDir+"methods/NavyMapping/drawcm.vp",
-      ShaderDir+"methods/NavyMapping/drawcm.gp",
-      ShaderDir+"methods/NavyMapping/drawcm.fp",
-      ge::gl::ShaderObject::define("DRAWCM_BINDING_COUNTMAP",(int)DRAWCM_BINDING_COUNTMAP)+
-      "");
-
   this->WCM = new ge::gl::ProgramObject(
       ShaderDir+"methods/NavyMapping/writecm.vp",
       ShaderDir+"methods/NavyMapping/writecm.gp",
@@ -194,15 +187,6 @@ NavyMapping::NavyMapping(
       ge::gl::ShaderObject::define("SHADOWMAP_SIZE"                 ,(int)this->ShadowMapSize       )+
       "");
 
-  std::cerr<<"jojo3\n";
-  this->drawUnwarpXProgram = new ge::gl::ProgramObject(
-      ShaderDir+"methods/NavyMapping/drawUnwarpX.vp",
-      ShaderDir+"methods/NavyMapping/drawUnwarpX.gp",
-      ShaderDir+"methods/NavyMapping/drawUnwarpX.fp",
-      ge::gl::ShaderObject::define("DRAWUNWARPX_BINDING_UNWARPXCOUNTMAP",(int)DRAWUNWARPX_BINDING_UNWARPXCOUNTMAP)+
-      ge::gl::ShaderObject::define("SHADOWMAP_SIZE"                     ,(int)this->ShadowMapSize                )+
-      "");
-
   std::cerr<<"jojoasssdsd\n";
   this->countMap = new ge::gl::TextureObject(GL_TEXTURE_2D,GL_R32UI,1,
       this->ShadowMapSize,this->ShadowMapSize);
@@ -246,6 +230,9 @@ NavyMapping::NavyMapping(
   glBindVertexArray(this->EmptyVAO);
   glBindVertexArray(0);
 }
+ge::gl::TextureObject*NavyMapping::getCountMap(){
+  return this->countMap;
+}
 
 NavyMapping::~NavyMapping(){
   glDeleteVertexArrays(1,&this->EmptyVAO);
@@ -255,36 +242,34 @@ NavyMapping::~NavyMapping(){
   delete this->CSM;
 }
 
-void NavyMapping::minProjection(glm::mat4 p,glm::mat4 v,glm::mat4 lp,glm::mat4 lv){
-  /*lp=this->LightProjection;
-  lv=this->LightView;
-  for(unsigned i=0;i<8;++i){
-    glm::vec4 corner = glm::vec4(-1.f+2.f*((i>>0)&1),-1.f+2.f*((i>>1)&1),-1.f+2.f*((i>>2)&1),1);
-    glm::vec4 view   = glm::inverse(p)*corner;
-    glm::vec4 world  = glm::inverse(v)*glm::vec4(view.x/view.w,view.y/view.w,view.z/view.w,1);
-    glm::vec4 clip   = lp*lv*world;
-    //std::cerr<<clip.x/clip.w<<" "<<clip.y/clip.w<<std::endl;
-  }*/
+void NavyMapping::setMatrices(glm::mat4 lp,glm::mat4 lv){
+  this->_lightView       = lv;
+  this->_lightProjection = lp;
+  this->_bpv=
+    glm::scale(glm::mat4(1.),glm::vec3(.5))*
+    glm::translate(glm::mat4(1.),glm::vec3(1.))*
+    this->_lightProjection*
+    this->_lightView;
 }
 
 void NavyMapping::setFocus(simulation::Light*Light,float*FocusPoint,float Fovy){
-  this->LightProjection=glm::perspective(Fovy,1.f,1.f,10000.f);
-  this->LightView=glm::lookAt(
+  this->_lightProjection=glm::perspective(Fovy,1.f,1.f,10000.f);
+  this->_lightView=glm::lookAt(
       glm::vec3(Light->position),
       glm::vec3(FocusPoint[0],FocusPoint[1],FocusPoint[2]),
       glm::vec3(0.f,1.f,0.f));
-  this->BPV=
+  this->_bpv=
     glm::scale(glm::mat4(1.),glm::vec3(.5))*
     glm::translate(glm::mat4(1.),glm::vec3(1.))*
-    LightProjection*
-    LightView;
+    this->_lightProjection*
+    this->_lightView;
 }
 
 void NavyMapping::createShadowMap(float*M){
   this->CSM->use();
   CSM->set("m",1,GL_FALSE,M);
-  CSM->set("v",1,GL_FALSE,(float*)glm::value_ptr(this->LightView));
-  CSM->set("p",1,GL_FALSE,(float*)glm::value_ptr(this->LightProjection));
+  CSM->set("v",1,GL_FALSE,(float*)glm::value_ptr(this->_lightView));
+  CSM->set("p",1,GL_FALSE,(float*)glm::value_ptr(this->_lightProjection));
 
   //glBindFramebuffer(GL_FRAMEBUFFER,this->FBO);
   this->fbo->bind();
@@ -312,8 +297,8 @@ void NavyMapping::createShadowMap(float*M){
 void NavyMapping::createNavyMap(float*M){
   this->CNM->use();
   this->CNM->set("m",1,GL_FALSE,M);
-  this->CNM->set("v",1,GL_FALSE,(float*)glm::value_ptr(this->LightView));
-  this->CNM->set("p",1,GL_FALSE,(float*)glm::value_ptr(this->LightProjection));
+  this->CNM->set("v",1,GL_FALSE,(float*)glm::value_ptr(this->_lightView));
+  this->CNM->set("p",1,GL_FALSE,(float*)glm::value_ptr(this->_lightProjection));
   this->smoothedGridX->bindImage(CREATENAVYMAP_BINDING_GRIDX,0);
   this->smoothedGridY->bindImage(CREATENAVYMAP_BINDING_GRIDY,0);
 
@@ -350,7 +335,7 @@ void NavyMapping::drawShadowed(float*Pos,simulation::Light*Light){
   this->SM->set("Ld",1,glm::value_ptr(Light->diffuse));
   this->SM->set("Ls",1,glm::value_ptr(Light->specular));
   this->SM->set("LightPosition",1,glm::value_ptr(Light->position));
-  this->SM->set("BPV",1,GL_FALSE,glm::value_ptr(this->BPV));
+  this->SM->set("BPV",1,GL_FALSE,glm::value_ptr(this->_bpv));
   this->SM->set("CameraPosition",-Pos[0],-Pos[1],-Pos[2]);
 
   glEnable(GL_BLEND);
@@ -379,9 +364,9 @@ void NavyMapping::drawNavyShadowed(bool wrap,float*pos,simulation::Light*light){
   this->NSM->set("Ld",1,glm::value_ptr(light->diffuse));
   this->NSM->set("Ls",1,glm::value_ptr(light->specular));
   this->NSM->set("LightPosition",1,glm::value_ptr(light->position));
-  this->NSM->set("BPV",1,GL_FALSE,glm::value_ptr(this->BPV));
-  this->NSM->set("v",1,GL_FALSE,(float*)glm::value_ptr(this->LightView));
-  this->NSM->set("p",1,GL_FALSE,(float*)glm::value_ptr(this->LightProjection));
+  this->NSM->set("BPV",1,GL_FALSE,glm::value_ptr(this->_bpv));
+  this->NSM->set("v",1,GL_FALSE,(float*)glm::value_ptr(this->_lightView));
+  this->NSM->set("p",1,GL_FALSE,(float*)glm::value_ptr(this->_lightProjection));
 
 
   this->NSM->set("CameraPosition",-pos[0],-pos[1],-pos[2]);
@@ -418,22 +403,6 @@ void NavyMapping::drawShadowMap(bool navyMap,float x,float y,float w){
   glViewport(0,0,this->ScreenSize[0],this->ScreenSize[1]);
 }
 
-void NavyMapping::drawCountMap(float x,float y,float w){
-  glColorMask(GL_TRUE,GL_TRUE,GL_TRUE,GL_TRUE);
-  glViewport(
-      x*this->ScreenSize[0],
-      y*this->ScreenSize[1],
-      w*this->ScreenSize[0],
-      w*this->ScreenSize[1]);
-  glBindVertexArray(this->EmptyVAO);
-  this->DCM->use();
-  this->DCM->set("shadowMapSize",(unsigned)this->ShadowMapSize);
-  this->countMap->bindImage(DRAWCM_BINDING_COUNTMAP,0);
-  glDrawArrays(GL_POINTS,0,1);
-  glBindVertexArray(0);
-  glViewport(0,0,this->ScreenSize[0],this->ScreenSize[1]);
-}
-
 void NavyMapping::writeViewSamples(GLuint positionTexture){
 
   glColorMask(GL_FALSE,GL_FALSE,GL_FALSE,GL_FALSE);
@@ -444,7 +413,7 @@ void NavyMapping::writeViewSamples(GLuint positionTexture){
   glViewport(0,0,this->ScreenSize[0],this->ScreenSize[1]);
   glBindVertexArray(this->EmptyVAO);
   this->WCM->use();
-  this->WCM->set("BPV",1,GL_FALSE,glm::value_ptr(this->BPV));
+  this->WCM->set("BPV",1,GL_FALSE,glm::value_ptr(this->_bpv));
   this->WCM->set("shadowMapSize",(unsigned)this->ShadowMapSize);
   this->countMap->bindImage(WRITECM_BINDING_COUNTMAP,0);
   glActiveTexture(GL_TEXTURE0+WRITECM_BINDING_POSITIONMAP);
@@ -485,17 +454,6 @@ void NavyMapping::drawPrefixSum(float x,float y,float w){
   glViewport(0,0,this->ScreenSize[0],this->ScreenSize[1]);
 }
 
-/*
-   void NavyMapping::smoothGridX(){
-   glClearTexImage(this->smoothedGridX->getId(),0,GL_RED,GL_FLOAT,NULL);
-   glMemoryBarrier(GL_ALL_BARRIER_BITS);
-   this->smoothGridXProgram->use();
-   this->gridX        ->bindImage(SMOOTHGRIDX_BINDING_GRIDX        ,0);
-   this->smoothedGridX->bindImage(SMOOTHGRIDX_BINDING_SMOOTHEDGRIDX,0);
-   glDispatchCompute(this->ShadowMapSize/SMOOTHGRIDX_WORKGROUP_SIZE_X,1,1);
-   glMemoryBarrier(GL_ALL_BARRIER_BITS);
-   }*/
-
 void NavyMapping::smoothGrid(ge::gl::TextureObject*smooth,ge::gl::TextureObject*grid){
   glClearTexImage(smooth->getId(),0,GL_RED,GL_FLOAT,NULL);
   glMemoryBarrier(GL_ALL_BARRIER_BITS);
@@ -535,27 +493,6 @@ void NavyMapping::drawGrid(float x,float y,float w,bool xAxe){
   glViewport(0,0,this->ScreenSize[0],this->ScreenSize[1]);
 }
 
-/*
-   void NavyMapping::drawGridX(float x,float y,float w){
-   glColorMask(GL_TRUE,GL_TRUE,GL_TRUE,GL_TRUE);
-   glViewport(
-   x*this->ScreenSize[0],
-   y*this->ScreenSize[1],
-   w*this->ScreenSize[0],
-   w*this->ScreenSize[1]);
-   glBindVertexArray(this->EmptyVAO);
-
-   this->drawGridXProgram->use();
-   this->smoothedGridX->bindImage(GRIDX_BINDING_SMOOTHEDGRIDX,0);
-
-   for(int l=0;l<=GRID_SIZE_X;++l){
-   this->drawGridXProgram->set("lineId",l);
-   glDrawArrays(GL_LINE_STRIP,0,this->ShadowMapSize);
-   }
-   glBindVertexArray(0);
-   glViewport(0,0,this->ScreenSize[0],this->ScreenSize[1]);
-   }*/
-
 void NavyMapping::unwarpX(GLuint positionTexture){
   glColorMask(GL_FALSE,GL_FALSE,GL_FALSE,GL_FALSE);
   glDepthMask(GL_FALSE);
@@ -565,7 +502,7 @@ void NavyMapping::unwarpX(GLuint positionTexture){
   glViewport(0,0,this->ScreenSize[0],this->ScreenSize[1]);
   glBindVertexArray(this->EmptyVAO);
   this->unwarpXProgram->use();
-  this->unwarpXProgram->set("BPV",1,GL_FALSE,glm::value_ptr(this->BPV));
+  this->unwarpXProgram->set("BPV",1,GL_FALSE,glm::value_ptr(this->_bpv));
   this->unwarpXCountMap->bindImage(UNWARPX_BINDING_UNWARPXCOUNTMAP,0);
   this->smoothedGridX  ->bindImage(UNWARPX_BINDING_SMOOTHEDGRIDX  ,0);
   glActiveTexture(GL_TEXTURE0+UNWARPX_BINDING_POSITIONMAP);
@@ -577,32 +514,6 @@ void NavyMapping::unwarpX(GLuint positionTexture){
   glColorMask(GL_TRUE,GL_TRUE,GL_TRUE,GL_TRUE);
 }
 
-void NavyMapping::drawUnwarpX(float x,float y,float w){
-  glColorMask(GL_TRUE,GL_TRUE,GL_TRUE,GL_TRUE);
-  glViewport(
-      x*this->ScreenSize[0],
-      y*this->ScreenSize[1],
-      w*this->ScreenSize[0],
-      w*this->ScreenSize[1]);
-  glBindVertexArray(this->EmptyVAO);
-  this->drawUnwarpXProgram->use();
-  this->unwarpXCountMap->bindImage(DRAWUNWARPX_BINDING_UNWARPXCOUNTMAP,0);
-  glDrawArrays(GL_POINTS,0,1);
-  glBindVertexArray(0);
-  glViewport(0,0,this->ScreenSize[0],this->ScreenSize[1]);
-}
-
-/*void NavyMapping::prefixSumY(){
-  glClearTexImage(this->prefixSumYMap->getId(),0,GL_RED_INTEGER,GL_UNSIGNED_INT,NULL);
-  glClearTexImage(this->gridY        ->getId(),0,GL_RED_INTEGER,GL_UNSIGNED_INT,NULL);
-  glMemoryBarrier(GL_ALL_BARRIER_BITS);
-  this->prefixSumYProgram->use();
-  this->unwarpXCountMap->bindImage(PREFIXSUMY_BINDING_UNWARPXCOUNTMAP,0);
-  this->prefixSumYMap  ->bindImage(PREFIXSUMY_BINDING_PREFIXSUMMAP   ,0);
-  this->gridY          ->bindImage(PREFIXSUMY_BINDING_GRIDY          ,0);
-  glDispatchCompute(this->ShadowMapSize/PREFIXSUMY_WORKGROUP_SIZE_X,1,1);
-  glMemoryBarrier(GL_ALL_BARRIER_BITS);
-  }*/
 
 void NavyMapping::prefixSum(ge::gl::TextureObject*grid,ge::gl::TextureObject*prefix,ge::gl::TextureObject*count){
   glClearTexImage(grid  ->getId(),0,GL_RED_INTEGER,GL_UNSIGNED_INT,NULL);

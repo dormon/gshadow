@@ -12,6 +12,7 @@
 class DrawPrimitive
 {
   private:
+    unsigned  _windowSize[2];
     glm::mat4 _view;
     glm::mat4 _projection;
     glm::vec4 _color;
@@ -23,6 +24,7 @@ class DrawPrimitive
     ge::gl::ProgramObject     *_drawDepth;
     ge::gl::ProgramObject     *_drawHeatF;
     ge::gl::ProgramObject     *_drawHeatU;
+    ge::gl::ProgramObject     *_draw1DF;
     ge::gl::VertexArrayObject *_emptyVAO;
     enum{
       TRIANGLES,
@@ -34,6 +36,7 @@ class DrawPrimitive
     void _setStateSet();
   public:
     DrawPrimitive(std::string shaderDir);
+    void setWindowSize(unsigned*size);
     void beginTriangles();
     void beginLine();
     void beginPoint();
@@ -47,11 +50,14 @@ class DrawPrimitive
     void line(glm::vec3 a,glm::vec3 b);
     void point(glm::vec3 a,float size);
     void plane(glm::vec4 a,float size);
-    void drawTexture(GLuint id,float x,float y,float s);
-    void drawDepth(GLuint id,float x,float y,float s,float near,float far);
-    void drawHeatMap(GLuint id,float x,float y,float s,float min=0,float max=0);
-    void drawHeatMap(GLuint id,float x,float y,float s,unsigned min=0,unsigned max=0);
-
+    void drawTexture(GLuint id,float x,float y,float sx,float sy);
+    void drawDepth  (GLuint id,float x,float y,float sx,float sy,
+        float near,float far);
+    void drawHeatMap(GLuint id,float x,float y,float sx,float sy,
+        unsigned min=0,unsigned max=255,unsigned channel=0);
+    void drawHeatMap(GLuint id,float x,float y,float sx,float sy,
+        float min=0.f,float max=1.f,unsigned channel=0);
+    void draw1D(GLuint id,float x,float y,float sx,float sy,float min=0.f,float max=1.f,unsigned channel=0);
 };
 
 #endif//_DRAWPRIMITIVE_H_

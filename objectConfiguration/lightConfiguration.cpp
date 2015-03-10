@@ -52,11 +52,11 @@ void createLightBarVar(){
   float*dif  = glm::value_ptr(lightConfiguration.lights[lightConfiguration.currentLight]->diffuse );
   float*spec = glm::value_ptr(lightConfiguration.lights[lightConfiguration.currentLight]->specular);
 
-  TwAddVarRW(lightConfiguration.lbar,"xpos",TW_TYPE_FLOAT,pos+0," label='xpos' help='xpos of current light");
-  TwAddVarRW(lightConfiguration.lbar,"ypos",TW_TYPE_FLOAT,pos+1," label='ypos' help='ypos of current light");
-  TwAddVarRW(lightConfiguration.lbar,"zpos",TW_TYPE_FLOAT,pos+2," label='zpos' help='zpos of current light");
-  TwAddVarRW(lightConfiguration.lbar,"diffuse",TW_TYPE_COLOR3F,dif," noalpha help='Light diffuse color.' ");
-  TwAddVarRW(lightConfiguration.lbar,"speculra",TW_TYPE_COLOR3F,spec," noalpha help='Light specular color.' ");
+  TwAddVarRW(lightConfiguration.lbar,"xpos"    ,TW_TYPE_FLOAT  ,pos+0," label='xpos' help='xpos of current light'");
+  TwAddVarRW(lightConfiguration.lbar,"ypos"    ,TW_TYPE_FLOAT  ,pos+1," label='ypos' help='ypos of current light'");
+  TwAddVarRW(lightConfiguration.lbar,"zpos"    ,TW_TYPE_FLOAT  ,pos+2," label='zpos' help='zpos of current light'");
+  TwAddVarRW(lightConfiguration.lbar,"diffuse" ,TW_TYPE_COLOR3F,dif  ," noalpha help='Light diffuse color.' "     );
+  TwAddVarRW(lightConfiguration.lbar,"speculra",TW_TYPE_COLOR3F,spec ," noalpha help='Light specular color.' "    );
 }
 
 void objconf::setLightAntTweakBar(){

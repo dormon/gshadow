@@ -1,0 +1,36 @@
+#version 440 core
+
+#ifndef WORKGROUP_SIZE_X
+#define WORKGROUP_SIZE_X 8
+#endif//WORKGROUP_SIZE_X
+
+#ifndef WORKGROUP_SIZE_Y
+#define WORKGROUP_SIZE_Y 8
+#endif//WORKGROUP_SIZE_Y
+
+layout(local_size_x=WORKGROUP_SIZE_X,local_size_y=WORKGROUP_SIZE_Y)in;
+
+layout(        binding=0)uniform sampler2D position  ;
+layout(rgba32f,binding=1)uniform image2D   importance;
+
+uniform mat4  BPV;
+uniform uint  shadowMapSize = 1024u;
+uniform uvec2 windowSize    = uvec2(1024u,1024u);
+
+uniform vec3 cameraPosition = vec3(0.f);
+uniform float maxDistance   = 100.f;
+
+#define COORD (gl_GlobalInvocationID.xy)
+
+void main(){
+  if(any(greaterThanEqual(COORD,ivec2(windowSize))))return;
+  vec3 pos=texelFetch(position,ivec2(COORD),0).xyz;
+	vec4 shadowMapCoord = BPV*vec4(pos,1);
+  ivec2 importanceCoord = ivec2(shadowMapCoord.xy/shadowMapCoord.w*shadowMapSize);
+  vec4 data=vec4(0);
+  data.x=maxDistance-distance(cameraPosition,pos);
+  data.y=1;//DV
+  vec4 old=imageLoad(importance,importanceCoord);
+  if(old.x>=data.x)return;
+  imageStore(importance,importanceCoord,vec4(data));
+}

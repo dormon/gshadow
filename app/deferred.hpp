@@ -8,34 +8,15 @@
 
 #include"shaderdir.hpp"
 
-#define glError() {\
-	GLenum err=glGetError();\
-	while(err!=GL_NO_ERROR){\
-		fprintf(stderr,"glError: %s caught at %s:%u\n", (char *)gluErrorString(err), __FILE__, __LINE__); \
-		err=glGetError();\
-	}\
-}
-
-
 typedef struct{
-	//GLuint FBO;//framebuffer
-	//GLuint RBO_Depth;//render buffer depth
-	GLuint RBO_Stencil;//render buffer stencil buffer
-  ge::gl::TextureObject*position;
-  ge::gl::TextureObject*color;
-  ge::gl::TextureObject*normal;
-  ge::gl::TextureObject*depth;
-  ge::gl::TextureObject*stencil;
-  ge::gl::TextureObject*imageAtomicAdd;
-  ge::gl::FramebufferObject*fbo;
-	//GLuint Color;//color texture
-  //GLuint Position;//position texture
-	//GLuint Normal;//normal texture
-	//GLuint Depth;
-	//GLuint Stencil;
-	//GLuint ImageAtomicAdd;
-	ge::gl::ProgramObject*Create;
-	unsigned Size[2];//size of screen
+  ge::gl::TextureObject*     position;
+  ge::gl::TextureObject*     color;
+  ge::gl::TextureObject*     normal;
+  ge::gl::TextureObject*     depth;
+  ge::gl::TextureObject*     stencil;
+  ge::gl::FramebufferObject* fbo;
+	ge::gl::ProgramObject*     Create;
+	unsigned Size[2];
 }SDeferred;
 
 void deferred_Init(SDeferred*Deferred,unsigned Widht,unsigned Height);
@@ -48,8 +29,7 @@ void deferred_BlitStencilBuffer(SDeferred*D);
 void deferred_BlitDepthToDefault(SDeferred*D);
 
 
-void deferred_DrawQuad(SDeferred*D,
-		unsigned*X,unsigned*S);
+void deferred_DrawQuad(SDeferred*D,unsigned*X,unsigned*S);
 
 
 void deferred_StartCreateAtomic(SDeferred*D);

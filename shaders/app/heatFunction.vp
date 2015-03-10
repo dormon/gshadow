@@ -1,0 +1,20 @@
+vec4 getHeatColor(float t){
+  t=clamp(t,0,1);
+  vec4 colors[]={
+    vec4(0,0,0,1),
+    vec4(0,0,1,1),
+    vec4(0,1,0,1),
+    vec4(1,0,0,1),
+    vec4(1,1,0,1),
+    vec4(1,1,1,1)
+  };
+  t*=colors.length();
+  uint i=uint(floor(t));
+  uint j=i+1;
+  if(i>=colors.length()){
+    i=colors.length()-1;
+    j=i;
+  }
+  return mix(colors[i],colors[j],fract(t));
+}
+

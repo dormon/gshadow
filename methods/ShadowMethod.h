@@ -18,5 +18,4 @@ class ShadowMethod
     virtual void createShadowMask()=0;
 };
 
-
 #endif//_SHADOWMETHOD_H_

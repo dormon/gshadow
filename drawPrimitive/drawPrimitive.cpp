@@ -17,13 +17,40 @@ DrawPrimitive::DrawPrimitive(std::string shaderDir){
       shaderDir+"drawPlane.vp",
       shaderDir+"drawPlane.gp",
       shaderDir+"drawPlane.fp");
-
+  this->_drawTexture = new ge::gl::ProgramObject(
+      shaderDir+"drawTexture.vp",
+      shaderDir+"drawTexture.gp",
+      shaderDir+"drawTexture.fp");
+  this->_drawHeatF = new ge::gl::ProgramObject(
+      shaderDir+"drawTexture.vp",
+      shaderDir+"drawTexture.gp",
+      shaderDir+"drawHeat.fp",
+      ge::gl::ShaderObject::include(shaderDir+"heatFunction.vp"));
+  this->_drawHeatU = new ge::gl::ProgramObject(
+      shaderDir+"drawTexture.vp",
+      shaderDir+"drawTexture.gp",
+      shaderDir+"drawHeatU.fp",
+      ge::gl::ShaderObject::include(shaderDir+"heatFunction.vp"));
+  this->_draw1DF = new ge::gl::ProgramObject(
+      shaderDir+"drawTexture.vp",
+      shaderDir+"drawTexture.gp",
+      shaderDir+"draw1DF.fp",
+      ge::gl::ShaderObject::include(shaderDir+"heatFunction.vp"));
+  this->_drawDepth = new ge::gl::ProgramObject(
+      shaderDir+"drawTexture.vp",
+      shaderDir+"drawTexture.gp",
+      shaderDir+"drawDepth.fp");
 
   this->_emptyVAO   = new ge::gl::VertexArrayObject();
   this->_mode       = TRIANGLES;
   this->_view       = glm::mat4(1.f);
   this->_projection = glm::mat4(1.f);
   this->_color      = glm::vec4(1.f);
+}
+
+void DrawPrimitive::setWindowSize(unsigned*size){
+  this->_windowSize[0]=size[0];
+  this->_windowSize[1]=size[1];
 }
 
 void DrawPrimitive::beginTriangles(){
@@ -114,3 +141,103 @@ void DrawPrimitive::plane(glm::vec4 a,float size){
   this->_drawPlaneProgram->set("size",size);
   glDrawArrays(GL_POINTS,0,1);
 }
+
+void DrawPrimitive::drawTexture(GLuint id,float x,float y,float sx,float sy){
+  glColorMask(GL_TRUE,GL_TRUE,GL_TRUE,GL_TRUE);
+  glViewport(
+      x *this->_windowSize[0],
+      y *this->_windowSize[1],
+      sx*this->_windowSize[0],
+      sy*this->_windowSize[1]);
+  this->_emptyVAO->bind();
+  this->_drawTexture->use();
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D,id);
+  glDrawArrays(GL_POINTS,0,1);
+  this->_emptyVAO->unbind();
+
+  glViewport(0,0,this->_windowSize[0],this->_windowSize[1]);
+}
+
+void DrawPrimitive::drawHeatMap(GLuint id,float x,float y,float sx,float sy,
+    float min,float max,unsigned channel){
+  glColorMask(GL_TRUE,GL_TRUE,GL_TRUE,GL_TRUE);
+  glViewport(
+      x *this->_windowSize[0],
+      y *this->_windowSize[1],
+      sx*this->_windowSize[0],
+      sy*this->_windowSize[1]);
+  this->_emptyVAO->bind();
+  this->_drawHeatF->use();
+  this->_drawHeatF->set("minValue",min);
+  this->_drawHeatF->set("maxValue",max);
+  this->_drawHeatF->set("channel",channel);
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D,id);
+  glDrawArrays(GL_POINTS,0,1);
+  this->_emptyVAO->unbind();
+  glViewport(0,0,this->_windowSize[0],this->_windowSize[1]);
+}
+
+void DrawPrimitive::drawHeatMap(GLuint id,float x,float y,float sx,float sy,
+    unsigned min,unsigned max,unsigned channel){
+  glColorMask(GL_TRUE,GL_TRUE,GL_TRUE,GL_TRUE);
+  glViewport(
+      x *this->_windowSize[0],
+      y *this->_windowSize[1],
+      sx*this->_windowSize[0],
+      sy*this->_windowSize[1]);
+  this->_emptyVAO->bind();
+  this->_drawHeatU->use();
+  this->_drawHeatU->set("minValue",min);
+  this->_drawHeatU->set("maxValue",max);
+  this->_drawHeatU->set("channel",channel);
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D,id);
+  glDrawArrays(GL_POINTS,0,1);
+  this->_emptyVAO->unbind();
+  glViewport(0,0,this->_windowSize[0],this->_windowSize[1]);
+}
+
+void DrawPrimitive::draw1D(GLuint id,float x,float y,float sx,float sy,
+    float min,float max,unsigned channel){
+  glColorMask(GL_TRUE,GL_TRUE,GL_TRUE,GL_TRUE);
+  glViewport(
+      x *this->_windowSize[0],
+      y *this->_windowSize[1],
+      sx*this->_windowSize[0],
+      sy*this->_windowSize[1]);
+  this->_emptyVAO->bind();
+  this->_draw1DF->use();
+  this->_draw1DF->set("size",.8/(sy*this->_windowSize[1]));
+  this->_draw1DF->set("minValue",min);
+  this->_draw1DF->set("maxValue",max);
+  this->_draw1DF->set("channel",channel);
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_1D,id);
+  glDrawArrays(GL_POINTS,0,1);
+  this->_emptyVAO->unbind();
+  glViewport(0,0,this->_windowSize[0],this->_windowSize[1]);
+}
+
+void DrawPrimitive::drawDepth  (GLuint id,float x,float y,float sx,float sy,
+        float near,float far){
+  glColorMask(GL_TRUE,GL_TRUE,GL_TRUE,GL_TRUE);
+  glViewport(
+      x *this->_windowSize[0],
+      y *this->_windowSize[1],
+      sx*this->_windowSize[0],
+      sy*this->_windowSize[1]);
+  this->_emptyVAO->bind();
+
+  this->_drawDepth->use();
+  this->_drawDepth->set("near",near);
+  this->_drawDepth->set("far",far);
+
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D,id);
+  glDrawArrays(GL_POINTS,0,1);
+  this->_emptyVAO->unbind();
+  glViewport(0,0,this->_windowSize[0],this->_windowSize[1]);
+}
+

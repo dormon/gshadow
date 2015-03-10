@@ -287,3 +287,8 @@ void CShadowMapping::setMatrices(glm::mat4 lp,glm::mat4 lv){
     this->_lightProjection*
     this->_lightView;
 }
+
+ge::gl::TextureObject*CShadowMapping::getShadowMap(){
+  return this->_shadowMap;
+}
+

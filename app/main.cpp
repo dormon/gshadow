@@ -30,20 +30,19 @@ void DrawComputeSOE       (simulation::Light*Light);
 void DrawCompute          (simulation::Light*Light);
 void DrawTessellation     (simulation::Light*Light);
 void DrawSintorn          (simulation::Light*Light);
-
-ge::gl::AsynchronousQueryObject*MergeQuery;
-ge::gl::AsynchronousQueryObject*MergeTextureQuery;
-ge::gl::AsynchronousQueryObject*RasterizeQuery;
-ge::gl::AsynchronousQueryObject*RasterizeTextureQuery;
-ge::gl::AsynchronousQueryObject*ShadowFrustumQuery;
-ge::gl::AsynchronousQueryObject*HierarchyQuery;
-ge::gl::AsynchronousQueryObject*HierarchyTextureQuery;
-ge::gl::AsynchronousQueryObject*stencilShadowsQuery;
-ge::gl::AsynchronousQueryObject*gbufferQuery;
-
-
 void drawNavyMapping(simulation::Light*Light);
 void drawCubeShadowmapShadow(simulation::Light*Light);
+
+ge::gl::AsynchronousQueryObject*MergeQuery            = NULL;
+ge::gl::AsynchronousQueryObject*MergeTextureQuery     = NULL;
+ge::gl::AsynchronousQueryObject*RasterizeQuery        = NULL;
+ge::gl::AsynchronousQueryObject*RasterizeTextureQuery = NULL;
+ge::gl::AsynchronousQueryObject*ShadowFrustumQuery    = NULL;
+ge::gl::AsynchronousQueryObject*HierarchyQuery        = NULL;
+ge::gl::AsynchronousQueryObject*HierarchyTextureQuery = NULL;
+ge::gl::AsynchronousQueryObject*stencilShadowsQuery   = NULL;
+ge::gl::AsynchronousQueryObject*gbufferQuery          = NULL;
+
 
 ge::util::ArgumentObject*Args;
 
@@ -66,6 +65,11 @@ CVertexCaps       *VertexCaps        = NULL;
 CShadowMapping    *Shadowmapping     = NULL;
 NavyMapping       *navyMapping       = NULL;
 CubeShadowMapping *cubeShadowMapping = NULL;
+
+ComputeGeometry   *computeGeometry   = NULL;
+RTWBack           *rtw = NULL;
+
+
 
 ShadowMethod*mm;
 
@@ -215,6 +219,7 @@ enum ESSMethod{
   SS_COMPUTE,
   SS_VS,
   SS_SHADOWMAP,
+  SS_RTW,
   SS_NAVYMAPPING,
   SS_CUBESHADOWMAP,
   SS_TS,
@@ -290,8 +295,8 @@ int main(int Argc,char*Argv[]){
   ge::util::loadContextParam(&contextParam,Args);
   ge::util::loadWindowParam (&windowParam ,Args);
 
-  contextParam.profile="compatibility";
-  contextParam.version=200;
+  contextParam.profile="core";
+  contextParam.version=440;
 
   objconf::setCamera(Args,windowParam.size);
   objconf::setLight(Args);
@@ -315,6 +320,7 @@ int main(int Argc,char*Argv[]){
   else if(MethodString=="ts"               )TestParam.Method = SS_TS;
   else if(MethodString=="vs"               )TestParam.Method = SS_VS;
   else if(MethodString=="sm"               )TestParam.Method = SS_SHADOWMAP;
+  else if(MethodString=="rtw"              )TestParam.Method = SS_RTW;
   else if(MethodString=="nm"               )TestParam.Method = SS_NAVYMAPPING;
   else if(MethodString=="cm"               )TestParam.Method = SS_CUBESHADOWMAP;
   else if(MethodString=="si"               )TestParam.Method = SS_SINTORN;
@@ -412,7 +418,6 @@ int main(int Argc,char*Argv[]){
 
   glewExperimental=GL_TRUE;
   glewInit();
-
 
   try{
     ge::gl::initShadersAndPrograms();
@@ -599,7 +604,10 @@ void TestIdle(){
       DrawComputeSOE(objconf::getLight());
       break;
     case SS_COMPUTE:
-      DrawCompute(objconf::getLight());
+      mm=computeGeometry;
+      mm->createShadowMask();
+      drawDiffuseSpecular(true,objconf::getLight());
+      //DrawCompute(objconf::getLight());
       break;
     case SS_VS:
       DrawVertex(objconf::getLight());
@@ -611,6 +619,11 @@ void TestIdle(){
       mm=Shadowmapping;
       mm->createShadowMask();
       //Shadowmapping->createShadowMask();
+      drawDiffuseSpecular(true,objconf::getLight());
+      break;
+    case SS_RTW:
+      mm=rtw;
+      mm->createShadowMask();
       drawDiffuseSpecular(true,objconf::getLight());
       break;
     case SS_NAVYMAPPING:
@@ -698,7 +711,6 @@ void Idle(){
   //if(Window->isKeyDown('t')){light.position[1]+=0.4;simData->setAsChanged("light");}
   if(Window->isKeyDown('g')){objconf::getLight()->position[1]-=0.4;simData->setAsChanged("light");}
   if(Window->isKeyDown('t')){objconf::getLight()->position[1]+=0.4;simData->setAsChanged("light");}
-
 
   simData->sendUpdate();
 
@@ -791,8 +803,12 @@ void Idle(){
         }
         break;
       case SS_COMPUTE:
+
         //std::cerr<<"SS_COMPUTE"<<std::endl;
         if(ComputeParam!=ComputeParamLast){
+          if(computeGeometry)delete computeGeometry;
+          computeGeometry=new ComputeGeometry(simData);
+          /*
           //std::cerr<<"ComputeParam!="<<std::endl;
           if(ComputeSides)delete ComputeSides;ComputeSides=NULL;
           if(GeometryCapsAlt)delete GeometryCapsAlt;GeometryCapsAlt=NULL;
@@ -802,6 +818,7 @@ void Idle(){
               ComputeParam.CullSides);
           GeometryCapsAlt=new CGeometryCapsAlt(
               &ModelAdjacency);
+              */
         }
         break;
       case SS_VS:
@@ -813,6 +830,12 @@ void Idle(){
           Shadowmapping = new CShadowMapping(simData);
           //Shadowmapping=new CShadowMapping(ShadowmapParam.Resolution,
           //    windowParam.size,sceneVAO,&ModelAdjacency);
+        }
+        break;
+      case SS_RTW:
+        if(ShadowmapParam!=ShadowmapParamLast){
+          if(rtw)delete rtw;rtw=NULL;
+          rtw = new RTWBack(simData);
         }
         break;
       case SS_NAVYMAPPING:
@@ -879,10 +902,12 @@ void Idle(){
           GeometryCapsAlt=NULL;
           break;
         case SS_COMPUTE:
-          if(ComputeSides)delete ComputeSides;
+          delete computeGeometry;
+          computeGeometry=NULL;
+          /*if(ComputeSides)delete ComputeSides;
           if(GeometryCapsAlt)delete GeometryCapsAlt;
           ComputeSides=NULL;
-          GeometryCapsAlt=NULL;
+          GeometryCapsAlt=NULL;*/
           break;
         case SS_VS:
           if(VertexSides)delete VertexSides;
@@ -893,6 +918,10 @@ void Idle(){
         case SS_SHADOWMAP:
           if(Shadowmapping)delete Shadowmapping;
           Shadowmapping=NULL;
+          break;
+        case SS_RTW:
+          if(rtw)delete rtw;
+          rtw=NULL;
           break;
         case SS_NAVYMAPPING:
           if(navyMapping)delete navyMapping;
@@ -975,8 +1004,11 @@ void Idle(){
                 &ModelAdjacency);
           break;
         case SS_COMPUTE:
+          if(!computeGeometry)
+            computeGeometry=new ComputeGeometry(simData);
+          /*
           //std::cerr<<"!=SS_COMPUTE"<<std::endl;
-
+          
           if(ComputeSides==NULL)
             ComputeSides=new CComputeSides(
                 &ModelAdjacency,
@@ -987,6 +1019,7 @@ void Idle(){
           if(GeometryCapsAlt==NULL)
             GeometryCapsAlt=new CGeometryCapsAlt(
                 &ModelAdjacency);
+                */
           break;
         case SS_VS:
           if(VertexSides==NULL)
@@ -999,6 +1032,10 @@ void Idle(){
             Shadowmapping = new CShadowMapping(simData);
           /*Shadowmapping=new CShadowMapping(ShadowmapParam.Resolution,windowParam.size,
             sceneVAO,&ModelAdjacency);*/
+          break;
+        case SS_RTW:
+          if(rtw==NULL)
+            rtw=new RTWBack(simData);
           break;
         case SS_NAVYMAPPING:
           if(navyMapping==NULL)
@@ -1040,7 +1077,10 @@ void Idle(){
           DrawComputeSOE(LightList[l]);
           break;
         case SS_COMPUTE:
-          DrawCompute(LightList[l]);
+          mm=computeGeometry;
+          mm->createShadowMask();
+          drawDiffuseSpecular(true,objconf::getLight());
+          //DrawCompute(LightList[l]);
           break;
         case SS_VS:
           DrawVertex(LightList[l]);
@@ -1061,6 +1101,11 @@ void Idle(){
             //Shadowmapping->createShadowMask();
             drawDiffuseSpecular(true,LightList[l]);
           }
+          break;
+        case SS_RTW:
+          mm=rtw;
+          mm->createShadowMask();
+          drawDiffuseSpecular(true,LightList[l]);
           break;
         case SS_NAVYMAPPING:
           drawNavyMapping(LightList[l]);
@@ -1170,15 +1215,28 @@ void Idle(){
         glm::vec3(objconf::getLight()->position));
   }
 
+//*
+  if(SSMethod==SS_RTW){
+    simpleDraw->drawHeatMap(rtw->getImportanceMap()->getId(),.5,0,.5,.5,0.f,simData->getFloat("shadowMapMethods.far",100.f));
+    simpleDraw->draw1D(rtw->getSumX()->getId(),.5,0,.5,.5,0.f,1.f);
+    //simpleDraw->draw1D(rtw->getSmoothX()->getId(),.0,0,.5,.5,0.f,simData->getFloat("shadowMapMethods.far",100.f));
+    //simpleDraw->draw1D(rtw->getSumY()->getId(),.0,0,.5,.5,0.f,1.f);
+    //rtw->drawGrid(0,0,.5,.5);
+    simpleDraw->drawDepth(rtw->getShadowMap()->getId(),0,0,.5*(1+Window->isKeyOn('x')),.5*(1+Window->isKeyOn('x')),0.1,100.f);
+  }
 
-
+  if(SSMethod==SS_SHADOWMAP){
+    simpleDraw->drawDepth(Shadowmapping->getShadowMap()->getId(),0,0,.5,.5,0.1,100.f);
+  }
+// */
   if(SSMethod==SS_NAVYMAPPING){
     //navyMapping->drawShadowMap(0,0,.5);
     navyMapping->writeViewSamples(Deferred.position->getId());
     //navyMapping->drawCountMap(0,0,.5);
     navyMapping->prefixSum(true);
     //navyMapping->drawPrefixSum(.5,0,.5);
-    navyMapping->drawCountMap(.5,0,.5);
+    //navyMapping->drawCountMap(.5,0,.5);
+    simpleDraw->drawHeatMap(navyMapping->getCountMap()->getId(),.5,0,.5,.5,0u,20u);
 
     navyMapping->smoothGrid(true);
     glDisable(GL_DEPTH_TEST);
@@ -1687,8 +1745,6 @@ void drawNavyMapping(simulation::Light*Light){
     glGetQueryObjectuiv(QueryTime,GL_QUERY_RESULT_NO_WAIT,&QueryTimePassedSmapping);
   }
 
-  navyMapping->minProjection(Projection,View,Projection,View);
-
 }
 
 void DrawShadowless(){
@@ -1727,9 +1783,9 @@ void TW_CALL CopyStdStringToClient(std::string& destinationClientString, const s
 void TestInit(){
   try{
     DrawShader = new ge::gl::ProgramObject(
-        ShaderDir+"app/vertex_dgb.vp",
-        ShaderDir+"app/geometry_dgb.gp",
-        ShaderDir+"app/fragment_dgb.fp");
+        ShaderDir+"app/dgb.vp",
+        ShaderDir+"app/dgb.gp",
+        ShaderDir+"app/dgb.fp");
   }catch(std::string&e){
     std::cerr<<e<<endl;
   }
@@ -1812,14 +1868,16 @@ void TestInit(){
       break;
     case SS_COMPUTE:
       if(ComputeParam!=ComputeParamLast){
-        if(ComputeSides)delete ComputeSides;ComputeSides=NULL;
+        if(computeGeometry)delete computeGeometry;
+        computeGeometry=new ComputeGeometry(simData);
+        /*if(ComputeSides)delete ComputeSides;ComputeSides=NULL;
         if(GeometryCapsAlt)delete GeometryCapsAlt;GeometryCapsAlt=NULL;
         ComputeSides=new CComputeSides(
             &ModelAdjacency,
             ComputeParam.WorkGroupSize,
             ComputeParam.CullSides);
         GeometryCapsAlt=new CGeometryCapsAlt(
-            &ModelAdjacency);
+            &ModelAdjacency);*/
       }
       break;
     case SS_VS:
@@ -1833,6 +1891,10 @@ void TestInit(){
       Shadowmapping = new CShadowMapping(simData);
       //Shadowmapping = new CShadowMapping(ShadowmapParam.Resolution,windowParam.size,
       //    sceneVAO,&ModelAdjacency);
+      break;
+    case SS_RTW:
+      if(rtw)delete rtw;rtw=NULL;
+      rtw=new RTWBack(simData);
       break;
     case SS_NAVYMAPPING:
       if(navyMapping)delete navyMapping;navyMapping=NULL;
@@ -1876,9 +1938,9 @@ void Init(){
 
   try{
     DrawShader = new ge::gl::ProgramObject(
-        ShaderDir+"app/vertex_dgb.vp",
-        ShaderDir+"app/geometry_dgb.gp",
-        ShaderDir+"app/fragment_dgb.fp");
+        ShaderDir+"app/dgb.vp",
+        ShaderDir+"app/dgb.gp",
+        ShaderDir+"app/dgb.fp");
 
     DrawSilhouetteShader=new ge::gl::ProgramObject(
         ShaderDir+"app/drawsilhouette.vp",
@@ -1893,30 +1955,6 @@ void Init(){
       ShaderDir+"app/manifoldhullcap.gp",
       ShaderDir+"app/manifoldhullcap.fp");*/
 
-  /*
-     SVSSilTemplate TVS;
-     TVS.Version=100;
-     TVS.UseLayouts=true;
-     TVS.UseVertexAttribArray=false;
-     TVS.LightPositionUniformName="lightPosition";
-     TVS.MatrixUniformName="mvp";
-     TVS.VertexAttribName="Position";
-     TVS.Universal=true;
-     std::cerr<<GenVSSilVertexCap(TVS)<<std::endl;
-     std::cerr<<GenVSSilFragmentCap(TVS)<<std::endl;
-     exit(0);
-  //  */
-  ge::gl::ProgramObject*webglVertexSide=new ge::gl::ProgramObject(
-      ShaderDir+"methods/Vertex/webgl_vertex_side.vp",
-      ShaderDir+"methods/Vertex/webgl_vertex_side.fp"
-      );
-  ge::gl::ProgramObject*webglVertexCap=new ge::gl::ProgramObject(
-      ShaderDir+"methods/Vertex/webgl_vertex_cap.vp",
-      ShaderDir+"methods/Vertex/webgl_vertex_side.fp"
-      );
-
-  delete webglVertexSide;
-  delete webglVertexCap;
 
   deferred_Init(&Deferred,windowParam.size[0],windowParam.size[1]);
   InitDrawStencilToTexture();
@@ -1942,6 +1980,7 @@ void Init(){
 
 
   simpleDraw = new DrawPrimitive(ShaderDir+"app/");
+  simpleDraw->setWindowSize(windowParam.size);
 
   std::cerr<<"asasas5"<<std::endl;
 
@@ -2013,10 +2052,14 @@ void Init(){
      */
   
   objconf::setCameraAntTweakBar();
+  std::cerr<<"........0\n";
+
   objconf::setLightAntTweakBar();
+  std::cerr<<"........1\n";
+
   test::setTestConvexHull(simpleDraw);
 
-
+  std::cerr<<"........2\n";
   TwBar*Bar;
   Bar=TwNewBar("TweakBar");
   TwAddVarRO(Bar,"FPS"    ,TW_TYPE_INT32  ,&FPS       ," label='FPS' help='Frames per second' "         );
@@ -2031,6 +2074,7 @@ void Init(){
     {SS_COMPUTE_SOE        ,"compute soe"                        },
     {SS_COMPUTE            ,"compute"                            },
     {SS_SHADOWMAP          ,"shadowmapping"                      },
+    {SS_RTW                ,"rtv"                                },
     {SS_NAVYMAPPING        ,"navymapping"                        },
     {SS_CUBESHADOWMAP      ,"cubeshadowmapping"                  },
     {SS_VS                 ,"Vertex Shader Universal"            },
@@ -2066,7 +2110,7 @@ void Init(){
   TwAddVarRW(Bar,"Draw Every Silhouette" ,TW_TYPE_BOOLCPP,&DSDrawEverything     ," help='Toggle drawing of every Silhouettes'" );
 
 
-
+  std::cerr<<"#######################################.......\n";
 
 
 
@@ -2084,11 +2128,21 @@ void Init(){
   simData->insertVariable("adjacency",new simulation::Object(&ModelAdjacency));
   simData->insertVariable("gbuffer.position",new simulation::Object(Deferred.position));
   simData->insertVariable("gbuffer.fbo"     ,new simulation::Object(Deferred.fbo     ));
+  simData->insertVariable("gbuffer.stencil" ,new simulation::Object(Deferred.depth ));
+  simData->insertVariable("computeMethod.program.WORKGROUPSIZE", new simulation::Int(64));
+  simData->insertVariable("computeMethod.program.CULL_SIDE", new simulation::Bool(true));
+
+
   simData->insertVariable("shadowMask",new simulation::Object(shadowMask));
   simData->insertVariable("measure.shadowMap.createShadowMap" ,new simulation::Gauge());
   simData->insertVariable("measure.shadowMap.createShadowMask",new simulation::Gauge());
   simData->insertVariable("camera",new simulation::Object(/*Camera*/objconf::getCamera()));
 
+  simData->insertVariable("rtw.program.CIM.WORKGROUP_SIZE_X",new simulation::Uint(8));
+  simData->insertVariable("rtw.program.CIM.WORKGROUP_SIZE_Y",new simulation::Uint(8));
+  simData->insertVariable("rtw.program.CIM1D.WORKGROUP_SIZE_X",new simulation::Uint(64));
+  simData->insertVariable("rtw.program.CIM1D.WALKING_WINDOW_SIZE",new simulation::Uint(16));
+  simData->insertVariable("rtw.program.CSM.TESS_FACTOR",new simulation::Uint(32));
 
   std::cerr<<simData->toStr()<<std::endl;
   std::cerr<<simData->define("shadowMapMethods");
@@ -2177,72 +2231,6 @@ void InitModel(const char* File){
     aabbData[mesh*4*2+5]=aabb->maxPoint[1];
     aabbData[mesh*4*2+6]=aabb->maxPoint[2];
     aabbData[mesh*4*2+7]=1;
-
-    /*
-       OrthoBoundingBox*obb=new OrthoBoundingBox();
-       obb->xAxis=glm::vec3(0.f);
-       for(unsigned face=0;face<Mesh->mNumFaces;++face){//loop over faces
-       aiFace*Face=Mesh->mFaces+face;
-       for(unsigned i=0;i<3;++i){
-       aiVector3D*V=Mesh->mVertices+Face->mIndices[i];
-       glm::vec3 actPoint=glm::vec3(V->x*.1*3,V->y*.1*3-5*3,V->z*.1*3);
-       glm::vec3 actVector=actPoint-center;
-       if(actVector.x<0)actVector*=-1.f;
-       obb->xAxis+=actVector;//glm::length(actPoint-center)*actPoint;
-       }
-       }
-       if(obb->xAxis.x==0&&obb->xAxis.y==0&&obb->xAxis.z==0)
-       obb->xAxis=glm::vec3(1.f,0.f,0.f);
-       else
-       obb->xAxis=glm::normalize(obb->xAxis);
-
-       obb->yAxis=glm::vec3(0.f);
-       glm::vec3 refAxis;
-       if(obb->xAxis.x==obb->xAxis.y&&obb->xAxis.x==obb->xAxis.z)
-       refAxis=glm::normalize(glm::cross(obb->xAxis,obb->xAxis+glm::vec3(1.f,1.f,0.f)));
-       else{
-       if(obb->xAxis.x>0)
-       refAxis=glm::normalize(glm::cross(obb->xAxis,obb->xAxis+glm::vec3(1.f,0.f,0.f)));
-       else
-       refAxis=glm::normalize(glm::cross(obb->xAxis,obb->xAxis+glm::vec3(-1.f,0.f,0.f)));
-       }
-       for(unsigned face=0;face<Mesh->mNumFaces;++face){//loop over faces
-       aiFace*Face=Mesh->mFaces+face;
-       for(unsigned i=0;i<3;++i){
-       aiVector3D*V=Mesh->mVertices+Face->mIndices[i];
-       glm::vec3 actPoint=glm::vec3(V->x*.1*3,V->y*.1*3-5*3,V->z*.1*3);
-       glm::vec3 actVector=actPoint-center;
-       glm::vec3 yAxis=actVector-obb->xAxis*glm::dot(actVector,obb->xAxis);
-       if(glm::dot(yAxis,refAxis)<0)yAxis*=-1.f;
-       obb->yAxis+=yAxis;
-       }
-       }
-       obb->yAxis=glm::normalize(obb->yAxis);
-
-       obb->zAxis=glm::normalize(glm::cross(obb->xAxis,obb->yAxis));
-
-       glm::vec3 minPoint=glm::vec3(100000.f);
-       glm::vec3 maxPoint=glm::vec3(-100000.f);
-       for(unsigned face=0;face<Mesh->mNumFaces;++face){//loop over faces
-       aiFace*Face=Mesh->mFaces+face;
-       for(unsigned i=0;i<3;++i){
-       aiVector3D*V=Mesh->mVertices+Face->mIndices[i];
-       glm::vec3 actPoint=glm::vec3(V->x*.1*3,V->y*.1*3-5*3,V->z*.1*3);
-       glm::vec3 projectedPoint;
-       projectedPoint.x=glm::dot(obb->xAxis,actPoint);
-       projectedPoint.y=glm::dot(obb->yAxis,actPoint);
-       projectedPoint.z=glm::dot(obb->zAxis,actPoint);
-       maxPoint=glm::max(projectedPoint,maxPoint);
-       minPoint=glm::min(projectedPoint,minPoint);
-       }
-       }
-       obb->minPoint=obb->xAxis*minPoint.x+obb->yAxis*minPoint.y+obb->zAxis*minPoint.z;
-       obb->xAxis*=maxPoint.x-minPoint.x;
-       obb->yAxis*=maxPoint.y-minPoint.y;
-       obb->zAxis*=maxPoint.z-minPoint.z;
-
-       sceneOBB.push_back(obb);
-       */
   }
   sceneAABBData->unmap();
   sceneDIBO->unmap();

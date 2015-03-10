@@ -90,11 +90,11 @@ void test::drawConvexHull(
 void test::setTestConvexHull(DrawPrimitive*simp){
   testConvexHull.simpleDraw=simp;
   TwBar*geobar=TwNewBar("convex hull");
-  TwAddVarRW(geobar,"ignore"    ,TW_TYPE_BOOLCPP,&testConvexHull.ignore    ," help='' ");
-  TwAddVarRW(geobar,"camera"    ,TW_TYPE_BOOLCPP,&testConvexHull.camera    ," help='' ");
-  TwAddVarRW(geobar,"Scene"     ,TW_TYPE_BOOLCPP,&testConvexHull.scene     ," help='' ");
-  TwAddVarRW(geobar,"ScCam"     ,TW_TYPE_BOOLCPP,&testConvexHull.scCam     ," help='' ");
-  TwAddVarRW(geobar,"ScCamEx"   ,TW_TYPE_BOOLCPP,&testConvexHull.scCamEx   ," help='' ");
-  TwAddVarRW(geobar,"ScCamExLim",TW_TYPE_BOOLCPP,&testConvexHull.scCamExLim," help='' ");
-  TwAddVarRW(geobar,"MinFrustum",TW_TYPE_BOOLCPP,&testConvexHull.minFrustum," help='' ");
+  TwAddVarRW(geobar,"ignore"    ,TW_TYPE_BOOLCPP,&testConvexHull.ignore    ," help='ignore' "                            );
+  TwAddVarRW(geobar,"camera"    ,TW_TYPE_BOOLCPP,&testConvexHull.camera    ," help='camera' "                            );
+  TwAddVarRW(geobar,"Scene"     ,TW_TYPE_BOOLCPP,&testConvexHull.scene     ," help='scene' "                             );
+  TwAddVarRW(geobar,"ScCam"     ,TW_TYPE_BOOLCPP,&testConvexHull.scCam     ," help='scene camera intersection' "         );
+  TwAddVarRW(geobar,"ScCamEx"   ,TW_TYPE_BOOLCPP,&testConvexHull.scCamEx   ," help='scene camera intersection extended' ");
+  TwAddVarRW(geobar,"ScCamExLim",TW_TYPE_BOOLCPP,&testConvexHull.scCamExLim," help='limited scene camera intersection' " );
+  TwAddVarRW(geobar,"MinFrustum",TW_TYPE_BOOLCPP,&testConvexHull.minFrustum," help='minimal frustum' "                   );
 }

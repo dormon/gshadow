@@ -1,82 +1,15 @@
-#version 440 core
+#version 330
 
-#extension GL_ARB_shader_draw_parameters : require
+uniform mat4 m,v,p;//model, view, projecion
 
-#define DIVCEIL(x,y) ((x/y)+uint((x%y)>0))
+layout(location=0)in vec3 Position;//vertex position in model space
+layout(location=1)in vec3 Normal;//vertex normal in model space
 
-#ifndef MAX_TEXTURES
-#define MAX_TEXTURES 256
-#endif//MAX_TEXTURES
-
-#ifndef UINT_BIT_SIZE
-#define UINT_BIT_SIZE 32
-#endif//UINT_BIT_SIZE
-
-#ifndef MAX_TEXTURES_PER_MESH
-#define MAX_TEXTURES_PER_MESH 6
-#endif//MAX_TEXTURES_PER_MESH
-
-
-#define BITS_PER_TEXTURE_ID  (uint(ceil(log(MAX_TEXTURES)/log(2))))
-#define TEXTURE_IDS_PER_UINT (UINT_BIT_SIZE/BITS_PER_TEXTURE_ID)
-#define TEXTURE_ID_MASK      ((1<<BITS_PER_TEXTURE_ID)-1)
-
-#define UINT_TEXURE_ID_PER_MESH\
-  (uint(ceil(float(MAX_TEXTURES_PER_MESH*BITS_PER_TEXTURE_ID)/UINT_BIT_SIZE)))
-
-#define GET_TEXTURE_INDEX(y,x)\
-  ((y[x/TEXTURE_IDS_PER_UINT]>>(BITS_PER_TEXTURE_ID*(x%TEXTURE_IDS_PER_UINT)))&TEXTURE_ID_MASK)
-
-#define NOF_ACTIVE_TEXTURES_UINTS DIVCEIL(MAX_TEXTURES_PER_MESH,UINT_BIT_SIZE)
-
-#define        DIFFUSE_TEXTURE 0
-#define       SPECULAR_TEXTURE 1
-#define         NORMAL_TEXTURE 2
-#define SPECULARFACTOR_TEXTURE 3
-#define        OPACITY_TEXTURE 4
-#define       LIGHTMAP_TEXTURE 5
-
-struct MeshData{
-  mat4 modelMatrix;
-  uint textureId[UINT_TEXURE_ID_PER_MESH];
-  uint activeTexture[NOF_ACTIVE_TEXTURES_UINTS];
-};
-
-layout(std430,binding=BINDING_MESH_DATA)buffer Mesh{MeshData mesh[];};
-
-layout(bindless_sampler)uniform sampler2D textures[MAX_TEXTURES];
-
-
-
-layout(location=0)in vec3 position ;
-layout(location=1)in vec3 normal   ;
-layout(location=2)in vec2 coord    ;
-layout(location=3)in vec3 tangent  ;
-layout(location=4)in vec3 bitangent;
-
-out gl_PerVertex{
-  vec4 gl_Position;
-  vec3 vPosition  ;
-  vec3 vNormal    ;
-  vec2 vCoord     ;
-  vec3 vTangent   ;
-  vec3 vBitangent ;
-  flat sampler2D vTextures[MAX_TEXTURES_PER_MESH];
-  flat uint vActiveTextures[NOF_ACTIVE_TEXTURES_UINTS];
-};
+out vec3 vPosition;//vertex position in world space
+out vec3 vNormal;//vertex normal in world space
 
 void main(){
-  MeshData meshData = mesh[gl_DrawIDARB];
-  for(uint i=0;i<NOF_ACTIVE_TEXTURES_UINTS;++i)
-    vActiveTexture[i] = meshData.activeTexture[i];
-
-  for(uint i=0;i<MAX_TEXTURES_PER_MESH;++i)
-    vTextures[i] = textures[GET_TEXTURE(meshData.textureId,i)];
-
-	vPosition  = (meshData.modelMatrix*vec4(position ,1)).xyz;
-	vNormal    = (meshData.modelMatrix*vec4(normal   ,0)).xyz;
-  vTangent   = (meshData.modelMatrix*vec4(tangent  ,0)).xyz;
-  vBitangent = (meshData.modelMatrix*vec4(bitangent,0)).xyz;
-  vCoord     = coord;
-
+	vPosition=(m*vec4(Position,1)).xyz;//vertex position in world space
+	vNormal=(m*vec4(Normal,0)).xyz;//vertex normal in world space
+	gl_Position=vec4(vPosition,1);//vertex position in clip space
 }

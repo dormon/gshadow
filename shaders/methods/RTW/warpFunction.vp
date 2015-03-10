@@ -1,0 +1,17 @@
+layout(binding=0)uniform sampler1D sum1D[2];
+uniform uint shadowMapSize=1024u;
+
+vec2 rtw_Warp(vec2 c){
+  vec2 ff=vec2(0);
+  for(int i=0;i<2;++i)
+    if(c[i]>0&&c[i]<1)ff[i]=texture(sum1D[i],c[i]).x-c[i];
+  return ff;
+}
+
+vec4 rtw_getFinal(vec4 clip){
+  vec2 coord=clip.xy/clip.w*.5+.5;
+  coord=coord+rtw_Warp(coord);
+  coord=coord*2-1;
+  coord*=clip.w;
+  return vec4(coord,clip.zw);
+}

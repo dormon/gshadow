@@ -69,6 +69,10 @@ using namespace std;
 #include"../methods/CubeShadowMapping/CubeShadowMapping.h"
 
 
+#include"../methods/ComputeGeometry/ComputeGeometry.h"
+#include"../methods/RTW/RTW.h"
+
+
 
 #include<geUtil/CameraObject.h>
 #include<geUtil/CameraPath.h>
@@ -116,48 +120,10 @@ using namespace std;
 #define glError() 
 #endif
 
-/**
- * @brief This enumerate represent selected scene
- */
-typedef enum{
-	EScene_Terrain=0,//terrain
-	EScene_City,//city
-	EScene_Cathedral//cathedral
-}EScene;
 
-/**
- * @brief This enumerate represent selected method
- */
-typedef enum{
-	EMethod_Base=0,//without deferred shading endless light contribution
-	EMethod_BaseAttenuation,//without deferred shading
-	EMethod_Scissor,//every light separate
-	EMethod_Grid,//our solution - viewspace 
-	EMethod_GridScreenSpace,//out solution - screenspace
-	EMethod_GeometryShaderSparse,//sorting with geometry shader to sparse textures
-	EMethod_GeometryShader//sorting with geomery shader
-}EMethod;
-
-/**
- * @brief This enumerate represent selected light placement
- */
-typedef enum{
-	ELightPlacement_Random=0,//random light placement
-	ELightPlacement_City,//city light placement
-	ELightPlacement_Cathedral//cathedral light placement
-}ELightPlacement;
-
-EScene Scene=EScene_City;//EScene_Terrain;//Scene
-EMethod Method=EMethod_Grid; //EMethod_Base;//method
-ELightPlacement LightPlacement=ELightPlacement_Random;//light placement
-float LightSize=5*4;
 aiScene*SceneModel;
 
 
-void InitLightTexture(unsigned NumLights,unsigned NumSegments);
-void CityGenerate();
-void CityRegenerateLights(float Spacing,float Range,float Color);
-//void InitScreenParam(SScreenParam*Param,float Fovy,float Near,float Far,unsigned Width,unsigned Height);
 void InitModel(const char*File);
 
 void DrawQuad(unsigned*X,unsigned*S);
