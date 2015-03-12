@@ -142,7 +142,7 @@ void DrawPrimitive::plane(glm::vec4 a,float size){
   glDrawArrays(GL_POINTS,0,1);
 }
 
-void DrawPrimitive::drawTexture(GLuint id,float x,float y,float sx,float sy){
+void DrawPrimitive::_setViewPort(float x,float y,float sx,float sy){
   glColorMask(GL_TRUE,GL_TRUE,GL_TRUE,GL_TRUE);
   glViewport(
       x *this->_windowSize[0],
@@ -150,64 +150,56 @@ void DrawPrimitive::drawTexture(GLuint id,float x,float y,float sx,float sy){
       sx*this->_windowSize[0],
       sy*this->_windowSize[1]);
   this->_emptyVAO->bind();
+}
+
+void DrawPrimitive::_resetViewPort(){
+  glDrawArrays(GL_POINTS,0,1);
+  this->_emptyVAO->unbind();
+  glViewport(0,0,this->_windowSize[0],this->_windowSize[1]);
+}
+
+void DrawPrimitive::drawTexture(GLuint id,float x,float y,float sx,float sy){
+  this->_setViewPort(x,y,sx,sy);
+
   this->_drawTexture->use();
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D,id);
-  glDrawArrays(GL_POINTS,0,1);
-  this->_emptyVAO->unbind();
 
-  glViewport(0,0,this->_windowSize[0],this->_windowSize[1]);
+  this->_resetViewPort();
 }
 
 void DrawPrimitive::drawHeatMap(GLuint id,float x,float y,float sx,float sy,
     float min,float max,unsigned channel){
-  glColorMask(GL_TRUE,GL_TRUE,GL_TRUE,GL_TRUE);
-  glViewport(
-      x *this->_windowSize[0],
-      y *this->_windowSize[1],
-      sx*this->_windowSize[0],
-      sy*this->_windowSize[1]);
-  this->_emptyVAO->bind();
+  this->_setViewPort(x,y,sx,sy);
+
   this->_drawHeatF->use();
   this->_drawHeatF->set("minValue",min);
   this->_drawHeatF->set("maxValue",max);
   this->_drawHeatF->set("channel",channel);
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D,id);
-  glDrawArrays(GL_POINTS,0,1);
-  this->_emptyVAO->unbind();
-  glViewport(0,0,this->_windowSize[0],this->_windowSize[1]);
+
+  this->_resetViewPort();
 }
 
 void DrawPrimitive::drawHeatMap(GLuint id,float x,float y,float sx,float sy,
     unsigned min,unsigned max,unsigned channel){
-  glColorMask(GL_TRUE,GL_TRUE,GL_TRUE,GL_TRUE);
-  glViewport(
-      x *this->_windowSize[0],
-      y *this->_windowSize[1],
-      sx*this->_windowSize[0],
-      sy*this->_windowSize[1]);
-  this->_emptyVAO->bind();
+  this->_setViewPort(x,y,sx,sy);
+
   this->_drawHeatU->use();
   this->_drawHeatU->set("minValue",min);
   this->_drawHeatU->set("maxValue",max);
   this->_drawHeatU->set("channel",channel);
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D,id);
-  glDrawArrays(GL_POINTS,0,1);
-  this->_emptyVAO->unbind();
-  glViewport(0,0,this->_windowSize[0],this->_windowSize[1]);
+
+  this->_resetViewPort();
 }
 
 void DrawPrimitive::draw1D(GLuint id,float x,float y,float sx,float sy,
     float min,float max,unsigned channel){
-  glColorMask(GL_TRUE,GL_TRUE,GL_TRUE,GL_TRUE);
-  glViewport(
-      x *this->_windowSize[0],
-      y *this->_windowSize[1],
-      sx*this->_windowSize[0],
-      sy*this->_windowSize[1]);
-  this->_emptyVAO->bind();
+  this->_setViewPort(x,y,sx,sy);
+
   this->_draw1DF->use();
   this->_draw1DF->set("size",.8/(sy*this->_windowSize[1]));
   this->_draw1DF->set("minValue",min);
@@ -215,29 +207,20 @@ void DrawPrimitive::draw1D(GLuint id,float x,float y,float sx,float sy,
   this->_draw1DF->set("channel",channel);
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_1D,id);
-  glDrawArrays(GL_POINTS,0,1);
-  this->_emptyVAO->unbind();
-  glViewport(0,0,this->_windowSize[0],this->_windowSize[1]);
+
+  this->_resetViewPort();
 }
 
 void DrawPrimitive::drawDepth  (GLuint id,float x,float y,float sx,float sy,
         float near,float far){
-  glColorMask(GL_TRUE,GL_TRUE,GL_TRUE,GL_TRUE);
-  glViewport(
-      x *this->_windowSize[0],
-      y *this->_windowSize[1],
-      sx*this->_windowSize[0],
-      sy*this->_windowSize[1]);
-  this->_emptyVAO->bind();
+  this->_setViewPort(x,y,sx,sy);
 
   this->_drawDepth->use();
   this->_drawDepth->set("near",near);
   this->_drawDepth->set("far",far);
-
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D,id);
-  glDrawArrays(GL_POINTS,0,1);
-  this->_emptyVAO->unbind();
-  glViewport(0,0,this->_windowSize[0],this->_windowSize[1]);
+
+  this->_resetViewPort();
 }
 

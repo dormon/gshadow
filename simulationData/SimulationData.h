@@ -70,6 +70,7 @@ namespace simulation{
       void*       getObject(std::string variableName,void*       def);
       Light*      getLight (std::string variableName,Light*      def);
       Gauge*      getGauge (std::string variableName,Gauge*      def);
+      GpuGauge*   getGpuGauge(std::string variableName,GpuGauge* def);
       std::string define   (std::string prefix="");
       void        sendUpdate();
       void        registerUser(SimulationObject*user);

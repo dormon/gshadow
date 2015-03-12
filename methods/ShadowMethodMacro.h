@@ -36,6 +36,7 @@
 #define GETFLOAT(var)  GET(getFloat,var,0.f)
 #define GETTEXTURE(var) ((ge::gl::TextureObject*)GETOBJECT(var))
 #define GETVAO(var)     ((ge::gl::VertexArrayObject*)GETOBJECT(var))
+#define GETGPUGAUGE(var) GET(getGpuGauge,var,NULL)
 
 #define CHANGED(var) this->_changed[VARS[var]]
 
@@ -45,7 +46,7 @@
 #define SETBIT(x) (1<<x)
 #define GETBIT(x,y) ((x>>y)&1)
 
-
+#define GETCHECKSTRING(name) std::string(#name)+" : "+VARS[name]
 
 #define VAR2UPDATEMETHOD JOIN(CLASSNAME,Var2UpdateMethod)
 #define UPDATEROUTINES JOIN(CLASSNAME,UpdateRoutines)

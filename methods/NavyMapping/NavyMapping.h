@@ -1,6 +1,70 @@
 #ifndef _NAVYMAPPING_HPP_
 #define _NAVYMAPPING_HPP_
 
+#include"../ShadowMethod.h"
+
+class NavyMapping: public simulation::SimulationObject, public ShadowMethod
+{
+  private:
+    ge::gl::TextureObject*     _shadowMask;
+    ge::gl::FramebufferObject* _shadowMaskFBO;
+    ge::gl::ProgramObject*     _createShadowMask;
+    ge::gl::ProgramObject*     _csm;
+    ge::gl::TextureObject*     _shadowMap;
+    ge::gl::FramebufferObject* _fbo;
+    ge::gl::VertexArrayObject* _emptyVAO;
+    glm::mat4                  _lightProjection;
+    glm::mat4                  _lightView;
+    glm::mat4                  _bpv;
+
+    ge::gl::TextureObject* _dvTex;
+    ge::gl::ProgramObject* _dvProgram;
+    ge::gl::ProgramObject* _dvClearProgram;
+    ge::gl::TextureObject* _countMap;
+    ge::gl::ProgramObject* _createCountMapProgram;
+    ge::gl::TextureObject* _integratedCountMap;
+    ge::gl::TextureObject* _integratedCountMapCount;
+    ge::gl::ProgramObject* _integrateProgram;
+    ge::gl::TextureObject* _isoX;
+    ge::gl::ProgramObject* _createIsoProgram;
+
+    void _createDV();
+    void _createCountMap();
+    void _integrate(
+        ge::gl::TextureObject*integral,
+        ge::gl::TextureObject*integralCount,
+        ge::gl::TextureObject*countMap,
+        bool xDirection);
+    void _createIso(
+        ge::gl::TextureObject*iso,
+        ge::gl::TextureObject*integral,
+        ge::gl::TextureObject*integralCount,
+        bool xDirection);
+
+    void _createShadowMap();
+    void _computeMatrices();
+    void _createShadowMapFBO();
+    void CreateShadowMap();
+  public:
+    ge::gl::TextureObject*getShadowMap();
+    void setMatrices(glm::mat4 lp,glm::mat4 lv);
+    void createShadowMask();
+    void createShadowMask(GLuint mask);
+    unsigned getNofDependentVariables();
+    std::string getDependentVariable(unsigned id);
+    void update();
+    NavyMapping(simulation::SimulationData*data);
+    ~NavyMapping();
+    ge::gl::TextureObject*getCountMap(){return this->_countMap;}
+    ge::gl::TextureObject*getIntegratedCountMap(){return this->_integratedCountMap;}
+
+};
+
+
+
+
+
+/*
 #define GLM_FORCE_RADIANS
 #include<glm/glm.hpp>
 #include<glm/gtc/matrix_transform.hpp>
@@ -103,5 +167,5 @@ class NavyMapping
     void unwarpX(GLuint positionTexture);
     void prefixSumY();
 };
-
+*/
 #endif//_NAVYMAPPING_HPP_

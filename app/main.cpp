@@ -47,7 +47,7 @@ ge::gl::AsynchronousQueryObject*gbufferQuery          = NULL;
 ge::util::ArgumentObject*Args;
 
 ge::util::CameraPath*CameraMation;
-std::string CameraMationFile="tadyjeprulet";
+std::string CameraMationFile="sponzaprulet";
 
 
 CGeometryCaps        *GeometryCaps         = NULL;
@@ -69,6 +69,7 @@ CubeShadowMapping *cubeShadowMapping = NULL;
 ComputeGeometry   *computeGeometry   = NULL;
 RTWBack           *rtw = NULL;
 
+objconf::CameraPathConfiguration*cameraPathConfiguration;
 
 
 ShadowMethod*mm;
@@ -289,6 +290,7 @@ int main(int Argc,char*Argv[]){
   Args=new ge::util::ArgumentObject(Argc,Argv);
 
   ModelFile          = Args->getArg("-m","models/o/o.3ds");
+
   ShaderDir          = Args->getArg("--shader-directory","shaders/");
   DisableAnttweakbar = Args->isPresent("--disable-anttweakbar");
 
@@ -627,7 +629,10 @@ void TestIdle(){
       drawDiffuseSpecular(true,objconf::getLight());
       break;
     case SS_NAVYMAPPING:
-      drawNavyMapping(objconf::getLight());
+      mm=navyMapping;
+      mm->createShadowMask();
+      drawDiffuseSpecular(true,objconf::getLight());
+      //drawNavyMapping(objconf::getLight());
       break;
     case SS_CUBESHADOWMAP:
       drawCubeShadowmapShadow(objconf::getLight());
@@ -841,8 +846,10 @@ void Idle(){
       case SS_NAVYMAPPING:
         if(ShadowmapParam!=ShadowmapParamLast){
           if(navyMapping)delete navyMapping;navyMapping=NULL;
-          navyMapping=new NavyMapping(ShadowmapParam.Resolution,
-              windowParam.size,sceneVAO,&ModelAdjacency);
+          navyMapping=new NavyMapping(simData);
+          //if(navyMapping)delete navyMapping;navyMapping=NULL;
+          //navyMapping=new NavyMapping(ShadowmapParam.Resolution,
+          //    windowParam.size,sceneVAO,&ModelAdjacency);
         }
         break;
       case SS_CUBESHADOWMAP:
@@ -1039,8 +1046,9 @@ void Idle(){
           break;
         case SS_NAVYMAPPING:
           if(navyMapping==NULL)
-            navyMapping=new NavyMapping(ShadowmapParam.Resolution,windowParam.size,
-                sceneVAO,&ModelAdjacency);
+            navyMapping = new NavyMapping(simData);
+            //navyMapping=new NavyMapping(ShadowmapParam.Resolution,windowParam.size,
+            //    sceneVAO,&ModelAdjacency);
           break;
         case SS_CUBESHADOWMAP:
           if(cubeShadowMapping==NULL)
@@ -1108,7 +1116,10 @@ void Idle(){
           drawDiffuseSpecular(true,LightList[l]);
           break;
         case SS_NAVYMAPPING:
-          drawNavyMapping(LightList[l]);
+          mm=navyMapping;
+          mm->createShadowMask();
+          drawDiffuseSpecular(true,LightList[l]);
+          //drawNavyMapping(LightList[l]);
           break;
         case SS_CUBESHADOWMAP:
           drawCubeShadowmapShadow(LightList[l]);
@@ -1128,7 +1139,7 @@ void Idle(){
   EmptyVAO->bind();
 
 
-  //*
+  /*
   drawAABBProgram->use();
   drawAABBProgram->set("mvp",1,GL_FALSE,glm::value_ptr(mvp));
   for(unsigned i=0;i<sceneBB.size();++i){
@@ -1217,19 +1228,22 @@ void Idle(){
 
 //*
   if(SSMethod==SS_RTW){
-    simpleDraw->drawHeatMap(rtw->getImportanceMap()->getId(),.5,0,.5,.5,0.f,simData->getFloat("shadowMapMethods.far",100.f));
-    simpleDraw->draw1D(rtw->getSumX()->getId(),.5,0,.5,.5,0.f,1.f);
+    //simpleDraw->drawHeatMap(rtw->getImportanceMap()->getId(),.5,0,.5,.5,0.f,simData->getFloat("shadowMapMethods.far",100.f));
+    //simpleDraw->draw1D(rtw->getSumX()->getId(),.5,0,.5,.5,0.f,1.f);
+    
     //simpleDraw->draw1D(rtw->getSmoothX()->getId(),.0,0,.5,.5,0.f,simData->getFloat("shadowMapMethods.far",100.f));
     //simpleDraw->draw1D(rtw->getSumY()->getId(),.0,0,.5,.5,0.f,1.f);
     //rtw->drawGrid(0,0,.5,.5);
-    simpleDraw->drawDepth(rtw->getShadowMap()->getId(),0,0,.5*(1+Window->isKeyOn('x')),.5*(1+Window->isKeyOn('x')),0.1,100.f);
+    
+    //simpleDraw->drawDepth(rtw->getShadowMap()->getId(),0,0,.5*(1+Window->isKeyOn('x')),.5*(1+Window->isKeyOn('x')),0.1,100.f);
   }
 
   if(SSMethod==SS_SHADOWMAP){
-    simpleDraw->drawDepth(Shadowmapping->getShadowMap()->getId(),0,0,.5,.5,0.1,100.f);
+    //simpleDraw->drawDepth(Shadowmapping->getShadowMap()->getId(),0,0,.5,.5,0.1,100.f);
   }
 // */
   if(SSMethod==SS_NAVYMAPPING){
+    /*
     //navyMapping->drawShadowMap(0,0,.5);
     navyMapping->writeViewSamples(Deferred.position->getId());
     //navyMapping->drawCountMap(0,0,.5);
@@ -1255,7 +1269,24 @@ void Idle(){
     glDisable(GL_DEPTH_TEST);
     navyMapping->drawGrid(0,0,.5,false);
     glEnable(GL_DEPTH_TEST);
+    */
+    simpleDraw->drawHeatMap(navyMapping->getCountMap()->getId(),.5,0,.5,.5,0u,40u);
+    simpleDraw->drawHeatMap(navyMapping->getIntegratedCountMap()->getId(),.0,0,.5,.5,0u,1024u);
+
   }
+  /*
+  glEnable(GL_DEPTH_TEST);
+  deferred_BlitDepthToDefault(&Deferred);
+  glDepthFunc(GL_LESS);
+  glBindFramebuffer(GL_FRAMEBUFFER,0);
+  glColorMask(GL_TRUE,GL_TRUE,GL_TRUE,GL_TRUE);
+  glDisable(GL_BLEND);
+  CameraMation->draw(glm::value_ptr(mvp));
+  */
+  if(cameraPathConfiguration->isDraw())
+    if(cameraPathConfiguration->getPath())
+      cameraPathConfiguration->getPath()->draw(glm::value_ptr(mvp));
+
   //std::cerr<<"before swap"<<std::endl;
   Window->swap();
   framecount++;
@@ -1707,7 +1738,7 @@ void drawCubeShadowmapShadow(simulation::Light*Light){
 
 }
 
-
+/*
 void drawNavyMapping(simulation::Light*Light){
   if(SSMeasureShadowmap)
     glBeginQuery(GL_TIME_ELAPSED,QueryTime);
@@ -1746,6 +1777,7 @@ void drawNavyMapping(simulation::Light*Light){
   }
 
 }
+*/
 
 void DrawShadowless(){
   DrawGBuffer();
@@ -1898,8 +1930,9 @@ void TestInit(){
       break;
     case SS_NAVYMAPPING:
       if(navyMapping)delete navyMapping;navyMapping=NULL;
-      navyMapping = new NavyMapping(ShadowmapParam.Resolution,windowParam.size,
-          sceneVAO,&ModelAdjacency);
+      navyMapping=new NavyMapping(simData);
+      //navyMapping = new NavyMapping(ShadowmapParam.Resolution,windowParam.size,
+      //    sceneVAO,&ModelAdjacency);
       break;
     case SS_CUBESHADOWMAP:
       if(cubeShadowMapping)delete cubeShadowMapping;cubeShadowMapping=NULL;
@@ -1917,8 +1950,14 @@ void TestInit(){
 
 }
 
+
 void Init(){
   std::cerr<<"Init()"<<std::endl;
+
+  CameraMation=new ge::util::CameraPath();
+  CameraMation->loadCSV(CameraMationFile);
+  CameraMation->setDuration(TestParam.Duration);
+
 
   glGenQueries(1,&QueryTime);
   MergeQuery=new ge::gl::AsynchronousQueryObject(GL_TIME_ELAPSED,GL_QUERY_RESULT_NO_WAIT,ge::gl::AsynchronousQueryObject::UINT64);
@@ -2052,14 +2091,12 @@ void Init(){
      */
   
   objconf::setCameraAntTweakBar();
-  std::cerr<<"........0\n";
-
   objconf::setLightAntTweakBar();
-  std::cerr<<"........1\n";
-
+  //objconf::setCameraPathAntTweakBar();
+  cameraPathConfiguration = new objconf::CameraPathConfiguration();
+  cameraPathConfiguration->setCamera(objconf::getCamera());
   test::setTestConvexHull(simpleDraw);
 
-  std::cerr<<"........2\n";
   TwBar*Bar;
   Bar=TwNewBar("TweakBar");
   TwAddVarRO(Bar,"FPS"    ,TW_TYPE_INT32  ,&FPS       ," label='FPS' help='Frames per second' "         );
@@ -2131,11 +2168,18 @@ void Init(){
   simData->insertVariable("gbuffer.stencil" ,new simulation::Object(Deferred.depth ));
   simData->insertVariable("computeMethod.program.WORKGROUPSIZE", new simulation::Int(64));
   simData->insertVariable("computeMethod.program.CULL_SIDE", new simulation::Bool(true));
+  simData->insertVariable("measure.computeGeometry.computeSides",new simulation::GpuGauge());
+  simData->insertVariable("measure.computeGeometry.draw",new simulation::GpuGauge());
+  simData->insertVariable("measure.computeGeometry.blit",new simulation::GpuGauge());
 
 
   simData->insertVariable("shadowMask",new simulation::Object(shadowMask));
-  simData->insertVariable("measure.shadowMap.createShadowMap" ,new simulation::Gauge());
-  simData->insertVariable("measure.shadowMap.createShadowMask",new simulation::Gauge());
+  simData->insertVariable("measure.shadowMap.createShadowMap" ,new simulation::GpuGauge());
+  simData->insertVariable("measure.shadowMap.createShadowMask",new simulation::GpuGauge());
+  simData->insertVariable("measure.rtw.createImportance",new simulation::GpuGauge());
+  simData->insertVariable("measure.rtw.createShadowMap",new simulation::GpuGauge());
+  simData->insertVariable("measure.rtw.createShadowMask",new simulation::GpuGauge());
+
   simData->insertVariable("camera",new simulation::Object(/*Camera*/objconf::getCamera()));
 
   simData->insertVariable("rtw.program.CIM.WORKGROUP_SIZE_X",new simulation::Uint(8));
@@ -2143,6 +2187,16 @@ void Init(){
   simData->insertVariable("rtw.program.CIM1D.WORKGROUP_SIZE_X",new simulation::Uint(64));
   simData->insertVariable("rtw.program.CIM1D.WALKING_WINDOW_SIZE",new simulation::Uint(16));
   simData->insertVariable("rtw.program.CSM.TESS_FACTOR",new simulation::Uint(32));
+
+  simData->insertVariable("nv.program.DV.WORKGROUP_SIZE_X",new simulation::Uint(8));
+  simData->insertVariable("nv.program.DV.WORKGROUP_SIZE_Y",new simulation::Uint(8));
+  simData->insertVariable("nv.program.COUNTMAP.WORKGROUP_SIZE_X",new simulation::Uint(8));
+  simData->insertVariable("nv.program.COUNTMAP.WORKGROUP_SIZE_Y",new simulation::Uint(8));
+  simData->insertVariable("nv.program.INTEGRATE.WORKGROUP_SIZE_X",new simulation::Uint(64));
+  simData->insertVariable("nv.program.ISO.WORKGROUP_SIZE_X",new simulation::Uint(64));
+  simData->insertVariable("nv.program.ISO.GRID_X",new simulation::Uint(8));
+  simData->insertVariable("nv.program.ISO.GRID_Y",new simulation::Uint(8));
+
 
   std::cerr<<simData->toStr()<<std::endl;
   std::cerr<<simData->define("shadowMapMethods");

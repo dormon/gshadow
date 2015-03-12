@@ -99,6 +99,8 @@ using namespace std;
 #include"testConvexHull.h"
 #include"../objectConfiguration/lightConfiguration.h"
 #include"../objectConfiguration/cameraConfiguration.h"
+#include"../objectConfiguration/cameraPathConfiguration.h"
+
 
 
 #define ILUT_USE_OPENGL

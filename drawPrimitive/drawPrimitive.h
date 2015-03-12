@@ -34,6 +34,8 @@ class DrawPrimitive
     }_mode;
     ge::gl::ProgramObject*_getActiveProgram();
     void _setStateSet();
+    void _setViewPort(float x,float y,float sx,float sy);
+    void _resetViewPort();
   public:
     DrawPrimitive(std::string shaderDir);
     void setWindowSize(unsigned*size);

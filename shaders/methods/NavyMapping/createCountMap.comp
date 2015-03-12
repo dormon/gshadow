@@ -1,0 +1,31 @@
+#version 440 core
+
+#ifndef WORKGROUP_SIZE_X
+#define WORKGROUP_SIZE_X 8
+#endif//WORKGROUP_SIZE_X
+
+#ifndef WORKGROUP_SIZE_Y
+#define WORKGROUP_SIZE_Y 8
+#endif//WORKGROUP_SIZE_Y
+
+layout(local_size_x=WORKGROUP_SIZE_X,local_size_y=WORKGROUP_SIZE_Y)in;
+
+layout(      binding=0)uniform sampler2D position;
+layout(r32ui,binding=1)uniform uimage2D  countMap;
+
+uniform uint  shadowMapSize=512u;
+uniform uvec2 windowSize=uvec2(1024u,1024u);
+uniform mat4  bpv;
+
+#define COORD gl_GlobalInvocationID.xy
+
+void main(){
+  if(any(greaterThanEqual(COORD,windowSize)))return;
+  vec4 pos=texelFetch(position,ivec2(COORD),0);
+  if(any(isnan(pos)))return;
+  vec4 shadowCoord=bpv*vec4(pos.xyz,1);
+  vec2 normCoord=shadowCoord.xy/shadowCoord.w;
+  if(any(greaterThan(normCoord,vec2(1)))||any(lessThan(normCoord,vec2(0))))return;
+  uvec2 texelCoord=uvec2(normCoord*shadowMapSize);
+  imageAtomicAdd(countMap,ivec2(texelCoord),1);
+}

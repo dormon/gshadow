@@ -11,10 +11,6 @@ class RTWBack: public simulation::SimulationObject, public ShadowMethod
     ge::gl::TextureObject*     _shadowMap;
 
     ge::gl::FramebufferObject* _fbo;
-    simulation::Gauge*               _createrShadowMapGauge;
-    simulation::Gauge*               _createrShadowMaskGauge;
-    ge::gl::AsynchronousQueryObject* _measureCreateShadowMap;
-    ge::gl::AsynchronousQueryObject* _measureCreateShadowMask;
 
     ge::gl::TextureObject* _importanceMap;
     ge::gl::ProgramObject* _createImportanceMap;
@@ -35,8 +31,6 @@ class RTWBack: public simulation::SimulationObject, public ShadowMethod
     glm::mat4                  _lightProjection;
     glm::mat4                  _lightView;
     glm::mat4                  _bpv;
-    void _setMeasureCreateShadowMap();
-    void _setMeasureCreateShadowMask();
     void _createShadowMap();
     void _computeMatrices();
     void _createShadowMapFBO();
@@ -50,6 +44,8 @@ class RTWBack: public simulation::SimulationObject, public ShadowMethod
   public:
     void setMatrices(glm::mat4 lp,glm::mat4 lv);
     void createShadowMask();
+    void createShadowMask(GLuint mask);
+
     unsigned getNofDependentVariables();
     std::string getDependentVariable(unsigned id);
     void update();

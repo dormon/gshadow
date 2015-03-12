@@ -398,6 +398,12 @@ Gauge*SimulationData::getGauge(std::string variableName,Gauge*def){
   if(data->type==GAUGE)return ((Gauge*)data);
   return def;
 }
+GpuGauge*SimulationData::getGpuGauge(std::string variableName,GpuGauge*def){
+  if(!this->_variable.count(variableName))return def;
+  Data*data=this->_variable[variableName];
+  if(data->type==GPUGAUGE)return ((GpuGauge*)data);
+  return def;
+}
 
 std::string SimulationData::define(std::string prefix){
   if(prefix=="")return this->_rootNamespace->define("");

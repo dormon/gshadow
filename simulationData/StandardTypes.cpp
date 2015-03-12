@@ -335,3 +335,38 @@ bool Gauge::operator==(Data*b){
   return true;
 }
 
+bool*GpuGauge::getEnabled(){
+  return &this->enabled;
+}
+bool*GpuGauge::getSynch(){
+  return &this->synch;
+}
+
+GpuGauge::GpuGauge(bool enabled,bool synch){
+  this->type=GPUGAUGE;
+  this->query=new ge::gl::AsynchronousQueryObject(
+      GL_TIME_ELAPSED,
+      GL_QUERY_RESULT_NO_WAIT,
+      ge::gl::AsynchronousQueryObject::UINT64);
+  this->synch=synch;
+  this->enabled=enabled;
+}
+
+GpuGauge::~GpuGauge(){
+  delete this->query;
+}
+
+void GpuGauge::begin(){
+  if(!this)return;
+  if(!this->enabled)return;
+  if(this->synch)glFinish();
+  this->query->begin();
+}
+
+void GpuGauge::end(){
+  if(!this)return;
+  if(!this->enabled)return;
+  if(this->synch)glFinish();
+  this->query->end();
+  this->insert(this->query->getui64()/1000000000.f);
+}

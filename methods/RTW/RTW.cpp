@@ -1,6 +1,7 @@
 #include"RTW.h"
 
 #include<geUtil/CameraObject.h>
+#include"../ShadowMapping/createsm.h"
 
 #define CLASSNAME RTWBack
 #include"../ShadowMethodMacro.h"
@@ -24,8 +25,9 @@ DEFVARSSTART
   "rtw.program.CIM1D.WORKGROUP_SIZE_X",
   "rtw.program.CIM1D.WALKING_WINDOW_SIZE",
   "rtw.program.CSM.TESS_FACTOR",
-  "measure.shadowMap.createShadowMap",
-  "measure.shadowMap.createShadowMask"
+  "measure.rtw.createImportance",
+  "measure.rtw.createShadowMap",
+  "measure.rtw.createShadowMask"
 DEFVARSEND
 
 DEFVARSIDSTART
@@ -47,8 +49,9 @@ DEFVARSIDSTART
   CIM1D_SIZE_X,
   CIM1D_WINDOW_SIZE,
   TESS_FACTOR,
-  MEASURE_SHADOWMAP_CREATESHADOWMAP,
-  MEASURE_SHADOWMAP_CREATESHADOWMASK
+  MEASURE_CREATEIMPORTANCE,
+  MEASURE_CREATESHADOWMAP,
+  MEASURE_CREATESHADOWMASK
 DEFVARSIDEND
 
 DEFGETNOFDEP
@@ -109,10 +112,6 @@ void RTWBack::update(){
     this->_createShadowMapFBO();
     this->_changed[VARS[SHADOWMASK]]=false;
   }
-  if(this->_changed[VARS[MEASURE_SHADOWMAP_CREATESHADOWMAP]]){
-    this->_setMeasureCreateShadowMap();
-    this->_changed[VARS[MEASURE_SHADOWMAP_CREATESHADOWMAP]]=false;
-  }
 }
 
 void RTWBack::_createRTWMask(){
@@ -136,32 +135,20 @@ void RTWBack::_createRTWMask(){
 }
 
 void RTWBack::createShadowMask(){
+  GETGPUGAUGE(MEASURE_CREATEIMPORTANCE)->begin();
   this->_createImportance();
   this->_createImportance1D();
   this->_smoothImportance1D();
   this->_sumImportance1D();
+  GETGPUGAUGE(MEASURE_CREATEIMPORTANCE)->end();
 
-
-  if(this->_createrShadowMapGauge)this->_measureCreateShadowMap->begin();
-
+  GETGPUGAUGE(MEASURE_CREATESHADOWMAP)->begin();
   this->_createRTWMap();
+  GETGPUGAUGE(MEASURE_CREATESHADOWMAP)->end();
 
-  if(this->_createrShadowMapGauge){
-    this->_measureCreateShadowMap->end();
-    this->_createrShadowMapGauge->insert(this->_measureCreateShadowMap->getui64()/1000000000.f);
-  }
-
-
-
-
-  if(this->_createrShadowMaskGauge)this->_measureCreateShadowMask->begin();
-
+  GETGPUGAUGE(MEASURE_CREATESHADOWMASK)->begin();
   this->_createRTWMask();
-
-  if(this->_createrShadowMaskGauge){
-    this->_measureCreateShadowMask->end();
-    this->_createrShadowMaskGauge->insert(this->_measureCreateShadowMask->getui64()/1000000000.f);
-  }
+  GETGPUGAUGE(MEASURE_CREATESHADOWMASK)->end();
 }
 
 RTWBack::RTWBack(simulation::SimulationData*data):simulation::SimulationObject(data){
@@ -173,15 +160,9 @@ RTWBack::RTWBack(simulation::SimulationData*data):simulation::SimulationObject(d
   this->_shadowMap = NULL;
   this->_shadowMask    = NULL;
   this->_shadowMaskFBO = NULL;
-  this->_measureCreateShadowMap  = NULL;
-  this->_measureCreateShadowMask = NULL;
-  this->_createrShadowMapGauge  = NULL;
-  this->_createrShadowMaskGauge = NULL;
 
   this->_emptyVAO  = new ge::gl::VertexArrayObject();
 
-  this->_setMeasureCreateShadowMap();
-  this->_setMeasureCreateShadowMask();
   this->_computeMatrices   ();
   this->_createShadowMap   ();
   this->_createShadowMapFBO();
@@ -249,51 +230,26 @@ RTWBack::RTWBack(simulation::SimulationData*data):simulation::SimulationObject(d
       GETSTRING(SHADERDIRECTORY)+"methods/RTW/drawgrid.fp");
 }
 
-void RTWBack::_setMeasureCreateShadowMap(){
-  this->_createrShadowMapGauge = this->_simulationData->getGauge(VARS[MEASURE_SHADOWMAP_CREATESHADOWMAP],NULL);
-  if(this->_createrShadowMapGauge){
-    if(!this->_measureCreateShadowMap)
-      this->_measureCreateShadowMap = new ge::gl::AsynchronousQueryObject(
-          GL_TIME_ELAPSED,GL_QUERY_RESULT_NO_WAIT,ge::gl::AsynchronousQueryObject::UINT64);
-  }
-}
-void RTWBack::_setMeasureCreateShadowMask(){
-  this->_createrShadowMaskGauge = this->_simulationData->getGauge(VARS[MEASURE_SHADOWMAP_CREATESHADOWMASK],NULL);
-  if(this->_createrShadowMaskGauge){
-    if(!this->_measureCreateShadowMask)
-      this->_measureCreateShadowMask = new ge::gl::AsynchronousQueryObject(
-          GL_TIME_ELAPSED,GL_QUERY_RESULT_NO_WAIT,ge::gl::AsynchronousQueryObject::UINT64);
-  }
-}
-
-
 void RTWBack::_createShadowMap(){
-  float ones[]={1,1,1,1};
   if(this->_shadowMap)delete this->_shadowMap;
-  this->_shadowMap=new ge::gl::TextureObject(GL_TEXTURE_2D,GL_DEPTH_COMPONENT24,1,GETUINT(RESOLUTION),GETUINT(RESOLUTION));
-  this->_shadowMap->texParameteri (GL_TEXTURE_MIN_FILTER  ,GL_NEAREST             );
-  this->_shadowMap->texParameteri (GL_TEXTURE_MAG_FILTER  ,GL_NEAREST             );
-  this->_shadowMap->texParameteri (GL_TEXTURE_WRAP_S      ,GL_CLAMP_TO_BORDER     );
-  this->_shadowMap->texParameteri (GL_TEXTURE_WRAP_T      ,GL_CLAMP_TO_BORDER     );
-  this->_shadowMap->texParameteri (GL_TEXTURE_COMPARE_FUNC,GL_LEQUAL              );
-  this->_shadowMap->texParameteri (GL_TEXTURE_COMPARE_MODE,GL_COMPARE_R_TO_TEXTURE);
-  this->_shadowMap->texParameterfv(GL_TEXTURE_BORDER_COLOR,ones                   );
-
+  this->_shadowMap = createSM(GETUINT(RESOLUTION));
   if(!this->_fbo)this->_fbo=new ge::gl::FramebufferObject();
   this->_fbo->attachDepthTexture(this->_shadowMap->getId());
 }
 
-void RTWBack::_computeMatrices(){
-  this->_lightProjection = glm::perspective(GETFLOAT(FOVY),1.f,GETFLOAT(NEAR),GETFLOAT(FAR));
-  this->_lightView       = glm::lookAt(
-      glm::vec3(GETLIGHT->position),
-      GETVEC3(FOCUSPOINT),
-      glm::vec3(0.f,1.f,0.f));
+void RTWBack::setMatrices(glm::mat4 lp,glm::mat4 lv){
+  this->_lightView       = lv;
+  this->_lightProjection = lp;
   this->_bpv=
     glm::scale(glm::mat4(1.),glm::vec3(.5))*
     glm::translate(glm::mat4(1.),glm::vec3(1.))*
-    _lightProjection*
-    _lightView;
+    this->_lightProjection*
+    this->_lightView;
+}
+
+void RTWBack::_computeMatrices(){
+  this->setMatrices(glm::perspective(GETFLOAT(FOVY),1.f,GETFLOAT(NEAR),GETFLOAT(FAR)),
+      glm::lookAt(glm::vec3(GETLIGHT->position),GETVEC3(FOCUSPOINT),glm::vec3(0.f,1.f,0.f)));
 }
 
 void RTWBack::_createShadowMapFBO(){
@@ -323,16 +279,6 @@ RTWBack::~RTWBack(){
   delete this->_sumY;
   delete this->_createRTWProgram;
   delete this->_drawGridProgram;
-}
-
-void RTWBack::setMatrices(glm::mat4 lp,glm::mat4 lv){
-  this->_lightView       = lv;
-  this->_lightProjection = lp;
-  this->_bpv=
-    glm::scale(glm::mat4(1.),glm::vec3(.5))*
-    glm::translate(glm::mat4(1.),glm::vec3(1.))*
-    this->_lightProjection*
-    this->_lightView;
 }
 
 void RTWBack::_createImportance(){
@@ -500,3 +446,7 @@ void RTWBack::drawGrid(float x,float y,float sx,float sy){
   glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
 }
 
+void RTWBack::createShadowMask(GLuint mask){
+  this->_shadowMaskFBO->attachColorTexture(GL_COLOR_ATTACHMENT0,mask);
+  this->createShadowMask();
+}

@@ -28,6 +28,7 @@ class ComputeGeometry: public simulation::SimulationObject, public ShadowMethod
     void updateData();
     void updateProgram();
     void createShadowMask();
+    void createShadowMask(GLuint mask);
     void createShadowMask(ge::gl::TextureObject*mask);
 };
 

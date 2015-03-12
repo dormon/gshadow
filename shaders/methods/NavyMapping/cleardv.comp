@@ -1,0 +1,22 @@
+#version 440 core
+
+#ifndef WORKGROUP_SIZE_X
+#define WORKGROUP_SIZE_X 8
+#endif//WORKGROUP_SIZE_X
+
+#ifndef WORKGROUP_SIZE_Y
+#define WORKGROUP_SIZE_Y 8
+#endif//WORKGROUP_SIZE_Y
+
+layout(local_size_x=WORKGROUP_SIZE_X,local_size_y=WORKGROUP_SIZE_Y)in;
+
+layout(r32ui,binding=1)uniform uimage1D  dv;
+
+uniform uint  shadowMapSize=512u;
+
+void main(){
+  imageStore(dv,0,uvec4(shadowMapSize));
+  imageStore(dv,1,uvec4(0));
+  imageStore(dv,2,uvec4(shadowMapSize));
+  imageStore(dv,3,uvec4(0));
+}

@@ -12,7 +12,10 @@ DEFVARSSTART
   "gbuffer.fbo",
   "gbuffer.stencil",
   "computeMethod.program.WORKGROUPSIZE",
-  "computeMethod.program.CULL_SIDE"
+  "computeMethod.program.CULL_SIDE",
+  "measure.computeGeometry.computeSides",
+  "measure.computeGeometry.draw",
+  "measure.computeGeometry.blit"
 DEFVARSEND
 
 DEFVARSIDSTART
@@ -24,7 +27,10 @@ DEFVARSIDSTART
   GBUFFER_FBO,
   GBUFFER_STENCIL,
   WORKGROUPSIZE,
-  CULL_SIDE
+  CULL_SIDE,
+  MEASURE_COMPUTESIDES,
+  MEASURE_DRAW,
+  MEASURE_BLIT
 DEFVARSIDEND
 
 DEFGETNOFDEP
@@ -88,13 +94,16 @@ void ComputeGeometry::updateProgram(){
 void ComputeGeometry::createShadowMask(){
   ge::util::CameraObject*cam=GETCAMERA;
   glm::mat4 mvp=cam->getProjection()*cam->getView();
-  this->_sides->ComputeSides(glm::value_ptr(mvp),GETLIGHT);
   ge::gl::FramebufferObject*fbo=(ge::gl::FramebufferObject*)GETOBJECT(GBUFFER_FBO);
-   
+
+  GETGPUGAUGE(MEASURE_COMPUTESIDES)->begin();
+  this->_sides->ComputeSides(glm::value_ptr(mvp),GETLIGHT);
+  GETGPUGAUGE(MEASURE_COMPUTESIDES)->end();
+
+  GETGPUGAUGE(MEASURE_DRAW)->begin();
   glClearTexImage(
     GETTEXTURE(SHADOWMASK)->getId(),
     0,GL_RED,GL_FLOAT,NULL);
-
   fbo->bind();
   glEnable(GL_STENCIL_TEST);
   glClear(GL_STENCIL_BUFFER_BIT);
@@ -107,7 +116,9 @@ void ComputeGeometry::createShadowMask(){
   this->_sides->DrawSides(glm::value_ptr(mvp),GETLIGHT);
   this->_caps ->DrawCaps (glm::value_ptr(mvp),GETLIGHT);
   fbo->unbind();
+  GETGPUGAUGE(MEASURE_DRAW)->end();
 
+  GETGPUGAUGE(MEASURE_BLIT)->begin();
   this->_maskFBO->bind();
   glStencilOp(GL_KEEP,GL_KEEP,GL_KEEP);
   glStencilFunc(GL_EQUAL,0,0xff);
@@ -120,5 +131,12 @@ void ComputeGeometry::createShadowMask(){
   this->_emptyVAO->unbind();
   this->_maskFBO->unbind();
   glDisable(GL_STENCIL_TEST);
+  GETGPUGAUGE(MEASURE_BLIT)->end();
 }
+
+void ComputeGeometry::createShadowMask(GLuint mask){
+  this->_maskFBO->attachColorTexture(GL_COLOR_ATTACHMENT0,mask);
+  this->createShadowMask();
+}
+
 

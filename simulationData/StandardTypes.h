@@ -35,7 +35,8 @@ namespace simulation{
     STRING,
     OBJECT,
     LIGHT,
-    GAUGE
+    GAUGE,
+    GPUGAUGE
   };
   class Data{
     public:
@@ -189,10 +190,23 @@ namespace simulation{
     public:
       std::vector<float>values;
       std::vector<float>*getData();
-      void insert(float value);
+      virtual void insert(float value);
       Gauge();
       std::string toStr();
       bool operator==(Data*);
+  };
+
+  class GpuGauge: public Gauge{
+    public:
+      GpuGauge(bool enabled=false,bool synch=false);
+      ~GpuGauge();
+      ge::gl::AsynchronousQueryObject*query;
+      bool synch;
+      bool enabled;
+      bool*getEnabled();
+      bool*getSynch();
+      void begin();
+      void end();
   };
 
 }

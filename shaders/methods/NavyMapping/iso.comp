@@ -1,0 +1,50 @@
+#version 440 core
+
+#ifndef WORKGROUP_SIZE_X
+#define WORKGROUP_SIZE_X 64
+#endif//WORKGROUP_SIZE_X
+
+layout(local_size_x=WORKGROUP_SIZE_X)in;
+
+layout(r32ui,binding=0)uniform uimage2D integrated;
+layout(r32ui,binding=1)uniform uimage1D count;
+layout(r32f ,binding=2)uniform  image2D iso;
+
+uniform uint  shadowMapSize=512u;
+uniform bool  xAxis=true;
+uniform uint  grids=5u;
+
+void main(){
+  if(gl_GlobalInvocationID.x>=shadowMapSize)return;
+  uint sum=imageLoad(count,int(gl_GlobalInvocationID.x)).x;
+  uint stp=sum/grids;
+  uint actGrid=0;
+  uint pos=0;
+  for(;pos<shadowMapSize;++pos){
+    uint val=imageLoad(integrated,ivec2(gl_GlobalInvocationID.x,pos)).x;
+    if(val!=0)break;
+  }
+  imageStore(iso,ivec2(gl_GlobalInvocationID.x,actGrid),vec4(float(pos)/float(shadowMapSize)));
+  
+  uint lastUsefulValue=0;
+  for(;pos<shadowMapSize;++pos){
+    uint val=imageLoad(integrated,ivec2(gl_GlobalInvocationID.x,pos)).x;
+    if(val>=actGrid*sum/grids){
+      imageStore(iso,ivec2(gl_GlobalInvocationID.x,actGrid),vec4(float(pos)/float(shadowMapSize)));
+      actGrid++;
+      if(actGrid==grids-2){
+        lastUsefulValue=val;
+        break;
+      }
+    }
+  }
+  uint lastUsefulPos=pos;
+  for(;pos<shadowMapSize;++pos){
+    uint val=imageLoad(integrated,ivec2(gl_GlobalInvocationID.x,pos)).x;
+    if(val!=lastUsefulValue){
+      lastUsefulPos=pos;
+      lastUsefulValue=val;
+    }
+  }
+  imageStore(iso,ivec2(gl_GlobalInvocationID.x,actGrid),vec4(float(lastUsefulPos)/float(shadowMapSize)));
+}
