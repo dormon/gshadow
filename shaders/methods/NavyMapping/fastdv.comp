@@ -1,0 +1,69 @@
+#version 440 core
+
+#ifndef WORKGROUP_SIZE_X
+#define WORKGROUP_SIZE_X 8
+#endif//WORKGROUP_SIZE_X
+
+#ifndef WORKGROUP_SIZE_Y
+#define WORKGROUP_SIZE_Y 8
+#endif//WORKGROUP_SIZE_Y
+
+layout(local_size_x=WORKGROUP_SIZE_X,local_size_y=WORKGROUP_SIZE_Y)in;
+
+layout(rgba32f,binding=0)uniform image2D inMinMax;
+layout(rgba32f,binding=1)uniform image2D outMinMax;
+
+uniform uvec2 windowSize=uvec2(1024u,1024u);
+
+#define COORD  gl_GlobalInvocationID.xy
+#define WCOORD gl_WorkGroupID.xy
+#define LID    (gl_WorkGroupSize.x*gl_LocalInvocationID.y+gl_LocalInvocationID.x)
+#define WS     (WORKGROUP_SIZE_X*WORKGROUP_SIZE_Y)
+
+shared float local[WORKGROUP_SIZE_X*WORKGROUP_SIZE_Y];
+
+void doMinMax(int doMax){
+  for(uint g=WS>>1;g>0;g>>=1){
+    float a,b;
+    if(LID<g){
+      a=local[LID*2+0];
+      b=local[LID*2+1];
+      if(((1-2*int(doMax))*(a-b)>0||(a>1.5))&&(b<1.5))a=b;
+    }
+    barrier();
+    if(LID<g)local[LID]=a;
+    barrier();
+  }
+}
+
+void main(){
+
+  vec4 view=vec4(3.f);
+  if(all(lessThan(COORD,windowSize)))
+    view=imageLoad(inMinMax,ivec2(COORD));
+
+  vec4 final;
+
+  local[LID]=view.x;
+  barrier();
+  doMinMax(0);
+  final.x=local[0];
+
+  local[LID]=view.y;
+  barrier();
+  doMinMax(1);
+  final.y=local[0];
+
+  local[LID]=view.z;
+  barrier();
+  doMinMax(0);
+  final.z=local[0];
+
+  local[LID]=view.w;
+  barrier();
+  doMinMax(1);
+  final.w=local[0];
+
+  if(LID==0)
+    imageStore(outMinMax,ivec2(WCOORD),final);
+}

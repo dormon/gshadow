@@ -19,6 +19,10 @@ DEFVARSSTART
   "light",
   "gbuffer.position",
   "shadowMask",
+  "nv.program.VS.WORKGROUP_SIZE_X",
+  "nv.program.VS.WORKGROUP_SIZE_Y",
+  "nv.program.FDV.WORKGROUP_SIZE_X",
+  "nv.program.FDV.WORKGROUP_SIZE_Y",
   "nv.program.DV.WORKGROUP_SIZE_X",
   "nv.program.DV.WORKGROUP_SIZE_Y",
   "nv.program.COUNTMAP.WORKGROUP_SIZE_X",
@@ -44,6 +48,10 @@ DEFVARSIDSTART
   LIGHT,
   GBUFFER_POSITION,
   SHADOWMASK,
+  VS_SIZE_X,
+  VS_SIZE_Y,
+  FDV_SIZE_X,
+  FDV_SIZE_Y,
   DV_SIZE_X,
   DV_SIZE_Y,
   COUNTMAP_SIZE_X,
@@ -85,6 +93,8 @@ void NavyMapping::update(){
 
 void NavyMapping::createShadowMask(){
   //this->_createDV();
+  this->_computeViewSamples();
+  this->_fastCreateDV();
   this->_createCountMap();
   this->_integrate(this->_integratedCountMap,this->_integratedCountMapCount,this->_countMap,true);
 
@@ -132,6 +142,35 @@ NavyMapping::NavyMapping(simulation::SimulationData*data):simulation::Simulation
       GETSTRING(SHADERDIRECTORY)+"methods/ShadowMapping/createShadowMask.fp");
 
   //NAVY MAP
+  this->_viewSamples = new ge::gl::TextureObject(GL_TEXTURE_2D,GL_RG32F,1,
+      GETUVEC2(WINDOWSIZE).x,GETUVEC2(WINDOWSIZE).y);
+  this->_viewSamplesProgram = new ge::gl::ProgramObject(
+      GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/viewSamples.comp",
+      this->_simulationData->define("nv.program.VS"));
+
+  this->_fastdv0Program = new ge::gl::ProgramObject(
+      GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/fastdv0.comp",
+      this->_simulationData->define("nv.program.FDV"));
+  this->_fastdvProgram = new ge::gl::ProgramObject(
+      GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/fastdv.comp",
+      this->_simulationData->define("nv.program.FDV"));
+
+  unsigned size[2]={
+    this->_getDiv(GETUVEC2(WINDOWSIZE).x,GETUINT(FDV_SIZE_X)),
+    this->_getDiv(GETUVEC2(WINDOWSIZE).y,GETUINT(FDV_SIZE_Y))
+  };
+  while(size[0]!=1||size[1]!=1){
+    this->_dvsWorkSize.push_back(glm::uvec2(size[0],size[1]));
+    this->_dvsTex.push_back(new ge::gl::TextureObject(GL_TEXTURE_2D,GL_RGBA32F,1,size[0],size[1]));
+    size[0]=this->_getDiv(size[0],GETUINT(FDV_SIZE_X));
+    size[1]=this->_getDiv(size[1],GETUINT(FDV_SIZE_Y));
+  }
+  this->_dvsWorkSize.push_back(glm::uvec2(1u,1u));
+  this->_dvsTex.push_back(new ge::gl::TextureObject(GL_TEXTURE_2D,GL_RGBA32F,1,1,1));
+
+
+ 
+  
   this->_dvTex = new ge::gl::TextureObject(GL_TEXTURE_1D,GL_R32UI,1,4);
   this->_dvProgram = new ge::gl::ProgramObject(
       GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/createdv.comp",
@@ -139,6 +178,7 @@ NavyMapping::NavyMapping(simulation::SimulationData*data):simulation::Simulation
   this->_dvClearProgram = new ge::gl::ProgramObject(
       GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/cleardv.comp",
       this->_simulationData->define("nv.program.DV"));
+      
 
   this->_countMap = new ge::gl::TextureObject(GL_TEXTURE_2D,GL_R32UI,1,GETUINT(RESOLUTION),GETUINT(RESOLUTION));
   this->_createCountMapProgram = new ge::gl::ProgramObject(
@@ -228,6 +268,55 @@ void NavyMapping::setMatrices(glm::mat4 lp,glm::mat4 lv){
 
 ge::gl::TextureObject*NavyMapping::getShadowMap(){
   return this->_shadowMap;
+}
+
+void NavyMapping::_computeViewSamples(){
+  float data[]={2,2};
+  glClearTexImage(this->_viewSamples->getId(),0,GL_RG,GL_FLOAT,data);
+
+  glm::uvec2 winSize=GETUVEC2(WINDOWSIZE);
+  glm::mat4 mvp=this->_lightProjection*this->_lightView;
+
+  GETTEXTURE(GBUFFER_POSITION)->bind(GL_TEXTURE0);
+  this->_viewSamples->bindImage(1,0);
+  this->_viewSamplesProgram->use();
+  this->_viewSamplesProgram->set("windowSize",winSize.x,winSize.y);
+  this->_viewSamplesProgram->set("mvp",1,GL_FALSE,glm::value_ptr(mvp));
+  unsigned workSizex=winSize.x/GETUINT(VS_SIZE_X)+1;
+  unsigned workSizey=winSize.y/GETUINT(VS_SIZE_Y)+1;
+  glDispatchCompute(workSizex,workSizey,1);
+  glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+}
+
+void NavyMapping::_fastCreateDV(){
+  glm::uvec2 winSize=GETUVEC2(WINDOWSIZE);
+  this->_fastdv0Program->use();
+  this->_fastdv0Program->set("windowSize",winSize.x,winSize.y);
+  this->_viewSamples->bindImage(0,0);
+  this->_dvsTex[0]->bindImage(1,0);
+  glDispatchCompute(this->_dvsWorkSize[0].x,this->_dvsWorkSize[0].y,1);
+  glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+  glFinish();
+
+  this->_fastdvProgram->use();
+  for(unsigned i=0;i<this->_dvsTex.size()-1;++i){
+    this->_dvsTex[i+0]->bindImage(0,0);
+    this->_dvsTex[i+1]->bindImage(1,0);
+    this->_fastdvProgram->set("windowSize",this->_dvsWorkSize[i].x,this->_dvsWorkSize[i].y);
+    std::cerr<<"windowSize: "<<this->_dvsWorkSize[i].x<<" "<<this->_dvsWorkSize[i].y<<std::endl;
+    glDispatchCompute(this->_dvsWorkSize[i+1].x,this->_dvsWorkSize[i+1].y,1);
+    glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+    glFinish();
+
+  }
+  float data[4]={0,0,0,0};
+  glBindTexture(GL_TEXTURE_2D,this->_dvsTex[this->_dvsTex.size()-1]->getId());
+  glGetTexImage(GL_TEXTURE_2D,0,GL_RGBA,GL_FLOAT,data);
+  std::cerr<<"data0: "<<data[0]<<std::endl;
+  std::cerr<<"data1: "<<data[1]<<std::endl;
+  std::cerr<<"data2: "<<data[2]<<std::endl;
+  std::cerr<<"data3: "<<data[3]<<std::endl;
+
 }
 
 void NavyMapping::_createDV(){

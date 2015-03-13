@@ -17,6 +17,16 @@ class NavyMapping: public simulation::SimulationObject, public ShadowMethod
     glm::mat4                  _lightView;
     glm::mat4                  _bpv;
 
+
+    ge::gl::TextureObject* _viewSamples;
+    ge::gl::ProgramObject* _viewSamplesProgram;
+
+    ge::gl::ProgramObject* _fastdv0Program;
+    ge::gl::ProgramObject* _fastdvProgram;
+    std::vector<ge::gl::TextureObject*>_dvsTex;
+    std::vector<glm::uvec2>_dvsWorkSize;
+
+
     ge::gl::TextureObject* _dvTex;
     ge::gl::ProgramObject* _dvProgram;
     ge::gl::ProgramObject* _dvClearProgram;
@@ -28,6 +38,8 @@ class NavyMapping: public simulation::SimulationObject, public ShadowMethod
     ge::gl::TextureObject* _isoX;
     ge::gl::ProgramObject* _createIsoProgram;
 
+    void _computeViewSamples();
+    void _fastCreateDV();
     void _createDV();
     void _createCountMap();
     void _integrate(
@@ -45,6 +57,7 @@ class NavyMapping: public simulation::SimulationObject, public ShadowMethod
     void _computeMatrices();
     void _createShadowMapFBO();
     void CreateShadowMap();
+    unsigned _getDiv(unsigned a,unsigned b){return a%b?a/b+1:a/b;}
   public:
     ge::gl::TextureObject*getShadowMap();
     void setMatrices(glm::mat4 lp,glm::mat4 lv);
@@ -57,6 +70,7 @@ class NavyMapping: public simulation::SimulationObject, public ShadowMethod
     ~NavyMapping();
     ge::gl::TextureObject*getCountMap(){return this->_countMap;}
     ge::gl::TextureObject*getIntegratedCountMap(){return this->_integratedCountMap;}
+    ge::gl::TextureObject*getViewSamples(){return this->_viewSamples;}
 
 };
 

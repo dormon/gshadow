@@ -296,6 +296,9 @@ int main(int Argc,char*Argv[]){
 
   ge::util::loadContextParam(&contextParam,Args);
   ge::util::loadWindowParam (&windowParam ,Args);
+  windowParam.size[0]=simData->getUVec2("window.size",glm::uvec2(1024u)).x;
+  windowParam.size[1]=simData->getUVec2("window.size",glm::uvec2(1024u)).y;
+
 
   contextParam.profile="core";
   contextParam.version=440;
@@ -1271,7 +1274,9 @@ void Idle(){
     glEnable(GL_DEPTH_TEST);
     */
     simpleDraw->drawHeatMap(navyMapping->getCountMap()->getId(),.5,0,.5,.5,0u,40u);
-    simpleDraw->drawHeatMap(navyMapping->getIntegratedCountMap()->getId(),.0,0,.5,.5,0u,1024u);
+    //simpleDraw->drawHeatMap(navyMapping->getIntegratedCountMap()->getId(),.0,0,.5,.5,0u,1024u);
+    simpleDraw->drawHeatMap(navyMapping->getViewSamples()->getId(),.0,0,.5,.5,0.f,1.f);
+
 
   }
   /*
@@ -2188,6 +2193,10 @@ void Init(){
   simData->insertVariable("rtw.program.CIM1D.WALKING_WINDOW_SIZE",new simulation::Uint(16));
   simData->insertVariable("rtw.program.CSM.TESS_FACTOR",new simulation::Uint(32));
 
+  simData->insertVariable("nv.program.VS.WORKGROUP_SIZE_X",new simulation::Uint(8));
+  simData->insertVariable("nv.program.VS.WORKGROUP_SIZE_Y",new simulation::Uint(8));
+  simData->insertVariable("nv.program.FDV.WORKGROUP_SIZE_X",new simulation::Uint(8));
+  simData->insertVariable("nv.program.FDV.WORKGROUP_SIZE_Y",new simulation::Uint(8));
   simData->insertVariable("nv.program.DV.WORKGROUP_SIZE_X",new simulation::Uint(8));
   simData->insertVariable("nv.program.DV.WORKGROUP_SIZE_Y",new simulation::Uint(8));
   simData->insertVariable("nv.program.COUNTMAP.WORKGROUP_SIZE_X",new simulation::Uint(8));
