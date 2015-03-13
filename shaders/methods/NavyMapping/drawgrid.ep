@@ -1,0 +1,8 @@
+#version 440 core
+
+layout(quads,equal_spacing)in;
+
+void main(){
+  vec4 clip=vec4(gl_TessCoord.xy*2-1,-1,1);
+  gl_Position=nv_getFinal(clip);
+}

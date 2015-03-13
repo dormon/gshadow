@@ -15,15 +15,14 @@ layout(r32ui,binding=1)uniform uimage2D integrated;
 layout(r32ui,binding=2)uniform uimage1D count;
 
 uniform uint shadowMapSize=512u;
-uniform bool xAxis=true;
 
 #define COORD gl_GlobalInvocationID.xy
 
 void main(){
   if(any(greaterThanEqual(COORD,uvec2(shadowMapSize))))return;
 
-  uint  sum=imageLoad(count,int(COORD[int(xAxis)])).x;
+  uint  sum=imageLoad(count,int(COORD.y)).x;
   uint  val=imageLoad(integrated,ivec2(COORD)).x;
-  float off=float(val)/float(sum)-float(COORD[1-int(xAxis)])/float(shadowMapSize);
+  float off=float(val)/float(sum)-float(COORD.x)/float(shadowMapSize);
   imageStore(offset,ivec2(COORD),vec4(off));
 }

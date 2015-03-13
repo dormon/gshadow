@@ -1,0 +1,8 @@
+layout(rgba32f,binding=2)uniform  image2D minmax;
+vec2 nv_Dv(vec2 coord){
+  vec4 mm=imageLoad(minmax,ivec2(0));
+  coord.x=(coord.x-mm.x)/(mm.y-mm.x);
+  coord.y=(coord.y-mm.z)/(mm.w-mm.z);
+  return coord;
+}
+

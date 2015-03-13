@@ -1,0 +1,39 @@
+#version 440 core
+
+#ifndef WORKGROUP_SIZE_X
+#define WORKGROUP_SIZE_X 8
+#endif//WORKGROUP_SIZE_X
+
+#ifndef WORKGROUP_SIZE_Y
+#define WORKGROUP_SIZE_Y 8
+#endif//WORKGROUP_SIZE_Y
+
+#ifndef WINDOW_SIZE
+#define WINDOW_SIZE 8
+#endif//WINDOW_SIZE
+
+layout(local_size_x=WORKGROUP_SIZE_X,local_size_y=WORKGROUP_SIZE_Y)in;
+
+layout(r32f ,binding=0)uniform  image2D smoothed;
+layout(r32f ,binding=1)uniform  image2D offset;
+layout(r32ui,binding=2)uniform uimage1D count;
+
+uniform uint shadowMapSize=512u;
+
+#define COORD gl_GlobalInvocationID.xy
+
+void main(){
+  if(any(greaterThanEqual(COORD,uvec2(shadowMapSize))))return;
+
+  uint counter=0;
+  float val=0;
+  for(int i=-int(WINDOW_SIZE);i<int(WINDOW_SIZE);++i){
+    int pos=int(COORD.y)+i;
+    if(pos<0||pos>=int(shadowMapSize))continue;
+    uint weight=imageLoad(count,pos).x;
+    val+=imageLoad(offset,ivec2(COORD)+ivec2(0,i)).x*weight;
+    counter+=weight;
+  }
+
+  imageStore(smoothed,ivec2(COORD),vec4(float(val)/float(counter)));
+}

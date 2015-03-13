@@ -1273,10 +1273,18 @@ void Idle(){
     navyMapping->drawGrid(0,0,.5,false);
     glEnable(GL_DEPTH_TEST);
     */
-    simpleDraw->drawHeatMap(navyMapping->getCountMap()->getId(),.5,0,.5,.5,0u,40u);
-    //simpleDraw->drawHeatMap(navyMapping->getIntegratedCountMap()->getId(),.0,0,.5,.5,0u,1024u);
+    simpleDraw->drawHeatMap(navyMapping->getCountMapX()->getId(),.5,0,.5,.5,0u,40u);
+    //simpleDraw->drawHeatMap(navyMapping->getIntegratedX()->getId(),.0,0,.5,.5,0u,1024u);
+    //simpleDraw->drawHeatMap(navyMapping->getIntegratedY()->getId(),.5,.5,.5,.5,0u,1024u);
+
     //simpleDraw->drawHeatMap(navyMapping->getViewSamples()->getId(),.0,0,.5,.5,0.f,1.f);
-    simpleDraw->drawHeatMap(navyMapping->getOffsetX()->getId(),.0,0,.5,.5,-1.f,1.f);
+    //simpleDraw->drawHeatMap(navyMapping->getOffsetX()->getId(),.0,0,.5,.5,-1.f,1.f);
+    simpleDraw->drawHeatMap(navyMapping->getSmoothX()->getId(),.5,.5,.5,.5,-1.f,1.f);
+    //simpleDraw->drawHeatMap(navyMapping->getSmoothY()->getId(),.0,.0,.5,.5,-1.f,1.f);
+    navyMapping->drawGrid(0,0,.5,.5);
+
+    //simpleDraw->drawHeatMap(navyMapping->getUnwarp()->getId(),.0,0,.5,.5,0u,40u);
+
 
 
 
@@ -2204,6 +2212,11 @@ void Init(){
   simData->insertVariable("nv.program.INTEGRATE.WORKGROUP_SIZE_X",new simulation::Uint(64));
   simData->insertVariable("nv.program.OFFSET.WORKGROUP_SIZE_X",new simulation::Uint(8));
   simData->insertVariable("nv.program.OFFSET.WORKGROUP_SIZE_Y",new simulation::Uint(8));
+  simData->insertVariable("nv.program.SMOOTH.WORKGROUP_SIZE_X",new simulation::Uint(8));
+  simData->insertVariable("nv.program.SMOOTH.WORKGROUP_SIZE_Y",new simulation::Uint(8));
+  simData->insertVariable("nv.program.SMOOTH.WINDOW_SIZE",new simulation::Uint(32));
+
+
   simData->insertVariable("nv.program.DV.WORKGROUP_SIZE_X",new simulation::Uint(8));
   simData->insertVariable("nv.program.DV.WORKGROUP_SIZE_Y",new simulation::Uint(8));
   simData->insertVariable("nv.program.ISO.WORKGROUP_SIZE_X",new simulation::Uint(64));

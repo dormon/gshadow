@@ -11,20 +11,13 @@ layout(r32ui,binding=1)uniform uimage2D integrated;
 layout(r32ui,binding=2)uniform uimage1D count;
 
 uniform uint  shadowMapSize=512u;
-uniform bool  xAxis=true;
 
 void main(){
   if(gl_GlobalInvocationID.x>=shadowMapSize)return;
   uint counter=0;
-  if(xAxis)
-    for(uint i=0;i<shadowMapSize;++i){
-      counter+=imageLoad(countMap,ivec2(i,gl_GlobalInvocationID.x)).x;
-      imageStore(integrated,ivec2(i,gl_GlobalInvocationID.x),uvec4(counter));
-    }
-  else
-    for(uint i=0;i<shadowMapSize;++i){
-      counter+=imageLoad(countMap,ivec2(gl_GlobalInvocationID.x,i)).x;
-      imageStore(integrated,ivec2(gl_GlobalInvocationID.x,i),uvec4(counter));
-    }
+  for(uint i=0;i<shadowMapSize;++i){
+    counter+=imageLoad(countMap,ivec2(i,gl_GlobalInvocationID.x)).x;
+    imageStore(integrated,ivec2(i,gl_GlobalInvocationID.x),uvec4(counter));
+  }
   imageStore(count,int(gl_GlobalInvocationID.x),uvec4(counter));
 }

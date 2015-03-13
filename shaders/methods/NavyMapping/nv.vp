@@ -1,0 +1,20 @@
+layout(binding=3)uniform sampler2D smoothedx;
+layout(binding=4)uniform sampler2D smoothedy;
+vec2 unwarpX(vec2 coord){
+  coord.x+=texture(smoothedx,coord).x;
+  return coord;
+}
+vec2 unwarpY(vec2 coord){
+  coord.y+=texture(smoothedy,coord.yx).x;
+  return coord;
+}
+
+vec4 nv_getFinal(vec4 clip){
+  vec2 coord=clip.xy/clip.w*.5+.5;
+  coord=nv_Dv(coord);
+  coord=coord+unwarpX(coord);
+  coord=coord+unwarpY(coord);
+  coord=coord*2-1;
+  coord*=clip.w;
+  return vec4(coord,clip.zw);
+}
