@@ -29,5 +29,5 @@ void main(){
       final=shadowCoord.xy/shadowCoord.w*.5+.5;
     }
   }
-  imageStore(viewSamples,ivec2(COORD),final.xyxy+vec4(.1));
+  imageStore(viewSamples,ivec2(COORD),final.xyxy);
 }

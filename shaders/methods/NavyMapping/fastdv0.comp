@@ -25,7 +25,7 @@ shared float local[WORKGROUP_SIZE_X*WORKGROUP_SIZE_Y];
 void doMinMax(){
   for(uint g=WS;g>1;g>>=1){
     int doMax=int((LID&(g>>1))!=1);
-    uint rid=LID%(g>>0);
+    uint rid=LID%(g>>1);
     uint rida=(rid*2+0)*(1-2*doMax)+doMax*(WS-1);
     uint ridb=(rid*2+1)*(1-2*doMax)+doMax*(WS-1);
     uint ridc=(rid    )*(1-2*doMax)+doMax*(WS-1);
@@ -44,9 +44,9 @@ void main(){
   if(all(lessThan(COORD,windowSize)))
     view=imageLoad(viewSample,ivec2(COORD)).xy;
 
-  vec4 final=vec4(.1);
+  vec4 final=vec4(0.);
 
-  local[LID]=.9;//view.x;
+  local[LID]=view.x;
   barrier();
 
   doMinMax();

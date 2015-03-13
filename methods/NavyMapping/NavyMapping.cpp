@@ -296,27 +296,23 @@ void NavyMapping::_fastCreateDV(){
   this->_dvsTex[0]->bindImage(1,0);
   glDispatchCompute(this->_dvsWorkSize[0].x,this->_dvsWorkSize[0].y,1);
   glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-  glFinish();
 
   this->_fastdvProgram->use();
   for(unsigned i=0;i<this->_dvsTex.size()-1;++i){
     this->_dvsTex[i+0]->bindImage(0,0);
     this->_dvsTex[i+1]->bindImage(1,0);
     this->_fastdvProgram->set("windowSize",this->_dvsWorkSize[i].x,this->_dvsWorkSize[i].y);
-    std::cerr<<"windowSize: "<<this->_dvsWorkSize[i].x<<" "<<this->_dvsWorkSize[i].y<<std::endl;
     glDispatchCompute(this->_dvsWorkSize[i+1].x,this->_dvsWorkSize[i+1].y,1);
     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-    glFinish();
-
   }
-  float data[4]={0,0,0,0};
+  /*float data[4]={0,0,0,0};
   glBindTexture(GL_TEXTURE_2D,this->_dvsTex[this->_dvsTex.size()-1]->getId());
   glGetTexImage(GL_TEXTURE_2D,0,GL_RGBA,GL_FLOAT,data);
   std::cerr<<"data0: "<<data[0]<<std::endl;
   std::cerr<<"data1: "<<data[1]<<std::endl;
   std::cerr<<"data2: "<<data[2]<<std::endl;
   std::cerr<<"data3: "<<data[3]<<std::endl;
-
+  */
 }
 
 void NavyMapping::_createDV(){
