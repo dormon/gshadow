@@ -28,6 +28,8 @@ DEFVARSSTART
   "nv.program.COUNTMAP.WORKGROUP_SIZE_X",
   "nv.program.COUNTMAP.WORKGROUP_SIZE_Y",
   "nv.program.INTEGRATE.WORKGROUP_SIZE_X",
+  "nv.program.OFFSET.WORKGROUP_SIZE_X",
+  "nv.program.OFFSET.WORKGROUP_SIZE_Y",
   "nv.program.ISO.WORKGROUP_SIZE_X",
   "nv.program.ISO.GRID_X",
   "nv.program.ISO.GRID_Y",
@@ -57,6 +59,8 @@ DEFVARSIDSTART
   COUNTMAP_SIZE_X,
   COUNTMAP_SIZE_Y,
   INTEGRATE_SIZE_X,
+  OFFSET_SIZE_X,
+  OFFSET_SIZE_Y,
   ISO_SIZE_X,
   ISO_GRID_X,
   ISO_GRID_Y,
@@ -95,8 +99,10 @@ void NavyMapping::createShadowMask(){
   //this->_createDV();
   this->_computeViewSamples();
   this->_fastCreateDV();
-  this->_createCountMap();
+  this->_fastCreateCountMap();
+  //this->_createCountMap();
   this->_integrate(this->_integratedCountMap,this->_integratedCountMapCount,this->_countMap,true);
+  this->_createOffset(this->_offsetX,this->_integratedCountMap,this->_integratedCountMapCount,true);
 
   GETGPUGAUGE(MEASURE_CREATESHADOWMAP)->begin();
   this->CreateShadowMap();
@@ -168,17 +174,9 @@ NavyMapping::NavyMapping(simulation::SimulationData*data):simulation::Simulation
   this->_dvsWorkSize.push_back(glm::uvec2(1u,1u));
   this->_dvsTex.push_back(new ge::gl::TextureObject(GL_TEXTURE_2D,GL_RGBA32F,1,1,1));
 
-
- 
-  
-  this->_dvTex = new ge::gl::TextureObject(GL_TEXTURE_1D,GL_R32UI,1,4);
-  this->_dvProgram = new ge::gl::ProgramObject(
-      GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/createdv.comp",
-      this->_simulationData->define("nv.program.DV"));
-  this->_dvClearProgram = new ge::gl::ProgramObject(
-      GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/cleardv.comp",
-      this->_simulationData->define("nv.program.DV"));
-      
+  this->_fastCreateCountMapProgram =  new ge::gl::ProgramObject(
+      GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/countMap.comp",
+      this->_simulationData->define("nv.program.COUNTMAP"));
 
   this->_countMap = new ge::gl::TextureObject(GL_TEXTURE_2D,GL_R32UI,1,GETUINT(RESOLUTION),GETUINT(RESOLUTION));
   this->_createCountMapProgram = new ge::gl::ProgramObject(
@@ -190,6 +188,25 @@ NavyMapping::NavyMapping(simulation::SimulationData*data):simulation::Simulation
   this->_integrateProgram = new ge::gl::ProgramObject(
       GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/integrate.comp",
       this->_simulationData->define("nv.program.INTEGRATE"));
+
+  this->_offsetX = new ge::gl::TextureObject(GL_TEXTURE_2D,GL_R32F,1,GETUINT(RESOLUTION),GETUINT(RESOLUTION));
+  this->_offsetProgram = new  ge::gl::ProgramObject(
+      GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/offset.comp",
+      this->_simulationData->define("nv.program.OFFSET"));
+
+
+
+
+  
+  this->_dvTex = new ge::gl::TextureObject(GL_TEXTURE_1D,GL_R32UI,1,4);
+  this->_dvProgram = new ge::gl::ProgramObject(
+      GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/createdv.comp",
+      this->_simulationData->define("nv.program.DV"));
+  this->_dvClearProgram = new ge::gl::ProgramObject(
+      GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/cleardv.comp",
+      this->_simulationData->define("nv.program.DV"));
+      
+
 
   this->_isoX = new ge::gl::TextureObject(GL_TEXTURE_2D,GL_R32F,1,GETUINT(RESOLUTION),GETUINT(ISO_GRID_X));
   this->_createIsoProgram = new ge::gl::ProgramObject(
@@ -315,6 +332,58 @@ void NavyMapping::_fastCreateDV(){
   */
 }
 
+void NavyMapping::_fastCreateCountMap(){
+  glm::uvec2 winSize=GETUVEC2(WINDOWSIZE);
+
+  glClearTexImage(this->_countMap->getId(),0,GL_RED_INTEGER,GL_UNSIGNED_INT,NULL);
+  glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+  this->_viewSamples                   ->bindImage(0,0);
+  this->_countMap                      ->bindImage(1,0);
+  this->_dvsTex[this->_dvsTex.size()-1]->bindImage(2,0);
+  this->_fastCreateCountMapProgram->use();
+  this->_fastCreateCountMapProgram->set("shadowMapSize",GETUINT(RESOLUTION));
+  this->_fastCreateCountMapProgram->set("windowSize",winSize.x,winSize.y);
+
+  unsigned workSizex=winSize.x/GETUINT(DV_SIZE_X)+1;
+  unsigned workSizey=winSize.y/GETUINT(DV_SIZE_Y)+1;
+  glDispatchCompute(workSizex,workSizey,1);
+}
+
+void NavyMapping::_integrate(
+    ge::gl::TextureObject*integral,
+    ge::gl::TextureObject*integralCount,
+    ge::gl::TextureObject*countMap,
+    bool xDirection){
+  countMap     ->bindImage(0,0);
+  integral     ->bindImage(1,0);
+  integralCount->bindImage(2,0);
+  this->_integrateProgram->use();
+  this->_integrateProgram->set("shadowMapSize",GETUINT(RESOLUTION));
+  this->_integrateProgram->set("xAxis",xDirection);
+  unsigned workSizex=GETUINT(RESOLUTION)/GETUINT(INTEGRATE_SIZE_X)+1;
+  glDispatchCompute(workSizex,1,1);
+}
+
+
+void NavyMapping::_createOffset(
+    ge::gl::TextureObject*offset,
+    ge::gl::TextureObject*integral,
+    ge::gl::TextureObject*integralCount,
+    bool xDirection){
+  offset       ->bindImage(0,0);
+  integral     ->bindImage(1,0);
+  integralCount->bindImage(2,0);
+  this->_offsetProgram->use();
+  this->_offsetProgram->set("shadowMapSize",GETUINT(RESOLUTION));
+  this->_offsetProgram->set("xAxis",xDirection);
+  unsigned workSizex=GETUINT(RESOLUTION)/GETUINT(OFFSET_SIZE_X)+1;
+  unsigned workSizey=GETUINT(RESOLUTION)/GETUINT(OFFSET_SIZE_Y)+1;
+  glDispatchCompute(workSizex,workSizey,1);
+}
+
+
+
 void NavyMapping::_createDV(){
   glm::uvec2 winSize=GETUVEC2(WINDOWSIZE);
 
@@ -363,21 +432,6 @@ void NavyMapping::_createCountMap(){
   unsigned workSizey=winSize.y/GETUINT(DV_SIZE_Y)+1;
   glDispatchCompute(workSizex,workSizey,1);
 
-}
-
-void NavyMapping::_integrate(
-    ge::gl::TextureObject*integral,
-    ge::gl::TextureObject*integralCount,
-    ge::gl::TextureObject*countMap,
-    bool xDirection){
-  countMap     ->bindImage(0,0);
-  integral     ->bindImage(1,0);
-  integralCount->bindImage(2,0);
-  this->_integrateProgram->use();
-  this->_integrateProgram->set("shadowMapSize",GETUINT(RESOLUTION));
-  this->_integrateProgram->set("xAxis",xDirection);
-  unsigned workSizex=GETUINT(RESOLUTION)/GETUINT(INTEGRATE_SIZE_X)+1;
-  glDispatchCompute(workSizex,1,1);
 }
 
 void NavyMapping::_createIso(

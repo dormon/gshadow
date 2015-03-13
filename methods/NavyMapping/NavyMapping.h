@@ -26,27 +26,42 @@ class NavyMapping: public simulation::SimulationObject, public ShadowMethod
     std::vector<ge::gl::TextureObject*>_dvsTex;
     std::vector<glm::uvec2>_dvsWorkSize;
 
-
-    ge::gl::TextureObject* _dvTex;
-    ge::gl::ProgramObject* _dvProgram;
-    ge::gl::ProgramObject* _dvClearProgram;
     ge::gl::TextureObject* _countMap;
-    ge::gl::ProgramObject* _createCountMapProgram;
+    ge::gl::ProgramObject* _fastCreateCountMapProgram;
+
     ge::gl::TextureObject* _integratedCountMap;
     ge::gl::TextureObject* _integratedCountMapCount;
     ge::gl::ProgramObject* _integrateProgram;
-    ge::gl::TextureObject* _isoX;
-    ge::gl::ProgramObject* _createIsoProgram;
+
+    ge::gl::TextureObject* _offsetX;
+    ge::gl::ProgramObject* _offsetProgram;
+
 
     void _computeViewSamples();
     void _fastCreateDV();
-    void _createDV();
-    void _createCountMap();
+    void _fastCreateCountMap();
     void _integrate(
         ge::gl::TextureObject*integral,
         ge::gl::TextureObject*integralCount,
         ge::gl::TextureObject*countMap,
         bool xDirection);
+    void _createOffset(
+        ge::gl::TextureObject*offset,
+        ge::gl::TextureObject*integral,
+        ge::gl::TextureObject*integralCount,
+        bool xDirection);
+
+    //old
+    ge::gl::TextureObject* _dvTex;
+    ge::gl::ProgramObject* _dvProgram;
+    ge::gl::ProgramObject* _dvClearProgram;
+    ge::gl::ProgramObject* _createCountMapProgram;
+    ge::gl::TextureObject* _isoX;
+    ge::gl::ProgramObject* _createIsoProgram;
+
+
+    void _createDV();
+    void _createCountMap();
     void _createIso(
         ge::gl::TextureObject*iso,
         ge::gl::TextureObject*integral,
@@ -70,6 +85,7 @@ class NavyMapping: public simulation::SimulationObject, public ShadowMethod
     ~NavyMapping();
     ge::gl::TextureObject*getCountMap(){return this->_countMap;}
     ge::gl::TextureObject*getIntegratedCountMap(){return this->_integratedCountMap;}
+    ge::gl::TextureObject*getOffsetX(){return this->_offsetX;}
     ge::gl::TextureObject*getViewSamples(){return this->_viewSamples;}
 
 };

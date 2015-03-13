@@ -1275,7 +1275,9 @@ void Idle(){
     */
     simpleDraw->drawHeatMap(navyMapping->getCountMap()->getId(),.5,0,.5,.5,0u,40u);
     //simpleDraw->drawHeatMap(navyMapping->getIntegratedCountMap()->getId(),.0,0,.5,.5,0u,1024u);
-    simpleDraw->drawHeatMap(navyMapping->getViewSamples()->getId(),.0,0,.5,.5,0.f,1.f);
+    //simpleDraw->drawHeatMap(navyMapping->getViewSamples()->getId(),.0,0,.5,.5,0.f,1.f);
+    simpleDraw->drawHeatMap(navyMapping->getOffsetX()->getId(),.0,0,.5,.5,-1.f,1.f);
+
 
 
   }
@@ -2197,11 +2199,13 @@ void Init(){
   simData->insertVariable("nv.program.VS.WORKGROUP_SIZE_Y",new simulation::Uint(8));
   simData->insertVariable("nv.program.FDV.WORKGROUP_SIZE_X",new simulation::Uint(8));
   simData->insertVariable("nv.program.FDV.WORKGROUP_SIZE_Y",new simulation::Uint(8));
-  simData->insertVariable("nv.program.DV.WORKGROUP_SIZE_X",new simulation::Uint(8));
-  simData->insertVariable("nv.program.DV.WORKGROUP_SIZE_Y",new simulation::Uint(8));
   simData->insertVariable("nv.program.COUNTMAP.WORKGROUP_SIZE_X",new simulation::Uint(8));
   simData->insertVariable("nv.program.COUNTMAP.WORKGROUP_SIZE_Y",new simulation::Uint(8));
   simData->insertVariable("nv.program.INTEGRATE.WORKGROUP_SIZE_X",new simulation::Uint(64));
+  simData->insertVariable("nv.program.OFFSET.WORKGROUP_SIZE_X",new simulation::Uint(8));
+  simData->insertVariable("nv.program.OFFSET.WORKGROUP_SIZE_Y",new simulation::Uint(8));
+  simData->insertVariable("nv.program.DV.WORKGROUP_SIZE_X",new simulation::Uint(8));
+  simData->insertVariable("nv.program.DV.WORKGROUP_SIZE_Y",new simulation::Uint(8));
   simData->insertVariable("nv.program.ISO.WORKGROUP_SIZE_X",new simulation::Uint(64));
   simData->insertVariable("nv.program.ISO.GRID_X",new simulation::Uint(8));
   simData->insertVariable("nv.program.ISO.GRID_Y",new simulation::Uint(8));
