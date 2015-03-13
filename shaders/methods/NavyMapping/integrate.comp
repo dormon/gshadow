@@ -19,5 +19,5 @@ void main(){
     counter+=imageLoad(countMap,ivec2(i,gl_GlobalInvocationID.x)).x;
     imageStore(integrated,ivec2(i,gl_GlobalInvocationID.x),uvec4(counter));
   }
-  imageStore(count,int(gl_GlobalInvocationID.x),uvec4(counter));
+  imageStore(count,int(gl_GlobalInvocationID.x),uvec4(counter+1));
 }

@@ -114,6 +114,7 @@ void NavyMapping::createShadowMask(){
   this->_integrate(this->_integratedY,this->_integratedYCount,this->_countMapY);
   this->_createOffset(this->_offsetY,this->_integratedY,this->_integratedYCount);
   this->_smooth(this->_smoothY,this->_offsetY,this->_integratedYCount);
+  this->_unwarpAll();
 
 
   GETGPUGAUGE(MEASURE_CREATESHADOWMAP)->begin();
@@ -250,6 +251,13 @@ NavyMapping::NavyMapping(simulation::SimulationData*data):simulation::Simulation
       ge::gl::ShaderObject::include(GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/nv.vp"),
       GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/drawgrid.fp");
 
+  this->_uall = new ge::gl::TextureObject(GL_TEXTURE_2D,GL_R32UI,1,GETUINT(RESOLUTION),GETUINT(RESOLUTION));
+  this->_uallProgram = new ge::gl::ProgramObject(
+      GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/uall.comp",
+      this->_simulationData->define("nv.program.COUNTMAP")+
+      ge::gl::ShaderObject::include(GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/dv.vp")+
+      ge::gl::ShaderObject::include(GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/nv.vp"));
+
 
 
 
@@ -372,7 +380,8 @@ void NavyMapping::_fastCreateDV(){
 void NavyMapping::_fastCreateCountMap(){
   glm::uvec2 winSize=GETUVEC2(WINDOWSIZE);
 
-  glClearTexImage(this->_countMapX->getId(),0,GL_RED_INTEGER,GL_UNSIGNED_INT,NULL);
+  unsigned data[]={1};
+  glClearTexImage(this->_countMapX->getId(),0,GL_RED_INTEGER,GL_UNSIGNED_INT,data);
   glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
   this->_viewSamples                   ->bindImage(0,0);
@@ -432,7 +441,8 @@ void NavyMapping::_smooth(
 void NavyMapping::_unwarp(){
   glm::uvec2 winSize=GETUVEC2(WINDOWSIZE);
 
-  glClearTexImage(this->_countMapY->getId(),0,GL_RED_INTEGER,GL_UNSIGNED_INT,NULL);
+  unsigned data[]={1};
+  glClearTexImage(this->_countMapY->getId(),0,GL_RED_INTEGER,GL_UNSIGNED_INT,data);
   glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
   this->_viewSamples                   ->bindImage(0,0);
@@ -446,6 +456,29 @@ void NavyMapping::_unwarp(){
   unsigned workSizex=winSize.x/GETUINT(DV_SIZE_X)+1;
   unsigned workSizey=winSize.y/GETUINT(DV_SIZE_Y)+1;
   glDispatchCompute(workSizex,workSizey,1);
+}
+
+void NavyMapping::_unwarpAll(){
+  glm::uvec2 winSize=GETUVEC2(WINDOWSIZE);
+
+  unsigned data[]={1};
+
+  glClearTexImage(this->_uall->getId(),0,GL_RED_INTEGER,GL_UNSIGNED_INT,data);
+  glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+  this->_viewSamples                   ->bindImage(0,0);
+  this->_uall                          ->bindImage(1,0);
+  this->_dvsTex[this->_dvsTex.size()-1]->bindImage(2,0);
+  this->_smoothX->bind(GL_TEXTURE3);
+  this->_smoothY->bind(GL_TEXTURE4);
+  this->_uallProgram->use();
+  this->_uallProgram->set("shadowMapSize",GETUINT(RESOLUTION));
+  this->_uallProgram->set("windowSize",winSize.x,winSize.y);
+
+  unsigned workSizex=winSize.x/GETUINT(DV_SIZE_X)+1;
+  unsigned workSizey=winSize.y/GETUINT(DV_SIZE_Y)+1;
+  glDispatchCompute(workSizex,workSizey,1);
+
 }
 
 void NavyMapping::drawGrid(float x,float y,float sx,float sy){

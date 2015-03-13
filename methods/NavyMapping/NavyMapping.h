@@ -53,7 +53,12 @@ class NavyMapping: public simulation::SimulationObject, public ShadowMethod
     //7. unwarpX
     ge::gl::ProgramObject* _unwarpProgram;
 
+    //8. tests
     ge::gl::ProgramObject* _drawGridProgram;
+
+    ge::gl::TextureObject* _uall;
+    ge::gl::ProgramObject* _uallProgram;
+
 
 
 
@@ -73,6 +78,7 @@ class NavyMapping: public simulation::SimulationObject, public ShadowMethod
         ge::gl::TextureObject*offset,
         ge::gl::TextureObject*integralCount);
     void _unwarp();
+    void _unwarpAll();
 
     void _createShadowMap();
     void _computeMatrices();
@@ -99,6 +105,7 @@ class NavyMapping: public simulation::SimulationObject, public ShadowMethod
     ge::gl::TextureObject*getSmoothY(){return this->_smoothY;}
     ge::gl::TextureObject*getViewSamples(){return this->_viewSamples;}
     void drawGrid(float x,float y,float sx,float sy);
+    ge::gl::TextureObject*getuall(){return this->_uall;}
 
 };
 
