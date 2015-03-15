@@ -59,7 +59,8 @@ class NavyMapping: public simulation::SimulationObject, public ShadowMethod
     ge::gl::TextureObject* _uall;
     ge::gl::ProgramObject* _uallProgram;
 
-
+    ge::gl::ProgramObject* _createNVMapProgram;
+    ge::gl::ProgramObject* _createNVMaskProgram;
 
 
     void _computeViewSamples();
@@ -79,6 +80,9 @@ class NavyMapping: public simulation::SimulationObject, public ShadowMethod
         ge::gl::TextureObject*integralCount);
     void _unwarp();
     void _unwarpAll();
+
+    void _createNVMap();
+    void _createNVMask();
 
     void _createShadowMap();
     void _computeMatrices();

@@ -1,12 +1,17 @@
 vec4 getHeatColor(float t){
   t=clamp(t,0,1);
   vec4 colors[]={
+  /*
     vec4(0,0,0,1),
     vec4(0,0,1,1),
     vec4(0,1,0,1),
     vec4(1,0,0,1),
     vec4(1,1,0,1),
-    vec4(1,1,1,1)
+    vec4(1,1,1,1)*/
+    vec4(0,0,0,1),
+    vec4(0,0,1,1),
+    vec4(1,0,0,1),
+    vec4(1,1,0,1)
   };
   t*=colors.length();
   uint i=uint(floor(t));

@@ -13,7 +13,7 @@ vec4 nv_getFinal(vec4 clip){
   vec2 coord=clip.xy/clip.w*.5+.5;
   coord=nv_Dv(coord);
   coord=unwarpX(coord);
-  coord=unwarpY(coord);
+  //coord=unwarpY(coord);
   coord=coord*2-1;
   coord*=clip.w;
   return vec4(coord,clip.zw);

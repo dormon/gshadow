@@ -32,7 +32,9 @@ DEFVARSSTART
   "nv.program.OFFSET.WORKGROUP_SIZE_Y",
   "nv.program.SMOOTH.WORKGROUP_SIZE_X",
   "nv.program.SMOOTH.WORKGROUP_SIZE_Y",
-  "nv.program.SMOOTH.WINDOW_SIZE",
+  "nv.program.smoothWindowSize",
+  "nv.program.smoothFactor",
+  "nv.program.NVMAP.TESS_FACTOR",
   "nv.program.ISO.WORKGROUP_SIZE_X",
   "nv.program.ISO.GRID_X",
   "nv.program.ISO.GRID_Y",
@@ -67,6 +69,8 @@ DEFVARSIDSTART
   SMOOTH_SIZE_X,
   SMOOTH_SIZE_Y,
   SMOOTH_WINDOW,
+  SMOOTH_FACTOR,
+  TESS_FACTOR,
   ISO_SIZE_X,
   ISO_GRID_X,
   ISO_GRID_Y,
@@ -105,6 +109,7 @@ void NavyMapping::createShadowMask(){
   //this->_createDV();
   this->_computeViewSamples();
   this->_fastCreateDV();
+  
   this->_fastCreateCountMap();
   //this->_createCountMap();
   this->_integrate(this->_integratedX,this->_integratedXCount,this->_countMapX);
@@ -116,12 +121,13 @@ void NavyMapping::createShadowMask(){
   this->_smooth(this->_smoothY,this->_offsetY,this->_integratedYCount);
   this->_unwarpAll();
 
-
   GETGPUGAUGE(MEASURE_CREATESHADOWMAP)->begin();
-  this->CreateShadowMap();
+  //this->CreateShadowMap();
+  this->_createNVMap();
   GETGPUGAUGE(MEASURE_CREATESHADOWMAP)->end();
 
   GETGPUGAUGE(MEASURE_CREATESHADOWMASK)->begin();
+  /*
   this->_createShadowMask->use();
   this->_createShadowMask->set("BPV",1,GL_FALSE,glm::value_ptr(this->_bpv));
   GETTEXTURE(GBUFFER_POSITION)->bind(GL_TEXTURE0);
@@ -130,7 +136,8 @@ void NavyMapping::createShadowMask(){
   this->_emptyVAO->bind();
   glDrawArrays(GL_POINTS,0,1);
   this->_emptyVAO->unbind();
-  this->_shadowMaskFBO->unbind();
+  this->_shadowMaskFBO->unbind();*/
+  this->_createNVMask();
   GETGPUGAUGE(MEASURE_CREATESHADOWMASK)->end();
 }
 
@@ -258,6 +265,20 @@ NavyMapping::NavyMapping(simulation::SimulationData*data):simulation::Simulation
       ge::gl::ShaderObject::include(GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/dv.vp")+
       ge::gl::ShaderObject::include(GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/nv.vp"));
 
+  this->_createNVMapProgram = new ge::gl::ProgramObject(
+      GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/createNVTS.vp",
+      GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/createNVTS.cp",
+      GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/createNVTS.ep",
+      ge::gl::ShaderObject::include(GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/dv.vp")+
+      ge::gl::ShaderObject::include(GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/nv.vp"),
+      GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/createNVTS.fp");
+
+  this->_createNVMaskProgram = new ge::gl::ProgramObject(
+      GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/createNVMask.vp",
+      GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/createNVMask.gp",
+      GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/createNVMask.fp",
+      ge::gl::ShaderObject::include(GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/dv.vp")+
+      ge::gl::ShaderObject::include(GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/nv.vp"));
 
 
 
@@ -433,6 +454,8 @@ void NavyMapping::_smooth(
   integralCount->bindImage(2,0);
   this->_smoothProgram->use();
   this->_smoothProgram->set("shadowMapSize",GETUINT(RESOLUTION));
+  this->_smoothProgram->set("smoothWindowSize",GETUINT(SMOOTH_WINDOW));
+  this->_smoothProgram->set("warpFactor",GETFLOAT(SMOOTH_FACTOR));
   unsigned workSizex=GETUINT(RESOLUTION)/GETUINT(SMOOTH_SIZE_X)+1;
   unsigned workSizey=GETUINT(RESOLUTION)/GETUINT(SMOOTH_SIZE_Y)+1;
   glDispatchCompute(workSizex,workSizey,1);
@@ -474,7 +497,6 @@ void NavyMapping::_unwarpAll(){
   this->_uallProgram->use();
   this->_uallProgram->set("shadowMapSize",GETUINT(RESOLUTION));
   this->_uallProgram->set("windowSize",winSize.x,winSize.y);
-
   unsigned workSizex=winSize.x/GETUINT(DV_SIZE_X)+1;
   unsigned workSizey=winSize.y/GETUINT(DV_SIZE_Y)+1;
   glDispatchCompute(workSizex,workSizey,1);
@@ -501,5 +523,67 @@ void NavyMapping::drawGrid(float x,float y,float sx,float sy){
   this->_emptyVAO->unbind();
   glViewport(0,0,GETUVEC2(WINDOWSIZE).x,GETUVEC2(WINDOWSIZE).y);
   glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
+}
+   
+void NavyMapping::_createNVMap(){
+  glm::mat4 mvp=this->_lightProjection*this->_lightView;
+
+  this->_createNVMapProgram->use();
+  this->_createNVMapProgram->set("mvp",1,GL_FALSE,glm::value_ptr(mvp));
+  this->_createNVMapProgram->set("shadowMapSize",GETUINT(RESOLUTION));
+  this->_createNVMapProgram->set("tessFactor",GETUINT(TESS_FACTOR));
+
+  this->_dvsTex[this->_dvsTex.size()-1]->bindImage(2,0);
+  this->_smoothX->bind(GL_TEXTURE3);
+  this->_smoothY->bind(GL_TEXTURE4);
+
+
+  this->_fbo->bind();
+  glColorMask(GL_FALSE,GL_FALSE,GL_FALSE,GL_FALSE);
+  glViewport(0,0,GETUINT(RESOLUTION),GETUINT(RESOLUTION));
+  glEnable(GL_DEPTH_TEST);
+  glDepthFunc(GL_LESS);
+  glDepthMask(GL_TRUE);
+  glClear(GL_DEPTH_BUFFER_BIT);
+
+  glEnable(GL_POLYGON_OFFSET_FILL);
+  glPolygonOffset(15.5,10);
+
+  GETVAO(SCENEVAO)->bind();
+  //glDrawArrays(GL_TRIANGLES,0,this->_adjacency->NumTriangles*3);
+  glPatchParameteri(GL_PATCH_VERTICES,3);
+  //glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
+  glDrawArrays(GL_PATCHES,0,GETADJACENCY->NumTriangles*3);//this->_adjacency->NumTriangles*3);
+  //glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
+
+  GETVAO(SCENEVAO)->unbind();
+
+  glViewport(0,0,GETUVEC2(WINDOWSIZE).x,GETUVEC2(WINDOWSIZE).y);
+  glColorMask(GL_TRUE,GL_TRUE,GL_TRUE,GL_TRUE);
+  glDisable(GL_POLYGON_OFFSET_FILL);
+  this->_fbo->unbind();
+
+}
+
+void NavyMapping::_createNVMask(){
+  glm::mat4 mvp = this->_lightProjection*this->_lightView;
+
+  this->_createNVMaskProgram->use();
+  this->_createNVMaskProgram->set("mvp",1,GL_FALSE,glm::value_ptr(mvp));
+  this->_createNVMaskProgram->set("shadowMapSize",GETUINT(RESOLUTION));
+
+  this->_dvsTex[this->_dvsTex.size()-1]->bindImage(2,0);
+  this->_smoothX->bind(GL_TEXTURE3);
+  this->_smoothY->bind(GL_TEXTURE4);
+
+  GETTEXTURE(GBUFFER_POSITION)->bind(GL_TEXTURE0);
+  this->_shadowMap->bind(GL_TEXTURE1);
+
+
+  this->_shadowMaskFBO->bind();
+  this->_emptyVAO->bind();
+  glDrawArrays(GL_POINTS,0,1);
+  this->_emptyVAO->unbind();
+  this->_shadowMaskFBO->unbind();
 }
 

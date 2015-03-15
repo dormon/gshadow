@@ -18,7 +18,9 @@ layout(r32f ,binding=0)uniform  image2D smoothed;
 layout(r32f ,binding=1)uniform  image2D offset;
 layout(r32ui,binding=2)uniform uimage1D count;
 
-uniform uint shadowMapSize=512u;
+uniform uint  shadowMapSize    = 512u;
+uniform float warpFactor       = 0.3;
+uniform uint  smoothWindowSize = 20;
 
 #define COORD gl_GlobalInvocationID.xy
 
@@ -27,7 +29,7 @@ void main(){
 
   uint counter=0;
   float val=0;
-  for(int i=-int(WINDOW_SIZE);i<int(WINDOW_SIZE);++i){
+  for(int i=-int(smoothWindowSize);i<int(smoothWindowSize);++i){
     int pos=int(COORD.y)+i;
     if(pos<0||pos>=int(shadowMapSize))continue;
     uint weight=imageLoad(count,pos).x;
@@ -35,5 +37,5 @@ void main(){
     counter+=weight;
   }
 
-  imageStore(smoothed,ivec2(COORD),vec4(float(val)/float(counter)));
+  imageStore(smoothed,ivec2(COORD),vec4(float(val)/float(counter))*warpFactor);
 }
