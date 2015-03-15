@@ -100,6 +100,7 @@ using namespace std;
 #include"../objectConfiguration/lightConfiguration.h"
 #include"../objectConfiguration/cameraConfiguration.h"
 #include"../objectConfiguration/cameraPathConfiguration.h"
+#include"../objectConfiguration/SimDataConfiguration.h"
 
 
 

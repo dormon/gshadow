@@ -52,6 +52,7 @@ namespace simulation{
       void insertVariable(std::string name,std::string data);
       std::string toStr();
       std::string getKeys();
+      simulation::Data*get(std::string variableName,simulation::Data*def);
       bool        getBool  (std::string variableName,bool        def);
       int         getInt   (std::string variableName,int         def);
       glm::ivec2  getIVec2 (std::string variableName,glm::ivec2  def);

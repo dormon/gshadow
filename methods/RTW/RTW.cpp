@@ -305,6 +305,11 @@ void RTWBack::_createImportance(){
   glDispatchCompute(workSizex,workSizey,1);
   glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
   glDispatchCompute(workSizex,workSizey,1);
+  glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+  glDispatchCompute(workSizex,workSizey,1);
+  glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+  glDispatchCompute(workSizex,workSizey,1);
+
 }
 
 ge::gl::TextureObject*RTWBack::getImportanceMap(){

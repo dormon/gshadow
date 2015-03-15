@@ -8,8 +8,7 @@ class NavyMapping: public simulation::SimulationObject, public ShadowMethod
   private:
     ge::gl::TextureObject*     _shadowMask;
     ge::gl::FramebufferObject* _shadowMaskFBO;
-    ge::gl::ProgramObject*     _createShadowMask;
-    ge::gl::ProgramObject*     _csm;
+
     ge::gl::TextureObject*     _shadowMap;
     ge::gl::FramebufferObject* _fbo;
     ge::gl::VertexArrayObject* _emptyVAO;
@@ -84,13 +83,13 @@ class NavyMapping: public simulation::SimulationObject, public ShadowMethod
     void _createNVMap();
     void _createNVMask();
 
+    void _setNVParam(ge::gl::ProgramObject*prog);
+
     void _createShadowMap();
     void _computeMatrices();
     void _createShadowMapFBO();
-    void CreateShadowMap();
     unsigned _getDiv(unsigned a,unsigned b){return a%b?a/b+1:a/b;}
   public:
-    ge::gl::TextureObject*getShadowMap();
     void setMatrices(glm::mat4 lp,glm::mat4 lv);
     void createShadowMask();
     void createShadowMask(GLuint mask);
@@ -99,6 +98,7 @@ class NavyMapping: public simulation::SimulationObject, public ShadowMethod
     void update();
     NavyMapping(simulation::SimulationData*data);
     ~NavyMapping();
+    ge::gl::TextureObject*getShadowMap(){return this->_shadowMap;}
     ge::gl::TextureObject*getCountMapX(){return this->_countMapX;}
     ge::gl::TextureObject*getCountMapY(){return this->_countMapY;}
     ge::gl::TextureObject*getIntegratedX(){return this->_integratedX;}

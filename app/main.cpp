@@ -69,9 +69,9 @@ CubeShadowMapping *cubeShadowMapping = NULL;
 ComputeGeometry   *computeGeometry   = NULL;
 RTWBack           *rtw = NULL;
 
-objconf::CameraPathConfiguration*cameraPathConfiguration;
-objconf::CameraConfiguration*cameraConfiguration;
-
+objconf::CameraPathConfiguration* cameraPathConfiguration = NULL;
+objconf::CameraConfiguration    * cameraConfiguration     = NULL;
+objconf::ShadowMethodConfig     * navyConfig              = NULL;
 
 ShadowMethod*mm;
 
@@ -457,8 +457,9 @@ int main(int Argc,char*Argv[]){
       CameraParam.Near,
       CameraParam.Far,
       CameraParam.Fovy);
-  objconf::getCamera()->down(15);*/
+  cameraConfiguration->getCamera()->down(15);*/
 
+  std::cerr<<"ano\n";
   if(TestParam.Test)TestInit();
   else Init();
   Window->mainLoop();
@@ -473,12 +474,15 @@ int main(int Argc,char*Argv[]){
 
 void Mouse(){
 
-  if(Window->isLeftDown()){
-    Angle[1]+=Window->getDeltaMousePosition()[0]*.01;
-    Angle[0]+=Window->getDeltaMousePosition()[1]*.01;
-  }
-  if(Window->isMiddleDown()){
-    Angle[2]+=Window->getDeltaMousePosition()[0]*.01;
+  if(!cameraConfiguration->isMouseLock()){
+    if(Window->isLeftDown()){
+      Angle[1]+=Window->getDeltaMousePosition()[0]*.01;
+      Angle[0]+=Window->getDeltaMousePosition()[1]*.01;
+    }
+    if(Window->isMiddleDown()){
+      Angle[2]+=Window->getDeltaMousePosition()[0]*.01;
+    }
+    cameraConfiguration->getCamera()->fpsCamera(Angle[0],Angle[1],Angle[2]);
   }
 }
 
@@ -571,18 +575,18 @@ void TestIdle(){
   if(CameraMation){
     ge::util::CameraKeyPoint Point;
     CameraMation->getCameraPoint(&Point,MeasureTime);
-    objconf::getCamera()->setView(Point.position,Point.viewVector,Point.upVector);
-    objconf::getCamera()->setFovy(Point.fovy);
+    cameraConfiguration->getCamera()->setView(Point.position,Point.viewVector,Point.upVector);
+    cameraConfiguration->getCamera()->setFovy(Point.fovy);
   }else{
-    objconf::getCamera()->fpsCamera(Angle[0],Angle[1],Angle[2]);
-    objconf::getCamera()->right  ((Window->isKeyDown('d')-Window->isKeyDown('a'))*Speed);
-    objconf::getCamera()->up     ((Window->isKeyDown(' ')-Window->isKeyDown('c'))*Speed);
-    objconf::getCamera()->forward((Window->isKeyDown('w')-Window->isKeyDown('s'))*Speed);
+    cameraConfiguration->getCamera()->fpsCamera(Angle[0],Angle[1],Angle[2]);
+    cameraConfiguration->getCamera()->right  ((Window->isKeyDown('d')-Window->isKeyDown('a'))*Speed);
+    cameraConfiguration->getCamera()->up     ((Window->isKeyDown(' ')-Window->isKeyDown('c'))*Speed);
+    cameraConfiguration->getCamera()->forward((Window->isKeyDown('w')-Window->isKeyDown('s'))*Speed);
   }
-  Pos=objconf::getCamera()->getPosition();
+  Pos=cameraConfiguration->getCamera()->getPosition();
 
-  objconf::getCamera()->getView(&View);
-  objconf::getCamera()->getProjection(&Projection);
+  cameraConfiguration->getCamera()->getView(&View);
+  cameraConfiguration->getCamera()->getProjection(&Projection);
   mvp=Projection*View;
 
   //if(Window->isKeyDown('g'))light.position[1]-=0.01;
@@ -671,9 +675,9 @@ glm::mat4 camView=glm::mat4(1.f),camProj=glm::perspective(1.5f,1.f,1.f,1000.f);
 
 void Idle(){
   /*
-  if(CameraParam.Far>=10000)CameraParam.Far=std::numeric_limits<float>::infinity();
-  objconf::getCamera()->setNearFar(CameraParam.Near,CameraParam.Far);
-  */
+     if(CameraParam.Far>=10000)CameraParam.Far=std::numeric_limits<float>::infinity();
+     cameraConfiguration->getCamera()->setNearFar(CameraParam.Near,CameraParam.Far);
+     */
 
   Elapsed+=Window->getDeltaIdleTime();
   framelen+=Window->getDeltaIdleTime();
@@ -706,17 +710,23 @@ void Idle(){
   Diff=Curr-Last;
   Last=Curr;
 
-  objconf::getCamera()->fpsCamera(Angle[0],Angle[1],Angle[2]);
-  objconf::getCamera()->right  ((Window->isKeyDown('d')-Window->isKeyDown('a'))*Speed);
-  objconf::getCamera()->up     ((Window->isKeyDown(' ')-Window->isKeyDown('c'))*Speed);
-  objconf::getCamera()->forward((Window->isKeyDown('w')-Window->isKeyDown('s'))*Speed);
-  Pos=objconf::getCamera()->getPosition();
+  cameraConfiguration->getCamera()->right  ((Window->isKeyDown('d')-Window->isKeyDown('a'))*Speed);
+  cameraConfiguration->getCamera()->up     ((Window->isKeyDown(' ')-Window->isKeyDown('c'))*Speed);
+  cameraConfiguration->getCamera()->forward((Window->isKeyDown('w')-Window->isKeyDown('s'))*Speed);
+  Pos=cameraConfiguration->getCamera()->getPosition();
 
-  objconf::getCamera()->getView(&View);
-  objconf::getCamera()->getProjection(&Projection);
+  cameraConfiguration->getCamera()->getView(&View);
+  cameraConfiguration->getCamera()->getProjection(&Projection);
   mvp=Projection*View;
 
 
+  if(navyMapping){
+    if(!navyConfig)navyConfig=new objconf::ShadowMethodConfig("navyconfig",(simulation::SimulationObject*)navyMapping,simData);
+  }
+  if(!navyMapping){
+    if(navyConfig)delete navyConfig;
+    navyConfig=NULL;
+  }
 
   //if(Window->isKeyDown('g')){light.position[1]-=0.4;simData->setAsChanged("light");}
   //if(Window->isKeyDown('t')){light.position[1]+=0.4;simData->setAsChanged("light");}
@@ -824,12 +834,12 @@ void Idle(){
           if(ComputeSides)delete ComputeSides;ComputeSides=NULL;
           if(GeometryCapsAlt)delete GeometryCapsAlt;GeometryCapsAlt=NULL;
           ComputeSides=new CComputeSides(
-              &ModelAdjacency,
-              ComputeParam.WorkGroupSize,
-              ComputeParam.CullSides);
+          &ModelAdjacency,
+          ComputeParam.WorkGroupSize,
+          ComputeParam.CullSides);
           GeometryCapsAlt=new CGeometryCapsAlt(
-              &ModelAdjacency);
-              */
+          &ModelAdjacency);
+          */
         }
         break;
       case SS_VS:
@@ -918,9 +928,9 @@ void Idle(){
           delete computeGeometry;
           computeGeometry=NULL;
           /*if(ComputeSides)delete ComputeSides;
-          if(GeometryCapsAlt)delete GeometryCapsAlt;
-          ComputeSides=NULL;
-          GeometryCapsAlt=NULL;*/
+            if(GeometryCapsAlt)delete GeometryCapsAlt;
+            ComputeSides=NULL;
+            GeometryCapsAlt=NULL;*/
           break;
         case SS_VS:
           if(VertexSides)delete VertexSides;
@@ -1021,18 +1031,18 @@ void Idle(){
             computeGeometry=new ComputeGeometry(simData);
           /*
           //std::cerr<<"!=SS_COMPUTE"<<std::endl;
-          
+
           if(ComputeSides==NULL)
-            ComputeSides=new CComputeSides(
-                &ModelAdjacency,
-                ComputeParam.WorkGroupSize,
-                ComputeParam.CullSides);
+          ComputeSides=new CComputeSides(
+          &ModelAdjacency,
+          ComputeParam.WorkGroupSize,
+          ComputeParam.CullSides);
           //delete ComputeSides;
           //std::cerr<<"aftercomputesides==NULL"<<std::endl;
           if(GeometryCapsAlt==NULL)
-            GeometryCapsAlt=new CGeometryCapsAlt(
-                &ModelAdjacency);
-                */
+          GeometryCapsAlt=new CGeometryCapsAlt(
+          &ModelAdjacency);
+          */
           break;
         case SS_VS:
           if(VertexSides==NULL)
@@ -1053,8 +1063,8 @@ void Idle(){
         case SS_NAVYMAPPING:
           if(navyMapping==NULL)
             navyMapping = new NavyMapping(simData);
-            //navyMapping=new NavyMapping(ShadowmapParam.Resolution,windowParam.size,
-            //    sceneVAO,&ModelAdjacency);
+          //navyMapping=new NavyMapping(ShadowmapParam.Resolution,windowParam.size,
+          //    sceneVAO,&ModelAdjacency);
           break;
         case SS_CUBESHADOWMAP:
           if(cubeShadowMapping==NULL)
@@ -1146,13 +1156,13 @@ void Idle(){
 
 
   /*
-  drawAABBProgram->use();
-  drawAABBProgram->set("mvp",1,GL_FALSE,glm::value_ptr(mvp));
-  for(unsigned i=0;i<sceneBB.size();++i){
-    drawAABBProgram->set("minPoint",1,glm::value_ptr(sceneBB[i]->minPoint));
-    drawAABBProgram->set("maxPoint",1,glm::value_ptr(sceneBB[i]->maxPoint));
-    glDrawArrays(GL_POINTS,0,1);
-  }
+     drawAABBProgram->use();
+     drawAABBProgram->set("mvp",1,GL_FALSE,glm::value_ptr(mvp));
+     for(unsigned i=0;i<sceneBB.size();++i){
+     drawAABBProgram->set("minPoint",1,glm::value_ptr(sceneBB[i]->minPoint));
+     drawAABBProgram->set("maxPoint",1,glm::value_ptr(sceneBB[i]->maxPoint));
+     glDrawArrays(GL_POINTS,0,1);
+     }
   // */
 
   /*
@@ -1232,22 +1242,22 @@ void Idle(){
         glm::vec3(objconf::getLight()->position));
   }
 
-//*
+  //*
   if(SSMethod==SS_RTW){
     //simpleDraw->drawHeatMap(rtw->getImportanceMap()->getId(),.5,0,.5,.5,0.f,simData->getFloat("shadowMapMethods.far",100.f));
     //simpleDraw->draw1D(rtw->getSumX()->getId(),.5,0,.5,.5,0.f,1.f);
-    
+
     //simpleDraw->draw1D(rtw->getSmoothX()->getId(),.0,0,.5,.5,0.f,simData->getFloat("shadowMapMethods.far",100.f));
     //simpleDraw->draw1D(rtw->getSumY()->getId(),.0,0,.5,.5,0.f,1.f);
     //rtw->drawGrid(0,0,.5,.5);
-    
+
     //simpleDraw->drawDepth(rtw->getShadowMap()->getId(),0,0,.5*(1+Window->isKeyOn('x')),.5*(1+Window->isKeyOn('x')),0.1,100.f);
   }
 
   if(SSMethod==SS_SHADOWMAP){
     //simpleDraw->drawDepth(Shadowmapping->getShadowMap()->getId(),0,0,.5,.5,0.1,100.f);
   }
-// */
+  // */
   if(SSMethod==SS_NAVYMAPPING){
     /*
     //navyMapping->drawShadowMap(0,0,.5);
@@ -1276,7 +1286,7 @@ void Idle(){
     navyMapping->drawGrid(0,0,.5,false);
     glEnable(GL_DEPTH_TEST);
     */
-    simpleDraw->drawHeatMap(navyMapping->getCountMapX()->getId(),.5,0,.5,.5,0u,40u);
+    //simpleDraw->drawHeatMap(navyMapping->getCountMapX()->getId(),.5,0,.5,.5,0u,40u);
     //simpleDraw->drawHeatMap(navyMapping->getIntegratedX()->getId(),.0,0,.5,.5,0u,1024u);
     //simpleDraw->drawHeatMap(navyMapping->getIntegratedY()->getId(),.5,.5,.5,.5,0u,1024u);
 
@@ -1286,38 +1296,40 @@ void Idle(){
     //simpleDraw->drawHeatMap(navyMapping->getSmoothY()->getId(),.0,.0,.5,.5,-1.f,1.f);
     //navyMapping->drawGrid(0,0,.5,.5);
 
-    simpleDraw->drawHeatMap(navyMapping->getCountMapY()->getId(),.0,0,.5,.5,0u,40u);
-    simpleDraw->drawHeatMap(navyMapping->getuall()->getId(),.5,.5,.5,.5,0u,40u);
+    //simpleDraw->drawHeatMap(navyMapping->getCountMapY()->getId(),.0,0,.5,.5,0u,40u);
+    //simpleDraw->drawHeatMap(navyMapping->getuall()->getId(),.5,.5,.5,.5,0u,40u);
 
     /*
-    simpleDraw->drawHeatMap(navyMapping->getCountMapX()->getId(),.75,0,.25,.25,0u,40u);
-    simpleDraw->drawHeatMap(navyMapping->getIntegratedX()->getId(),.5,0,.25,.25,0u,1024u);
-    simpleDraw->drawHeatMap(navyMapping->getOffsetX()->getId(),.25,0,.25,.25,-1.f,1.f);
-    simpleDraw->drawHeatMap(navyMapping->getSmoothX()->getId(),.0,.0,.25,.25,-1.f,1.f);
-    simpleDraw->drawHeatMap(navyMapping->getCountMapY()->getId(),.75,.25,.25,.25,0u,40u);
-    simpleDraw->drawHeatMap(navyMapping->getIntegratedY()->getId(),.5,.25,.25,.25,0u,1024u);
-    simpleDraw->drawHeatMap(navyMapping->getOffsetY()->getId(),.25,.25,.25,.25,-1.f,1.f);
-    simpleDraw->drawHeatMap(navyMapping->getSmoothY()->getId(),.0,.25,.25,.25,-1.f,1.f);
-    simpleDraw->drawHeatMap(navyMapping->getuall()->getId(),.75,.5,.25,.25,0u,40u);
-    glDepthFunc(GL_ALWAYS);
-    navyMapping->drawGrid(0.75,0.5,.25,.25);
-    glDepthFunc(GL_LESS);
-    */
-    //simpleDraw->drawDepth(navyMapping->getShadowMap()->getId(),0,0,.5*(1+Window->isKeyOn('x')),.5*(1+Window->isKeyOn('x')),0.1,100.f);
+       simpleDraw->drawHeatMap(navyMapping->getCountMapX()->getId(),.75,0,.25,.25,0u,40u);
+       simpleDraw->drawHeatMap(navyMapping->getIntegratedX()->getId(),.5,0,.25,.25,0u,1024u);
+       simpleDraw->drawHeatMap(navyMapping->getOffsetX()->getId(),.25,0,.25,.25,-1.f,1.f);
+       simpleDraw->drawHeatMap(navyMapping->getSmoothX()->getId(),.0,.0,.25,.25,-1.f,1.f);
+       simpleDraw->drawHeatMap(navyMapping->getCountMapY()->getId(),.75,.25,.25,.25,0u,40u);
+       simpleDraw->drawHeatMap(navyMapping->getIntegratedY()->getId(),.5,.25,.25,.25,0u,1024u);
+       simpleDraw->drawHeatMap(navyMapping->getOffsetY()->getId(),.25,.25,.25,.25,-1.f,1.f);
+       simpleDraw->drawHeatMap(navyMapping->getSmoothY()->getId(),.0,.25,.25,.25,-1.f,1.f);
+       simpleDraw->drawHeatMap(navyMapping->getuall()->getId(),.75,.5,.25,.25,0u,40u);
+       glDepthFunc(GL_ALWAYS);
+       navyMapping->drawGrid(0.75,0.5,.25,.25);
+       glDepthFunc(GL_LESS);
+       */
+    navyMapping->getShadowMap()->texParameteri (GL_TEXTURE_COMPARE_MODE,GL_NONE);
+    simpleDraw->drawDepth(navyMapping->getShadowMap()->getId(),0,0,.5*(1+Window->isKeyOn('x')),.5*(1+Window->isKeyOn('x')),0.1,10.f);
+    navyMapping->getShadowMap()->texParameteri (GL_TEXTURE_COMPARE_MODE,GL_COMPARE_R_TO_TEXTURE);
 
 
 
 
   }
   /*
-  glEnable(GL_DEPTH_TEST);
-  deferred_BlitDepthToDefault(&Deferred);
-  glDepthFunc(GL_LESS);
-  glBindFramebuffer(GL_FRAMEBUFFER,0);
-  glColorMask(GL_TRUE,GL_TRUE,GL_TRUE,GL_TRUE);
-  glDisable(GL_BLEND);
-  CameraMation->draw(glm::value_ptr(mvp));
-  */
+     glEnable(GL_DEPTH_TEST);
+     deferred_BlitDepthToDefault(&Deferred);
+     glDepthFunc(GL_LESS);
+     glBindFramebuffer(GL_FRAMEBUFFER,0);
+     glColorMask(GL_TRUE,GL_TRUE,GL_TRUE,GL_TRUE);
+     glDisable(GL_BLEND);
+     CameraMation->draw(glm::value_ptr(mvp));
+     */
   if(cameraPathConfiguration->isDraw())
     if(cameraPathConfiguration->getPath())
       cameraPathConfiguration->getPath()->draw(glm::value_ptr(mvp));
@@ -1774,42 +1786,42 @@ void drawCubeShadowmapShadow(simulation::Light*Light){
 }
 
 /*
-void drawNavyMapping(simulation::Light*Light){
-  if(SSMeasureShadowmap)
-    glBeginQuery(GL_TIME_ELAPSED,QueryTime);
+   void drawNavyMapping(simulation::Light*Light){
+   if(SSMeasureShadowmap)
+   glBeginQuery(GL_TIME_ELAPSED,QueryTime);
 
-  //navyMapping->setFocus(Light,ShadowmapParam.FocusPoint,ShadowmapParam.Fovy);
-  navyMapping->setFocus(Light,(float*)glm::value_ptr(sceneAABB->getCenter()),ShadowmapParam.Fovy);
-  navyMapping->createShadowMap(glm::value_ptr(Model));
-  if(Window->isKeyOn('u')){
-    navyMapping->writeViewSamples(Deferred.position->getId());
-    navyMapping->prefixSum(true);
-    navyMapping->smoothGrid(true);
-    navyMapping->unwarpX(Deferred.position->getId());
-    navyMapping->prefixSum(false);
-    navyMapping->smoothGrid(false);
-    navyMapping->createNavyMap(glm::value_ptr(Model));
-  }
-
-
-  if(SSMeasureShadowmap){
-    glEndQuery(GL_TIME_ELAPSED);
-    glGetQueryObjectuiv(QueryTime,GL_QUERY_RESULT_NO_WAIT,&QueryTimePassedShadowmap);
-  }
-
-  if(SSMeasureSmapping)
-    glBeginQuery(GL_TIME_ELAPSED,QueryTime);
-
-  if(Window->isKeyOn('u'))
-    navyMapping->drawNavyShadowed(Window->isKeyOn('j'),glm::value_ptr(Pos),Light);
-  else
-    navyMapping->drawShadowed(glm::value_ptr(Pos),Light);
+//navyMapping->setFocus(Light,ShadowmapParam.FocusPoint,ShadowmapParam.Fovy);
+navyMapping->setFocus(Light,(float*)glm::value_ptr(sceneAABB->getCenter()),ShadowmapParam.Fovy);
+navyMapping->createShadowMap(glm::value_ptr(Model));
+if(Window->isKeyOn('u')){
+navyMapping->writeViewSamples(Deferred.position->getId());
+navyMapping->prefixSum(true);
+navyMapping->smoothGrid(true);
+navyMapping->unwarpX(Deferred.position->getId());
+navyMapping->prefixSum(false);
+navyMapping->smoothGrid(false);
+navyMapping->createNavyMap(glm::value_ptr(Model));
+}
 
 
-  if(SSMeasureSmapping){
-    glEndQuery(GL_TIME_ELAPSED);
-    glGetQueryObjectuiv(QueryTime,GL_QUERY_RESULT_NO_WAIT,&QueryTimePassedSmapping);
-  }
+if(SSMeasureShadowmap){
+glEndQuery(GL_TIME_ELAPSED);
+glGetQueryObjectuiv(QueryTime,GL_QUERY_RESULT_NO_WAIT,&QueryTimePassedShadowmap);
+}
+
+if(SSMeasureSmapping)
+glBeginQuery(GL_TIME_ELAPSED,QueryTime);
+
+if(Window->isKeyOn('u'))
+navyMapping->drawNavyShadowed(Window->isKeyOn('j'),glm::value_ptr(Pos),Light);
+else
+navyMapping->drawShadowed(glm::value_ptr(Pos),Light);
+
+
+if(SSMeasureSmapping){
+glEndQuery(GL_TIME_ELAPSED);
+glGetQueryObjectuiv(QueryTime,GL_QUERY_RESULT_NO_WAIT,&QueryTimePassedSmapping);
+}
 
 }
 */
@@ -1938,13 +1950,13 @@ void TestInit(){
         if(computeGeometry)delete computeGeometry;
         computeGeometry=new ComputeGeometry(simData);
         /*if(ComputeSides)delete ComputeSides;ComputeSides=NULL;
-        if(GeometryCapsAlt)delete GeometryCapsAlt;GeometryCapsAlt=NULL;
-        ComputeSides=new CComputeSides(
-            &ModelAdjacency,
-            ComputeParam.WorkGroupSize,
-            ComputeParam.CullSides);
-        GeometryCapsAlt=new CGeometryCapsAlt(
-            &ModelAdjacency);*/
+          if(GeometryCapsAlt)delete GeometryCapsAlt;GeometryCapsAlt=NULL;
+          ComputeSides=new CComputeSides(
+          &ModelAdjacency,
+          ComputeParam.WorkGroupSize,
+          ComputeParam.CullSides);
+          GeometryCapsAlt=new CGeometryCapsAlt(
+          &ModelAdjacency);*/
       }
       break;
     case SS_VS:
@@ -2034,8 +2046,6 @@ void Init(){
   InitDrawStencilToTexture();
 
 
-  SetMatrix();
-
   InitModel(ModelFile.c_str());
 
   std::cerr<<"asasas"<<std::endl;
@@ -2124,17 +2134,22 @@ void Init(){
      TwAddVarRW(Bar3, "CameraMationFile", TW_TYPE_STDSTRING, &TestParam.CameraMationFile, 
      " label='Save file' group=StdString help='Define a title for the new tweak bar.' ");
      */
-  
+
   objconf::setCameraAntTweakBar();
   objconf::setLightAntTweakBar();
   //objconf::setCameraPathAntTweakBar();
 
   cameraConfiguration = new objconf::CameraConfiguration(windowParam.size);
 
-
   cameraPathConfiguration = new objconf::CameraPathConfiguration();
-  cameraPathConfiguration->setCamera(objconf::getCamera());
+  cameraPathConfiguration->setCamera(cameraConfiguration->getCamera());
+
+
   test::setTestConvexHull(simpleDraw);
+
+  SetMatrix();
+
+
 
   TwBar*Bar;
   Bar=TwNewBar("TweakBar");
@@ -2219,7 +2234,7 @@ void Init(){
   simData->insertVariable("measure.rtw.createShadowMap",new simulation::GpuGauge());
   simData->insertVariable("measure.rtw.createShadowMask",new simulation::GpuGauge());
 
-  simData->insertVariable("camera",new simulation::Object(/*Camera*/objconf::getCamera()));
+  simData->insertVariable("camera",new simulation::Object(/*Camera*/cameraConfiguration->getCamera()));
 
   simData->insertVariable("rtw.program.CIM.WORKGROUP_SIZE_X",new simulation::Uint(8));
   simData->insertVariable("rtw.program.CIM.WORKGROUP_SIZE_Y",new simulation::Uint(8));
@@ -2239,16 +2254,15 @@ void Init(){
   simData->insertVariable("nv.program.SMOOTH.WORKGROUP_SIZE_X",new simulation::Uint(8));
   simData->insertVariable("nv.program.SMOOTH.WORKGROUP_SIZE_Y",new simulation::Uint(8));
   simData->insertVariable("nv.program.smoothWindowSize",new simulation::Uint(16));
-  simData->insertVariable("nv.program.smoothFactor",new simulation::Float(1));
+  simData->insertVariable("nv.program.warpFactor",new simulation::Float(0));
   simData->insertVariable("nv.program.NVMAP.TESS_FACTOR",new simulation::Uint(64));
+  simData->insertVariable("nv.drawLinesToSM",new simulation::Bool(false));
+
 
 
 
   simData->insertVariable("nv.program.DV.WORKGROUP_SIZE_X",new simulation::Uint(8));
   simData->insertVariable("nv.program.DV.WORKGROUP_SIZE_Y",new simulation::Uint(8));
-  simData->insertVariable("nv.program.ISO.WORKGROUP_SIZE_X",new simulation::Uint(64));
-  simData->insertVariable("nv.program.ISO.GRID_X",new simulation::Uint(8));
-  simData->insertVariable("nv.program.ISO.GRID_Y",new simulation::Uint(8));
 
 
   std::cerr<<simData->toStr()<<std::endl;
@@ -2261,8 +2275,8 @@ void Init(){
 }
 
 void SetMatrix(){
-  objconf::getCamera()->getProjection(&Projection);
-  objconf::getCamera()->getView(&View);
+  cameraConfiguration->getCamera()->getProjection(&Projection);
+  cameraConfiguration->getCamera()->getView(&View);
   Model=glm::mat4(1.);
   mvp=Projection*View*Model;
 }

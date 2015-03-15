@@ -255,6 +255,11 @@ std::string SimulationData::getKeys(){
   return ss.str();
 }
 
+simulation::Data*SimulationData::get(std::string variableName,simulation::Data*def){
+  if(!this->_variable.count(variableName))return def;
+  return this->_variable[variableName];
+}
+
 bool SimulationData::getBool(std::string variableName,bool def){
   if(!this->_variable.count(variableName))return def;
   Data*data=this->_variable[variableName];
