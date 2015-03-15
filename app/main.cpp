@@ -70,6 +70,7 @@ ComputeGeometry   *computeGeometry   = NULL;
 RTWBack           *rtw = NULL;
 
 objconf::CameraPathConfiguration*cameraPathConfiguration;
+objconf::CameraConfiguration*cameraConfiguration;
 
 
 ShadowMethod*mm;
@@ -2127,6 +2128,10 @@ void Init(){
   objconf::setCameraAntTweakBar();
   objconf::setLightAntTweakBar();
   //objconf::setCameraPathAntTweakBar();
+
+  cameraConfiguration = new objconf::CameraConfiguration(windowParam.size);
+
+
   cameraPathConfiguration = new objconf::CameraPathConfiguration();
   cameraPathConfiguration->setCamera(objconf::getCamera());
   test::setTestConvexHull(simpleDraw);
