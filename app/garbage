@@ -1,0 +1,1135 @@
+void TestIdle(){
+  if(AfterGLInit==false){
+    InitTime+=Window->getDeltaIdleTime();
+    if(InitTime>TestParam.TimeBefore)AfterGLInit=true;
+  }
+  if(AfterGLInit){
+    MeasureTime+=Window->getDeltaIdleTime();
+    if(LastComputeMeasurement+=QueryTimePassed){
+      ComputeMeasurementAccum+=QueryTimePassed;
+      ComputeMeasurements++;
+      LastComputeMeasurement=QueryTimePassed;
+    }
+    FrameCount++;
+  }
+  if(MeasureTime>=TestParam.Duration){
+    std::cerr<<"FPS: "<<FrameCount/TestParam.Duration<<std::endl;
+    if(StencilMeasurements)
+      std::cerr<<"Stencil: "<<StencilMeasurementAccum/StencilMeasurements<<std::endl;
+    if(ComputeMeasurements)
+      std::cerr<<"Compute: "<<ComputeMeasurementAccum/ComputeMeasurements<<std::endl;
+    StencilMeasurements=0;
+    ComputeMeasurements=0;
+    LastStencilMeasurement=0;
+    LastComputeMeasurement=0;
+    StencilMeasurementAccum=0;
+    ComputeMeasurementAccum=0;
+
+    FrameCount=0;
+    MeasureTime=0;
+  }
+  //std::cout<<"Compute Shader:       "<<QueryTimePassed<<std::endl;
+
+  //std::cerr<<"MeasureTime: "<<MeasureTime<<std::endl;
+  //std::cerr<<"InitTime: "<<InitTime<<std::endl;
+
+  if(CameraMation){
+    ge::util::CameraKeyPoint Point;
+    CameraMation->getCameraPoint(&Point,MeasureTime);
+    cameraConfiguration->getCamera()->setView(Point.position,Point.viewVector,Point.upVector);
+    cameraConfiguration->getCamera()->setFovy(Point.fovy);
+  }else{
+    cameraConfiguration->getCamera()->fpsCamera(Angle[0],Angle[1],Angle[2]);
+    cameraConfiguration->getCamera()->right  ((Window->isKeyDown('d')-Window->isKeyDown('a'))*Speed);
+    cameraConfiguration->getCamera()->up     ((Window->isKeyDown(' ')-Window->isKeyDown('c'))*Speed);
+    cameraConfiguration->getCamera()->forward((Window->isKeyDown('w')-Window->isKeyDown('s'))*Speed);
+  }
+  Pos=cameraConfiguration->getCamera()->getPosition();
+
+  cameraConfiguration->getCamera()->getView(&View);
+  cameraConfiguration->getCamera()->getProjection(&Projection);
+  mvp=Projection*View;
+
+  //if(Window->isKeyDown('g'))light.position[1]-=0.01;
+  //if(Window->isKeyDown('t'))light.position[1]+=0.01;
+  if(Window->isKeyDown('g'))lightConfiguration->getLight()->position[1]-=0.01;
+  if(Window->isKeyDown('t'))lightConfiguration->getLight()->position[1]+=0.01;
+  simData->setAsChanged("light");
+
+
+  DrawGBuffer();
+
+  glDepthFunc(GL_ALWAYS);
+  glDepthMask(GL_FALSE);
+  DrawAmbient();
+
+  switch(TestParam.Method){
+    case SS_GEOMETRY:
+      DrawGeometry(lightConfiguration->getLight());
+      break;
+    case SS_GEOMETRY_SIDES_CAPS:
+      DrawGeometrySidesCaps(lightConfiguration->getLight());
+      break;
+    case SS_COMPUTE_SOE_PLANE:
+      DrawComputeSOEPlane(lightConfiguration->getLight());
+      break;
+    case SS_COMPUTE_SOE:
+      DrawComputeSOE(lightConfiguration->getLight());
+      break;
+    case SS_COMPUTE:
+      mm=computeGeometry;
+      mm->createShadowMask();
+      drawDiffuseSpecular(true,lightConfiguration->getLight());
+      //DrawCompute(lightConfiguration->getLight());
+      break;
+    case SS_VS:
+      DrawVertex(lightConfiguration->getLight());
+      break;
+    case SS_TS:
+      DrawTessellation(lightConfiguration->getLight());
+      break;
+    case SS_SHADOWMAP:
+      mm=Shadowmapping;
+      mm->createShadowMask();
+      //Shadowmapping->createShadowMask();
+      drawDiffuseSpecular(true,lightConfiguration->getLight());
+      break;
+    case SS_RTW:
+      mm=rtw;
+      mm->createShadowMask();
+      drawDiffuseSpecular(true,lightConfiguration->getLight());
+      break;
+    case SS_NAVYMAPPING:
+      mm=navyMapping;
+      mm->createShadowMask();
+      drawDiffuseSpecular(true,lightConfiguration->getLight());
+      //drawNavyMapping(lightConfiguration->getLight());
+      break;
+    case SS_CUBESHADOWMAP:
+      drawCubeShadowmapShadow(lightConfiguration->getLight());
+      break;
+    case SS_SINTORN:
+      DrawSintorn(lightConfiguration->getLight());
+      break;
+    case SS_NO:
+      break;
+  }
+
+
+  if(CameraMation){
+    if(!TestParam.Test){
+      glEnable(GL_DEPTH_TEST);
+      deferred_BlitDepthToDefault(&Deferred);
+      glDepthFunc(GL_LESS);
+      glBindFramebuffer(GL_FRAMEBUFFER,0);
+      glColorMask(GL_TRUE,GL_TRUE,GL_TRUE,GL_TRUE);
+      glDisable(GL_BLEND);
+      CameraMation->draw(glm::value_ptr(mvp));
+    }
+  }
+
+  Window->swap();
+  framecount++;
+}
+
+
+
+void TestInit(){
+  try{
+    DrawShader = new ge::gl::ProgramObject(
+        ShaderDir+"app/dgb.vp",
+        ShaderDir+"app/dgb.gp",
+        ShaderDir+"app/dgb.fp");
+  }catch(std::string&e){
+    std::cerr<<e<<endl;
+  }
+
+  CameraMation=new ge::util::CameraPath();
+  if(TestParam.CameraMationFile!="")
+    CameraMation->loadCSV(TestParam.CameraMationFile);
+  CameraMation->setDuration(TestParam.Duration);
+
+  deferred_Init(&Deferred,windowParam.size[0],windowParam.size[1]);
+  InitDrawStencilToTexture();
+  SetMatrix();
+  InitModel(ModelFile.c_str());
+  glGenQueries(1,&QueryTime);
+
+  switch(TestParam.Method){
+    case SS_TS:
+      if(TessellationParam!=TessellationParamLast){
+        if(TessellationSides)delete TessellationSides;TessellationSides=NULL;
+        if(GeometryCapsAlt)delete GeometryCapsAlt;GeometryCapsAlt=NULL;
+        TessellationSides=new CTessellationSides(
+            &ModelAdjacency,
+            TessellationParam.ReferenceEdge,
+            TessellationParam.CullSides,
+            TessellationParam.UseStencilValueExport);
+        GeometryCapsAlt=new CGeometryCapsAlt(&ModelAdjacency);
+      }
+      break;
+    case SS_GEOMETRY:
+      if(GeometryTemplate!=GeometryTemplateLast){
+        if(GeometrySides)delete GeometrySides;GeometrySides=NULL;
+        if(GeometryCaps)delete GeometryCaps;GeometryCaps=NULL;
+        GeometrySides=new CGeometrySides(
+            &ModelAdjacency,
+            GeometryTemplate);
+        GeometryCaps=new CGeometryCaps(
+            &ModelAdjacency,
+            GeometryTemplate);
+      }
+      break;
+    case SS_GEOMETRY_SIDES_CAPS:
+      if(GeometryTemplate!=GeometryTemplateLast){
+        if(GeometrySidesCaps)delete GeometrySidesCaps;GeometrySidesCaps=NULL;
+        GeometrySidesCaps=new CGeometrySidesCaps(
+            &ModelAdjacency,
+            GeometryTemplate.Deterministic,
+            GeometryTemplate.ReferenceEdge,
+            GeometryTemplate.Universal,
+            GeometryTemplate.UseVS2GSArray,
+            GeometryTemplate.UseVertexArray,
+            GeometryTemplate.UseStencilValueExport,
+            GeometryTemplate.CullSides,
+            GeometryTemplate.FrontCapToInfinity,
+            GeometryTemplate.Version);
+      }
+      break;
+    case SS_COMPUTE_SOE_PLANE:
+      if(ComputeSOEParam!=ComputeSOEParamLast){
+        if(ComputeSidesSOEPlane)delete ComputeSidesSOEPlane;ComputeSidesSOEPlane=NULL;
+        if(GeometryCapsAlt)delete GeometryCapsAlt;GeometryCapsAlt=NULL;
+        ComputeSidesSOEPlane=new CComputeSidesSOEPlane(
+            &ModelAdjacency,
+            ComputeSOEParam.WorkGroupSize,
+            ComputeSOEParam.CullSides);
+        GeometryCapsAlt=new CGeometryCapsAlt(
+            &ModelAdjacency);
+      }
+      break;
+    case SS_COMPUTE_SOE:
+      if(ComputeSOEParam!=ComputeSOEParamLast){
+        if(ComputeSidesSOE)delete ComputeSidesSOE;ComputeSidesSOE=NULL;
+        if(GeometryCapsAlt)delete GeometryCapsAlt;GeometryCapsAlt=NULL;
+        ComputeSidesSOE=new CComputeSidesSOE(
+            &ModelAdjacency,
+            ComputeSOEParam.WorkGroupSize,
+            ComputeSOEParam.CullSides);
+        GeometryCapsAlt=new CGeometryCapsAlt(
+            &ModelAdjacency);
+      }
+      break;
+    case SS_COMPUTE:
+      if(ComputeParam!=ComputeParamLast){
+        if(computeGeometry)delete computeGeometry;
+        computeGeometry=new ComputeGeometry(simData);
+        /*if(ComputeSides)delete ComputeSides;ComputeSides=NULL;
+          if(GeometryCapsAlt)delete GeometryCapsAlt;GeometryCapsAlt=NULL;
+          ComputeSides=new CComputeSides(
+          &ModelAdjacency,
+          ComputeParam.WorkGroupSize,
+          ComputeParam.CullSides);
+          GeometryCapsAlt=new CGeometryCapsAlt(
+          &ModelAdjacency);*/
+      }
+      break;
+    case SS_VS:
+      if(VertexSides)delete VertexSides;VertexSides = NULL;
+      if(VertexCaps )delete VertexCaps ;VertexCaps  = NULL;
+      VertexSides = new CVertexSides(&ModelAdjacency);
+      VertexCaps  = new CVertexCaps (&ModelAdjacency);
+      break;
+    case SS_SHADOWMAP:
+      if(Shadowmapping)delete Shadowmapping;Shadowmapping=NULL;
+      Shadowmapping = new CShadowMapping(simData);
+      //Shadowmapping = new CShadowMapping(ShadowmapParam.Resolution,windowParam.size,
+      //    sceneVAO,&ModelAdjacency);
+      break;
+    case SS_RTW:
+      if(rtw)delete rtw;rtw=NULL;
+      rtw=new RTWBack(simData);
+      break;
+    case SS_NAVYMAPPING:
+      if(navyMapping)delete navyMapping;navyMapping=NULL;
+      navyMapping=new NavyMapping(simData);
+      //navyMapping = new NavyMapping(ShadowmapParam.Resolution,windowParam.size,
+      //    sceneVAO,&ModelAdjacency);
+      break;
+    case SS_CUBESHADOWMAP:
+      if(cubeShadowMapping)delete cubeShadowMapping;cubeShadowMapping=NULL;
+      cubeShadowMapping=new CubeShadowMapping(&ModelAdjacency,sceneVAO,cubeShadowMappingParam);
+      break;
+    case SS_SINTORN:
+      if(Sintorn)delete Sintorn;Sintorn=NULL;
+      Sintorn=new CSintorn(windowParam.size,&ModelAdjacency,
+          SintornParam.WavefrontSize,SintornParam.ShadowFrustaPerWorkGroup);
+      break;
+    default:
+      break;
+  }
+
+
+}
+
+void Init(){
+  std::cerr<<"Init()"<<std::endl;
+
+  CameraMation=new ge::util::CameraPath();
+  CameraMation->loadCSV(CameraMationFile);
+  CameraMation->setDuration(TestParam.Duration);
+
+
+  glGenQueries(1,&QueryTime);
+  MergeQuery=new ge::gl::AsynchronousQueryObject(GL_TIME_ELAPSED,GL_QUERY_RESULT_NO_WAIT,ge::gl::AsynchronousQueryObject::UINT64);
+  MergeTextureQuery     = new ge::gl::AsynchronousQueryObject(MergeQuery);
+  RasterizeQuery        = new ge::gl::AsynchronousQueryObject(MergeQuery);
+  RasterizeTextureQuery = new ge::gl::AsynchronousQueryObject(MergeQuery);
+  HierarchyQuery        = new ge::gl::AsynchronousQueryObject(MergeQuery);
+  HierarchyTextureQuery = new ge::gl::AsynchronousQueryObject(MergeQuery);
+  ShadowFrustumQuery    = new ge::gl::AsynchronousQueryObject(MergeQuery);
+  stencilShadowsQuery   = new ge::gl::AsynchronousQueryObject(MergeQuery);
+  gbufferQuery          = new ge::gl::AsynchronousQueryObject(MergeQuery);
+
+  programPipeline=new ge::gl::ProgramPipelineObject();
+
+  //create camera mation
+  //CameraMation=new ge::util::CameraPath();
+
+  try{
+    DrawShader = new ge::gl::ProgramObject(
+        ShaderDir+"app/dgb.vp",
+        ShaderDir+"app/dgb.gp",
+        ShaderDir+"app/dgb.fp");
+
+    DrawSilhouetteShader=new ge::gl::ProgramObject(
+        ShaderDir+"app/drawsilhouette.vp",
+        ShaderDir+"app/drawsilhouette.gp",
+        ShaderDir+"app/drawsilhouette.fp");
+  }catch(std::string&e){
+    std::cerr<<e<<std::endl;
+  }
+  std::cerr<<"Tady"<<std::endl;
+  /*  ManifoldHullCap=new ge::gl::CShaderProgram(
+      ShaderDir+"app/manifoldhullcap.vp",
+      ShaderDir+"app/manifoldhullcap.gp",
+      ShaderDir+"app/manifoldhullcap.fp");*/
+
+
+  deferred_Init(&Deferred,windowParam.size[0],windowParam.size[1]);
+  InitDrawStencilToTexture();
+
+
+  InitModel(ModelFile.c_str());
+
+  std::cerr<<"asasas"<<std::endl;
+  drawAABBProgram = new ge::gl::ProgramObject(
+      ShaderDir+"app/drawaabb.vp",
+      ShaderDir+"app/drawaabb.gp",
+      ShaderDir+"app/drawaabb.fp");
+  std::cerr<<"asasas2"<<std::endl;
+
+  drawOBBProgram = new ge::gl::ProgramObject(
+      ShaderDir+"app/drawaabb.vp",
+      ShaderDir+"app/drawobb.gp",
+      ShaderDir+"app/drawaabb.fp");
+  std::cerr<<"asasas3"<<std::endl;
+
+
+
+  simpleDraw = new DrawPrimitive(ShaderDir+"app/");
+  simpleDraw->setWindowSize(windowParam.size);
+
+  std::cerr<<"asasas5"<<std::endl;
+
+
+  //*
+  TwBar*GeometryBar;
+  GeometryBar=TwNewBar("GeometryBar");
+  TwAddVarRW(GeometryBar,"Deterministic"     ,TW_TYPE_BOOLCPP,&GeometryTemplate.Deterministic        ," help='Toggle determinism on.' "          );
+  TwAddVarRW(GeometryBar,"Reference Edge"    ,TW_TYPE_BOOLCPP,&GeometryTemplate.ReferenceEdge        ," help='Toggle reference edge on.' "       );
+  TwAddVarRW(GeometryBar,"Universal"         ,TW_TYPE_BOOLCPP,&GeometryTemplate.Universal            ," help='Toggle universal on.' "            );
+  TwAddVarRW(GeometryBar,"UseVS2GSArray"     ,TW_TYPE_BOOLCPP,&GeometryTemplate.UseVS2GSArray        ," help='Toggle vs2gs array on.' "          );
+  TwAddVarRW(GeometryBar,"StencilValueExport",TW_TYPE_BOOLCPP,&GeometryTemplate.UseStencilValueExport," help='Toggle stencil value export on.' " );
+  TwAddVarRW(GeometryBar,"CullSides"         ,TW_TYPE_BOOLCPP,&GeometryTemplate.CullSides            ," help='Toggle cull sides on.' "           );
+  TwAddVarRW(GeometryBar,"FrontCapToInfinity",TW_TYPE_BOOLCPP,&GeometryTemplate.FrontCapToInfinity   ," help='Toggle front cap to infinity on.' ");
+  // */
+  TwBar*ComputeSOEBar;
+  ComputeSOEBar=TwNewBar("ComputeSOEBar");
+  TwAddVarRW(ComputeSOEBar,"CullSides"    ,TW_TYPE_BOOLCPP,&ComputeSOEParam.CullSides    ," help='Toggle cull sides on.' "               );
+  TwAddVarRW(ComputeSOEBar,"WorkGroupSize",TW_TYPE_UINT32 ,&ComputeSOEParam.WorkGroupSize," label='Work group size' min=8 max=640 step=8");
+  /*
+     TwBar*ComputeBar;
+     ComputeBar=TwNewBar("ComputeBar");
+     TwAddVarRW(ComputeBar,"CullSides",TW_TYPE_BOOLCPP,
+     &ComputeParam.CullSides,
+     " help='Toggle cull sides on.' ");
+     TwAddVarRW(ComputeBar,"WorkGroupSize",TW_TYPE_UINT32,&ComputeParam.WorkGroupSize,
+     " label='Work group size' min=8 max=640 step=8");
+
+     TwBar*ShadowmapBar;
+     ShadowmapBar=TwNewBar("ShadowmapBar");
+     TwAddVarRW(ShadowmapBar,"Resolution",TW_TYPE_UINT32,&ShadowmapParam.Resolution,
+     " label='Resolution' min=128 max=8192 step=128");
+     TwAddVarRW(ShadowmapBar,"Fovy",TW_TYPE_FLOAT,&ShadowmapParam.Fovy,
+     " label='Field of view' min=1 max=179 step=1");
+     TwAddVarRW(ShadowmapBar,"FocusX",TW_TYPE_FLOAT,ShadowmapParam.FocusPoint+0,
+     " label='FocusX' min=-1000 max=1000 step=1");
+     TwAddVarRW(ShadowmapBar,"FocusY",TW_TYPE_FLOAT,ShadowmapParam.FocusPoint+1,
+     " label='FocusY' min=-1000 max=1000 step=1");
+     TwAddVarRW(ShadowmapBar,"FocusZ",TW_TYPE_FLOAT,ShadowmapParam.FocusPoint+2,
+     " label='FocusZ' min=-1000 max=1000 step=1");
+
+
+     TwBar*SintornBar;
+     SintornBar=TwNewBar("SintornBar");
+     TwAddVarRW(SintornBar,"Wavefront Size",TW_TYPE_UINT32,&SintornParam.WavefrontSize,
+     " label='Wavefront size' min=8 max=64 step=8");
+     TwAddVarRW(SintornBar,"ShadowFrustaPerWorkGroup",TW_TYPE_UINT32,
+     &SintornParam.ShadowFrustaPerWorkGroup,
+     " label='Shadow Frusta Per Work Group' min=1 max=10 step=8");
+
+
+     TwBar*Bar3;
+     Bar3=TwNewBar("CameraMation");
+     TwDefine(" CameraMation label='CameraMation' fontSize=1 position='800 16' size='200 200' valuesWidth=100 ");
+
+     TwCopyStdStringToClientFunc(CopyStdStringToClient);
+     TwAddButton(Bar3,
+     "Insert Key Point",
+     InsertKeyPointFromCamera,
+     Camera, 
+     "label='Insert Key Point'");
+     TwAddButton(Bar3,
+     "Save to file",
+     SaveCameraMation,
+     &TestParam.CameraMationFile, 
+     "label='save to file'");
+     TwAddVarRW(Bar3, "CameraMationFile", TW_TYPE_STDSTRING, &TestParam.CameraMationFile, 
+     " label='Save file' group=StdString help='Define a title for the new tweak bar.' ");
+     */
+
+  objconf::setCameraAntTweakBar();
+  objconf::setLightAntTweakBar();
+  //objconf::setCameraPathAntTweakBar();
+
+  cameraConfiguration = new objconf::CameraConfiguration(windowParam.size);
+
+  cameraPathConfiguration = new objconf::CameraPathConfiguration();
+  cameraPathConfiguration->setCamera(cameraConfiguration->getCamera());
+
+  lightConfiguration = new objconf::LightConfiguration();
+
+
+  test::setTestConvexHull(simpleDraw);
+
+  SetMatrix();
+
+
+
+  TwBar*Bar;
+  Bar=TwNewBar("TweakBar");
+  TwAddVarRO(Bar,"FPS"    ,TW_TYPE_INT32  ,&FPS       ," label='FPS' help='Frames per second' "         );
+  TwAddVarRW(Bar,"Speed"  ,TW_TYPE_FLOAT  ,&Speed     ," label='Movement speed' min=0 max=2 step=0.01"  );
+  TwAddVarRW(Bar,"SSAO"   ,TW_TYPE_BOOLCPP,&SSAOEnable," help='Toggle screenspace ambient occlussion.' ");
+  TwAddVarRW(Bar,"Shadows",TW_TYPE_BOOLCPP,&SSEnable  ," help='Toggle shadows on.' "                    );
+
+  TwEnumVal MethodDef[]={
+    {SS_GEOMETRY           ,"geometry"                           },
+    {SS_GEOMETRY_SIDES_CAPS,"geometry_sides_caps"                },
+    {SS_COMPUTE_SOE_PLANE  ,"compute soe plane"                  },
+    {SS_COMPUTE_SOE        ,"compute soe"                        },
+    {SS_COMPUTE            ,"compute"                            },
+    {SS_SHADOWMAP          ,"shadowmapping"                      },
+    {SS_RTW                ,"rtv"                                },
+    {SS_NAVYMAPPING        ,"navymapping"                        },
+    {SS_CUBESHADOWMAP      ,"cubeshadowmapping"                  },
+    {SS_VS                 ,"Vertex Shader Universal"            },
+    {SS_TS                 ,"Tessellation Shader Silhouette Edge"},
+    {SS_SINTORN            ,"Sintorn"                            },
+    {SS_NO                 ,"No shadows"                         }
+  };
+  TwType MethodType=TwDefineEnum("SS mode",MethodDef,sizeof(MethodDef)/sizeof(TwEnumVal));
+  TwAddVarRW(Bar,"Method",MethodType,&SSMethod,
+      "help='Change shadow volume stencil buffer type' ");
+
+
+  TwAddVarRW(Bar,"Deterministic",TW_TYPE_BOOLCPP,&SSDeterministic," help='Toggle determinism on.' ");
+  TwAddVarRW(Bar,"ZFail"        ,TW_TYPE_BOOLCPP,&SSZFail        ," help='Toggle ZFail on.' "      );
+
+  TwAddVarRW(Bar,"ReferenceEdge",TW_TYPE_BOOLCPP,&SSReferenceEdge," help='Toggle Reference Edge.' "  );
+  TwAddVarRW(Bar,"CullSides"    ,TW_TYPE_BOOLCPP,&SSCullSides    ," help='Toggle Culling of sides.' ");
+
+  TwAddVarRW(Bar,"WithoutGBuffer"           ,TW_TYPE_BOOLCPP,&SSWithoutGBuffer   ," help='Unet GBuffer'"                                  );
+  TwAddVarRW(Bar,"MeasureGBuffer"           ,TW_TYPE_BOOLCPP,&SSMeasureGbuffer   ," help='Toggle Measurement of GBuffer'"                 );
+  TwAddVarRW(Bar,"MeasureStencil"           ,TW_TYPE_BOOLCPP,&SSMeasureStencil   ," help='Toggle Measurement of stencil'"                 );
+  TwAddVarRW(Bar,"MeasureCompute"           ,TW_TYPE_BOOLCPP,&SSMeasureCompute   ," help='Toggle Measurement of compute'"                 );
+  TwAddVarRW(Bar,"MeasureShadowmapCreation" ,TW_TYPE_BOOLCPP,&SSMeasureShadowmap ," help='Toggle Measurement of Shadowmap Creation'"      );
+  TwAddVarRW(Bar,"Measure Shadow mapping"   ,TW_TYPE_BOOLCPP,&SSMeasureSmapping  ," help='Toggle Measurement of Shadow mapping'"          );
+  TwAddVarRW(Bar,"Measure Shadow Blitting"  ,TW_TYPE_BOOLCPP,&SSMeasureSBlit     ," help='Toggle Measurement of Shadow Blitting'"         );
+  TwAddVarRW(Bar,"Measure SM Quad"          ,TW_TYPE_BOOLCPP,&SSMeasureSMQuad    ," help='Toggle Measurement of SM Quad'"                 );
+  TwAddVarRW(Bar,"Measure Vertex Silhouette",TW_TYPE_BOOLCPP,&SSMeasureVS        ," help='Toggle Measurement of Vertex Shader Silhouette'");
+  TwAddVarRW(Bar,"Measure Sintorn HDB"      ,TW_TYPE_BOOLCPP,&SSMeasureSintornHDB," help='Toggle Measurement of Sintorn HDB'"             );
+
+
+  TwAddVarRW(Bar,"Draw Light Silhouette" ,TW_TYPE_BOOLCPP,&DSDrawLightSilhouette," help='Toggle drawing of Light Silhouettes'" );
+  TwAddVarRW(Bar,"Draw Camera Silhouette",TW_TYPE_BOOLCPP,&DSDrawViewSilhouette ," help='Toggle drawing of Camera Silhouettes'");
+  TwAddVarRW(Bar,"Draw Every Silhouette" ,TW_TYPE_BOOLCPP,&DSDrawEverything     ," help='Toggle drawing of every Silhouettes'" );
+
+
+  std::cerr<<"#######################################.......\n";
+
+
+
+
+
+  LastSSMethod=SSMethod;
+
+  shadowMask=new ge::gl::TextureObject(GL_TEXTURE_2D,GL_R32F,1,
+      simData->getIVec2("window.size",glm::ivec2(1024)).x,
+      simData->getIVec2("window.size",glm::ivec2(1024)).y);
+
+  simData->insertVariable("emptyVAO" ,new simulation::Object(EmptyVAO       ));
+  simData->insertVariable("sceneVAO" ,new simulation::Object(sceneVAO       ));
+  simData->insertVariable("light"    ,lightConfiguration->getLight()                                 );
+  simData->insertVariable("adjacency",new simulation::Object(&ModelAdjacency));
+  simData->insertVariable("gbuffer.position",new simulation::Object(Deferred.position));
+  simData->insertVariable("gbuffer.fbo"     ,new simulation::Object(Deferred.fbo     ));
+  simData->insertVariable("gbuffer.stencil" ,new simulation::Object(Deferred.depth ));
+  simData->insertVariable("computeMethod.program.WORKGROUPSIZE", new simulation::Int(64));
+  simData->insertVariable("computeMethod.program.CULL_SIDE", new simulation::Bool(true));
+  simData->insertVariable("measure.computeGeometry.computeSides",new simulation::GpuGauge());
+  simData->insertVariable("measure.computeGeometry.draw",new simulation::GpuGauge());
+  simData->insertVariable("measure.computeGeometry.blit",new simulation::GpuGauge());
+
+
+  simData->insertVariable("shadowMask",new simulation::Object(shadowMask));
+  simData->insertVariable("measure.shadowMap.createShadowMap" ,new simulation::GpuGauge());
+  simData->insertVariable("measure.shadowMap.createShadowMask",new simulation::GpuGauge());
+  simData->insertVariable("measure.rtw.createImportance",new simulation::GpuGauge());
+  simData->insertVariable("measure.rtw.createShadowMap",new simulation::GpuGauge());
+  simData->insertVariable("measure.rtw.createShadowMask",new simulation::GpuGauge());
+
+  simData->insertVariable("camera",new simulation::Object(/*Camera*/cameraConfiguration->getCamera()));
+
+  simData->insertVariable("rtw.program.CIM.WORKGROUP_SIZE_X",new simulation::Uint(8));
+  simData->insertVariable("rtw.program.CIM.WORKGROUP_SIZE_Y",new simulation::Uint(8));
+  simData->insertVariable("rtw.program.CIM1D.WORKGROUP_SIZE_X",new simulation::Uint(64));
+  simData->insertVariable("rtw.program.CIM1D.WALKING_WINDOW_SIZE",new simulation::Uint(16));
+  simData->insertVariable("rtw.program.CSM.TESS_FACTOR",new simulation::Uint(32));
+
+  simData->insertVariable("nv.program.VS.WORKGROUP_SIZE_X",new simulation::Uint(8));
+  simData->insertVariable("nv.program.VS.WORKGROUP_SIZE_Y",new simulation::Uint(8));
+  simData->insertVariable("nv.program.FDV.WORKGROUP_SIZE_X",new simulation::Uint(8));
+  simData->insertVariable("nv.program.FDV.WORKGROUP_SIZE_Y",new simulation::Uint(8));
+  simData->insertVariable("nv.program.COUNTMAP.WORKGROUP_SIZE_X",new simulation::Uint(8));
+  simData->insertVariable("nv.program.COUNTMAP.WORKGROUP_SIZE_Y",new simulation::Uint(8));
+  simData->insertVariable("nv.program.INTEGRATE.WORKGROUP_SIZE_X",new simulation::Uint(64));
+  simData->insertVariable("nv.program.OFFSET.WORKGROUP_SIZE_X",new simulation::Uint(8));
+  simData->insertVariable("nv.program.OFFSET.WORKGROUP_SIZE_Y",new simulation::Uint(8));
+  simData->insertVariable("nv.program.SMOOTH.WORKGROUP_SIZE_X",new simulation::Uint(8));
+  simData->insertVariable("nv.program.SMOOTH.WORKGROUP_SIZE_Y",new simulation::Uint(8));
+  simData->insertVariable("nv.program.smoothWindowSize",new simulation::Uint(16));
+  simData->insertVariable("nv.program.warpFactor",new simulation::Float(0));
+  simData->insertVariable("nv.program.NVMAP.TESS_FACTOR",new simulation::Uint(64));
+  simData->insertVariable("nv.drawLinesToSM",new simulation::Bool(false));
+
+
+
+
+  simData->insertVariable("nv.program.DV.WORKGROUP_SIZE_X",new simulation::Uint(8));
+  simData->insertVariable("nv.program.DV.WORKGROUP_SIZE_Y",new simulation::Uint(8));
+
+
+  std::cerr<<simData->toStr()<<std::endl;
+  std::cerr<<simData->define("shadowMapMethods");
+  /*std::cerr<<"#"<<simData->getString("shaderDirectory","")<<"#"<<std::endl;
+    std::cerr<<simData->getKeys();
+    std::cerr<<"count: "<<simData->_variable.count("shaderDirectory")<<std::endl;
+    */
+  std::cerr<<"after init"<<std::endl;
+}
+
+void Idle(){
+  /*
+     if(CameraParam.Far>=10000)CameraParam.Far=std::numeric_limits<float>::infinity();
+     cameraConfiguration->getCamera()->setNearFar(CameraParam.Near,CameraParam.Far);
+     */
+
+  Elapsed+=Window->getDeltaIdleTime();
+  framelen+=Window->getDeltaIdleTime();
+  float PerNumSecond=1;
+  if(Elapsed>=PerNumSecond){
+    FPS=framecount/PerNumSecond;
+    cout<<"FPS: "<<FPS<<endl;
+    cout<<"PerFrame: "<<framelen/framecount*1000<<" miliseconds"<<endl;
+    framelen=0;
+    framecount=0;
+    Elapsed=0;
+    if(QueryTimePassed>0){
+      Num++;
+      Lapsed+=QueryTimePassed;
+    }
+    std::cerr<<"GBuffer creation:     "<<gbufferQuery->getui64()         <<std::endl;
+    std::cout<<"Compute Shader:       "<<QueryTimePassed                 <<std::endl;
+    std::cerr<<"Shadow map Creation:  "<<QueryTimePassedShadowmap        <<std::endl;
+    std::cerr<<"Shadow mapping:       "<<QueryTimePassedSmapping         <<std::endl;
+    std::cerr<<"Sintorn HDB:          "<<HierarchyQuery       ->getui64()<<std::endl;
+    std::cerr<<"Sintorn HDT:          "<<HierarchyTextureQuery->getui64()<<std::endl;
+    std::cerr<<"Sintorn SF:           "<<ShadowFrustumQuery   ->getui64()<<std::endl;
+    std::cerr<<"Sintorn Rasterize:    "<<RasterizeQuery       ->getui64()<<std::endl;
+    std::cerr<<"Sintorn Rasterize tex:"<<RasterizeTextureQuery->getui64()<<std::endl;
+    std::cerr<<"Sintorn merge:        "<<MergeQuery           ->getui64()<<std::endl;
+    std::cerr<<"Sintorn merge texture:"<<MergeTextureQuery    ->getui64()<<std::endl;
+    std::cerr<<"Compute Shader avg:   "<<(float)Lapsed/(float)Num        <<std::endl;
+  }
+  Uint32 Curr=SDL_GetTicks();
+  Diff=Curr-Last;
+  Last=Curr;
+
+  cameraConfiguration->getCamera()->right  ((Window->isKeyDown('d')-Window->isKeyDown('a'))*Speed);
+  cameraConfiguration->getCamera()->up     ((Window->isKeyDown(' ')-Window->isKeyDown('c'))*Speed);
+  cameraConfiguration->getCamera()->forward((Window->isKeyDown('w')-Window->isKeyDown('s'))*Speed);
+  Pos=cameraConfiguration->getCamera()->getPosition();
+
+  cameraConfiguration->getCamera()->getView(&View);
+  cameraConfiguration->getCamera()->getProjection(&Projection);
+  mvp=Projection*View;
+
+
+  if(navyMapping){
+    if(!navyConfig)navyConfig=new objconf::ShadowMethodConfig("navyconfig",(simulation::SimulationObject*)navyMapping,simData);
+  }
+  if(!navyMapping){
+    if(navyConfig)delete navyConfig;
+    navyConfig=NULL;
+  }
+
+  //if(Window->isKeyDown('g')){light.position[1]-=0.4;simData->setAsChanged("light");}
+  //if(Window->isKeyDown('t')){light.position[1]+=0.4;simData->setAsChanged("light");}
+  if(Window->isKeyDown('g')){lightConfiguration->getLight()->position[1]-=0.4;simData->setAsChanged("light");}
+  if(Window->isKeyDown('t')){lightConfiguration->getLight()->position[1]+=0.4;simData->setAsChanged("light");}
+
+  simData->sendUpdate();
+
+
+  //std::cerr<<"AFTER KEYBOARD"<<std::endl;
+
+  simulation::Light*LightList[]={
+    lightConfiguration->getLight()
+  };
+
+  if(SSEnable){
+
+    if(SSMeasureGbuffer)gbufferQuery->begin();
+    DrawGBuffer();
+    if(SSMeasureGbuffer)gbufferQuery->end();
+
+    glDepthFunc(GL_ALWAYS);
+    glDepthMask(GL_FALSE);
+
+    if(Window->isKeyOn('q'))exit(0);
+    //if(SSMethod!=SS_SINTORN)
+    DrawAmbient();
+
+    switch(SSMethod){
+      case SS_TS:
+        if(TessellationParam!=TessellationParamLast){
+          if(TessellationSides)delete TessellationSides;TessellationSides=NULL;
+          if(GeometryCapsAlt)delete GeometryCapsAlt;GeometryCapsAlt=NULL;
+          TessellationSides=new CTessellationSides(
+              &ModelAdjacency,
+              TessellationParam.ReferenceEdge,
+              TessellationParam.CullSides,
+              TessellationParam.UseStencilValueExport);
+          GeometryCapsAlt=new CGeometryCapsAlt(&ModelAdjacency);
+        }
+        break;
+      case SS_GEOMETRY:
+        //std::cerr<<"SS_GEOMETRY"<<std::endl;
+        if(GeometryTemplate!=GeometryTemplateLast){
+          //std::cerr<<"SS_GEOMETRYinside"<<std::endl;
+          if(GeometrySides)delete GeometrySides;GeometrySides=NULL;
+          if(GeometryCaps)delete GeometryCaps;GeometryCaps=NULL;
+          GeometrySides=new CGeometrySides(
+              &ModelAdjacency,
+              GeometryTemplate);
+          GeometryCaps=new CGeometryCaps(
+              &ModelAdjacency,
+              GeometryTemplate);
+        }
+        //std::cerr<<"SS_GEOMETRYEND"<<std::endl;
+        break;
+      case SS_GEOMETRY_SIDES_CAPS:
+        if(GeometryTemplate!=GeometryTemplateLast){
+          if(GeometrySidesCaps)delete GeometrySidesCaps;GeometrySidesCaps=NULL;
+          GeometrySidesCaps=new CGeometrySidesCaps(
+              &ModelAdjacency,
+              GeometryTemplate.Deterministic,
+              GeometryTemplate.ReferenceEdge,
+              GeometryTemplate.Universal,
+              GeometryTemplate.UseVS2GSArray,
+              GeometryTemplate.UseVertexArray,
+              GeometryTemplate.UseStencilValueExport,
+              GeometryTemplate.CullSides,
+              GeometryTemplate.FrontCapToInfinity,
+              GeometryTemplate.Version);
+        }
+        break;
+      case SS_COMPUTE_SOE_PLANE:
+        if(ComputeSOEParam!=ComputeSOEParamLast){
+          if(ComputeSidesSOEPlane)delete ComputeSidesSOEPlane;ComputeSidesSOEPlane=NULL;
+          if(GeometryCapsAlt)delete GeometryCapsAlt;GeometryCapsAlt=NULL;
+          ComputeSidesSOEPlane=new CComputeSidesSOEPlane(
+              &ModelAdjacency,
+              ComputeSOEParam.WorkGroupSize,
+              ComputeSOEParam.CullSides);
+          GeometryCapsAlt=new CGeometryCapsAlt(
+              &ModelAdjacency);
+        }
+        break;
+      case SS_COMPUTE_SOE:
+        if(ComputeSOEParam!=ComputeSOEParamLast){
+          if(ComputeSidesSOE)delete ComputeSidesSOE;ComputeSidesSOE=NULL;
+          if(GeometryCapsAlt)delete GeometryCapsAlt;GeometryCapsAlt=NULL;
+          ComputeSidesSOE=new CComputeSidesSOE(
+              &ModelAdjacency,
+              ComputeSOEParam.WorkGroupSize,
+              ComputeSOEParam.CullSides);
+          GeometryCapsAlt=new CGeometryCapsAlt(
+              &ModelAdjacency);
+        }
+        break;
+      case SS_COMPUTE:
+
+        //std::cerr<<"SS_COMPUTE"<<std::endl;
+        if(ComputeParam!=ComputeParamLast){
+          if(computeGeometry)delete computeGeometry;
+          computeGeometry=new ComputeGeometry(simData);
+          /*
+          //std::cerr<<"ComputeParam!="<<std::endl;
+          if(ComputeSides)delete ComputeSides;ComputeSides=NULL;
+          if(GeometryCapsAlt)delete GeometryCapsAlt;GeometryCapsAlt=NULL;
+          ComputeSides=new CComputeSides(
+          &ModelAdjacency,
+          ComputeParam.WorkGroupSize,
+          ComputeParam.CullSides);
+          GeometryCapsAlt=new CGeometryCapsAlt(
+          &ModelAdjacency);
+          */
+        }
+        break;
+      case SS_VS:
+        //TODO if Vertex param changed
+        break;
+      case SS_SHADOWMAP:
+        if(ShadowmapParam!=ShadowmapParamLast){
+          if(Shadowmapping)delete Shadowmapping;Shadowmapping=NULL;
+          Shadowmapping = new CShadowMapping(simData);
+          //Shadowmapping=new CShadowMapping(ShadowmapParam.Resolution,
+          //    windowParam.size,sceneVAO,&ModelAdjacency);
+        }
+        break;
+      case SS_RTW:
+        if(ShadowmapParam!=ShadowmapParamLast){
+          if(rtw)delete rtw;rtw=NULL;
+          rtw = new RTWBack(simData);
+        }
+        break;
+      case SS_NAVYMAPPING:
+        if(ShadowmapParam!=ShadowmapParamLast){
+          if(navyMapping)delete navyMapping;navyMapping=NULL;
+          navyMapping=new NavyMapping(simData);
+          //if(navyMapping)delete navyMapping;navyMapping=NULL;
+          //navyMapping=new NavyMapping(ShadowmapParam.Resolution,
+          //    windowParam.size,sceneVAO,&ModelAdjacency);
+        }
+        break;
+      case SS_CUBESHADOWMAP:
+        if(cubeShadowMappingParam!=cubeShadowMappingParamLast){
+          if(cubeShadowMapping)delete cubeShadowMapping;cubeShadowMapping=NULL;
+          cubeShadowMapping=new CubeShadowMapping(
+              &ModelAdjacency,sceneVAO,cubeShadowMappingParam);
+        }
+        break;
+      case SS_SINTORN:
+        //TODO if sintorn param changed
+        break;
+      default:
+        break;
+    }
+
+    GeometryTemplateLast       = GeometryTemplate;
+    TessellationParamLast      = TessellationParam;
+    ComputeSOEParamLast        = ComputeSOEParam;
+    ComputeParamLast           = ComputeParam;
+    ShadowmapParamLast         = ShadowmapParam;
+    cubeShadowMappingParamLast = cubeShadowMappingParam;
+
+    //TODO add this for others methods
+
+
+    //std::cerr<<"!="<<LastSSMethod<<std::endl;
+    if(LastSSMethod!=SSMethod){
+      //delete last methods
+      switch(LastSSMethod){
+        case SS_TS:
+          if(TessellationSides)delete TessellationSides;
+          if(GeometryCapsAlt)delete GeometryCapsAlt;
+          TessellationSides=NULL;
+          GeometryCapsAlt=NULL;
+          break;
+        case SS_GEOMETRY:
+          if(GeometrySides)delete GeometrySides;
+          if(GeometryCaps)delete GeometryCaps;
+          GeometrySides=NULL;
+          GeometryCaps=NULL;
+          break;
+        case SS_GEOMETRY_SIDES_CAPS:
+          if(GeometrySidesCaps)delete GeometrySidesCaps;
+          GeometrySidesCaps=NULL;
+          break;
+        case SS_COMPUTE_SOE_PLANE:
+          if(ComputeSidesSOEPlane)delete ComputeSidesSOEPlane;
+          if(GeometryCapsAlt)delete GeometryCapsAlt;
+          ComputeSidesSOEPlane=NULL;
+          GeometryCapsAlt=NULL;
+          break;
+        case SS_COMPUTE_SOE:
+          if(ComputeSidesSOE)delete ComputeSidesSOE;
+          if(GeometryCapsAlt)delete GeometryCapsAlt;
+          ComputeSidesSOE=NULL;
+          GeometryCapsAlt=NULL;
+          break;
+        case SS_COMPUTE:
+          delete computeGeometry;
+          computeGeometry=NULL;
+          /*if(ComputeSides)delete ComputeSides;
+            if(GeometryCapsAlt)delete GeometryCapsAlt;
+            ComputeSides=NULL;
+            GeometryCapsAlt=NULL;*/
+          break;
+        case SS_VS:
+          if(VertexSides)delete VertexSides;
+          if(VertexCaps)delete  VertexCaps;
+          VertexSides=NULL;
+          VertexCaps=NULL;
+          break;
+        case SS_SHADOWMAP:
+          if(Shadowmapping)delete Shadowmapping;
+          Shadowmapping=NULL;
+          break;
+        case SS_RTW:
+          if(rtw)delete rtw;
+          rtw=NULL;
+          break;
+        case SS_NAVYMAPPING:
+          if(navyMapping)delete navyMapping;
+          navyMapping=NULL;
+          break;
+        case SS_CUBESHADOWMAP:
+          if(cubeShadowMapping)delete cubeShadowMapping;
+          cubeShadowMapping=NULL;
+          break;
+        case SS_SINTORN:
+          if(Sintorn)delete Sintorn;
+          Sintorn=NULL;
+          break;
+        default:
+          break;
+      }
+      std::cerr<<"!=middle"<<std::endl;
+      //create new method
+      switch(SSMethod){
+        case SS_TS:
+          if(TessellationSides==NULL)
+            TessellationSides=new CTessellationSides(
+                &ModelAdjacency,
+                TessellationParam.ReferenceEdge,
+                TessellationParam.CullSides,
+                TessellationParam.UseStencilValueExport);
+          if(GeometryCapsAlt==NULL)
+            GeometryCapsAlt=new CGeometryCapsAlt(
+                &ModelAdjacency);
+          break;
+        case SS_GEOMETRY:
+          std::cerr<<"GeometrySides==NULL"<<std::endl;
+          if(GeometrySides==NULL){
+            GeometrySides=new CGeometrySides(
+                &ModelAdjacency,
+                GeometryTemplate);
+          }
+          std::cerr<<"GeometrySides==NULLmiddle"<<std::endl;
+          if(GeometryCaps==NULL){
+            GeometryCaps=new CGeometryCaps(
+                &ModelAdjacency,
+                GeometryTemplate);
+            GeometryTemplateLast=GeometryTemplate;
+          }
+          std::cerr<<"GeometrySides==NULLend"<<std::endl;
+          break;
+        case SS_GEOMETRY_SIDES_CAPS:
+          if(GeometrySidesCaps==NULL)
+            GeometrySidesCaps=new CGeometrySidesCaps(
+                &ModelAdjacency,
+                GeometryTemplate.Deterministic,
+                GeometryTemplate.ReferenceEdge,
+                GeometryTemplate.Universal,
+                GeometryTemplate.UseVS2GSArray,
+                GeometryTemplate.UseVertexArray,
+                GeometryTemplate.UseStencilValueExport,
+                GeometryTemplate.CullSides,
+                GeometryTemplate.FrontCapToInfinity,
+                GeometryTemplate.Version);
+          break;
+        case SS_COMPUTE_SOE_PLANE:
+          if(ComputeSidesSOEPlane==NULL)
+            ComputeSidesSOEPlane=new CComputeSidesSOEPlane(
+                &ModelAdjacency,
+                ComputeSOEParam.WorkGroupSize,
+                ComputeSOEParam.CullSides);
+          if(GeometryCapsAlt==NULL)
+            GeometryCapsAlt=new CGeometryCapsAlt(
+                &ModelAdjacency);
+          break;
+        case SS_COMPUTE_SOE:
+          if(ComputeSidesSOE==NULL)
+            ComputeSidesSOE=new CComputeSidesSOE(
+                &ModelAdjacency,
+                ComputeSOEParam.WorkGroupSize,
+                ComputeSOEParam.CullSides);
+          //std::cerr<<"SS_COMPUTE_SOE"<<std::endl;
+          if(GeometryCapsAlt==NULL)
+            GeometryCapsAlt=new CGeometryCapsAlt(
+                &ModelAdjacency);
+          break;
+        case SS_COMPUTE:
+          if(!computeGeometry)
+            computeGeometry=new ComputeGeometry(simData);
+          /*
+          //std::cerr<<"!=SS_COMPUTE"<<std::endl;
+
+          if(ComputeSides==NULL)
+          ComputeSides=new CComputeSides(
+          &ModelAdjacency,
+          ComputeParam.WorkGroupSize,
+          ComputeParam.CullSides);
+          //delete ComputeSides;
+          //std::cerr<<"aftercomputesides==NULL"<<std::endl;
+          if(GeometryCapsAlt==NULL)
+          GeometryCapsAlt=new CGeometryCapsAlt(
+          &ModelAdjacency);
+          */
+          break;
+        case SS_VS:
+          if(VertexSides==NULL)
+            VertexSides=new CVertexSides(&ModelAdjacency);
+          if(VertexCaps==NULL)
+            VertexCaps=new CVertexCaps(&ModelAdjacency);
+          break;
+        case SS_SHADOWMAP:
+          if(Shadowmapping==NULL)
+            Shadowmapping = new CShadowMapping(simData);
+          /*Shadowmapping=new CShadowMapping(ShadowmapParam.Resolution,windowParam.size,
+            sceneVAO,&ModelAdjacency);*/
+          break;
+        case SS_RTW:
+          if(rtw==NULL)
+            rtw=new RTWBack(simData);
+          break;
+        case SS_NAVYMAPPING:
+          if(navyMapping==NULL)
+            navyMapping = new NavyMapping(simData);
+          //navyMapping=new NavyMapping(ShadowmapParam.Resolution,windowParam.size,
+          //    sceneVAO,&ModelAdjacency);
+          break;
+        case SS_CUBESHADOWMAP:
+          if(cubeShadowMapping==NULL)
+            cubeShadowMapping=new CubeShadowMapping(&ModelAdjacency,sceneVAO,
+                cubeShadowMappingParam);
+          break;
+        case SS_SINTORN:
+          if(Sintorn==NULL){
+            Sintorn=new CSintorn(windowParam.size,&ModelAdjacency,
+                SintornParam.WavefrontSize,SintornParam.ShadowFrustaPerWorkGroup);
+          }
+          break;
+        default:
+          break;
+      }
+    }
+    //std::cerr<<"!=end\n";
+
+
+    LastSSMethod=SSMethod;
+
+    for(int l=0;l<1;++l)
+      switch(SSMethod){
+        case SS_GEOMETRY:
+          DrawGeometry(LightList[l]);
+          break;
+        case SS_GEOMETRY_SIDES_CAPS:
+          DrawGeometrySidesCaps(LightList[l]);
+          break;
+        case SS_COMPUTE_SOE_PLANE:
+          DrawComputeSOEPlane(LightList[l]);
+          break;
+        case SS_COMPUTE_SOE:
+          DrawComputeSOE(LightList[l]);
+          break;
+        case SS_COMPUTE:
+          mm=computeGeometry;
+          mm->createShadowMask();
+          drawDiffuseSpecular(true,lightConfiguration->getLight());
+          //DrawCompute(LightList[l]);
+          break;
+        case SS_VS:
+          DrawVertex(LightList[l]);
+          break;
+        case SS_TS:
+          DrawTessellation(LightList[l]);
+          break;
+        case SS_SHADOWMAP:
+          {
+            mm=Shadowmapping;
+            if(Window->isKeyOn('p')){
+              glm::mat4 pp;
+              glm::mat4 vv;
+              if(geometry::getMinVP(&pp,&vv,Projection,View,sceneAABB->minPoint,sceneAABB->maxPoint,glm::vec3(LightList[l]->position)))
+                Shadowmapping->setMatrices(pp,vv);
+            }
+            mm->createShadowMask();
+            //Shadowmapping->createShadowMask();
+            drawDiffuseSpecular(true,LightList[l]);
+          }
+          break;
+        case SS_RTW:
+          mm=rtw;
+          mm->createShadowMask();
+          drawDiffuseSpecular(true,LightList[l]);
+          break;
+        case SS_NAVYMAPPING:
+          mm=navyMapping;
+          mm->createShadowMask();
+          drawDiffuseSpecular(true,LightList[l]);
+          //drawNavyMapping(LightList[l]);
+          break;
+        case SS_CUBESHADOWMAP:
+          drawCubeShadowmapShadow(LightList[l]);
+          break;
+        case SS_SINTORN:
+          DrawSintorn(LightList[l]);
+          break;
+        case SS_NO:
+          break;
+      }
+  }else{
+    DrawShadowless();
+  }
+  glEnable(GL_DEPTH_TEST);
+  glDepthMask(GL_TRUE);
+  glBindFramebuffer(GL_FRAMEBUFFER,0);
+  glDepthFunc(GL_LEQUAL);
+  glEnable(GL_DEPTH_TEST);
+  deferred_BlitDepthToDefault(&Deferred);
+  glDepthFunc(GL_LESS);
+  glBindFramebuffer(GL_FRAMEBUFFER,0);
+  glColorMask(GL_TRUE,GL_TRUE,GL_TRUE,GL_TRUE);
+  glDisable(GL_BLEND);
+
+  if(navyMapping){
+    if(Window->isKeyDown('z')){
+      camView=View;
+      camProj=Projection;
+    }
+    test::drawConvexHull(
+        View,Projection,
+        camProj,camView,
+        sceneAABB->minPoint,sceneAABB->maxPoint,
+        glm::vec3(lightConfiguration->getLight()->position));
+  }
+
+  if(SSMethod==SS_RTW){
+    //simpleDraw->drawHeatMap(rtw->getImportanceMap()->getId(),.5,0,.5,.5,0.f,simData->getFloat("shadowMapMethods.far",100.f));
+    //simpleDraw->draw1D(rtw->getSumX()->getId(),.5,0,.5,.5,0.f,1.f);
+
+    //simpleDraw->draw1D(rtw->getSmoothX()->getId(),.0,0,.5,.5,0.f,simData->getFloat("shadowMapMethods.far",100.f));
+    //simpleDraw->draw1D(rtw->getSumY()->getId(),.0,0,.5,.5,0.f,1.f);
+    //rtw->drawGrid(0,0,.5,.5);
+
+    //simpleDraw->drawDepth(rtw->getShadowMap()->getId(),0,0,.5*(1+Window->isKeyOn('x')),.5*(1+Window->isKeyOn('x')),0.1,100.f);
+  }
+
+  if(SSMethod==SS_SHADOWMAP){
+    //simpleDraw->drawDepth(Shadowmapping->getShadowMap()->getId(),0,0,.5,.5,0.1,100.f);
+  }
+  if(SSMethod==SS_NAVYMAPPING){
+    /*
+    //navyMapping->drawShadowMap(0,0,.5);
+    navyMapping->writeViewSamples(Deferred.position->getId());
+    //navyMapping->drawCountMap(0,0,.5);
+    navyMapping->prefixSum(true);
+    //navyMapping->drawPrefixSum(.5,0,.5);
+    //navyMapping->drawCountMap(.5,0,.5);
+    simpleDraw->drawHeatMap(navyMapping->getCountMap()->getId(),.5,0,.5,.5,0u,20u);
+
+    navyMapping->smoothGrid(true);
+    glDisable(GL_DEPTH_TEST);
+    navyMapping->drawGrid(.5,0,.5,true);
+    glEnable(GL_DEPTH_TEST);
+
+    navyMapping->unwarpX(Deferred.position->getId());
+    //navyMapping->drawUnwarpX(.0,0,.5);  
+
+    navyMapping->prefixSum(false);
+    navyMapping->smoothGrid(false);
+
+    navyMapping->createNavyMap(glm::value_ptr(Model));
+    navyMapping->drawShadowMap(Window->isKeyOn('u'),0,0,.5);
+
+    glDisable(GL_DEPTH_TEST);
+    navyMapping->drawGrid(0,0,.5,false);
+    glEnable(GL_DEPTH_TEST);
+    */
+    //simpleDraw->drawHeatMap(navyMapping->getCountMapX()->getId(),.5,0,.5,.5,0u,40u);
+    //simpleDraw->drawHeatMap(navyMapping->getIntegratedX()->getId(),.0,0,.5,.5,0u,1024u);
+    //simpleDraw->drawHeatMap(navyMapping->getIntegratedY()->getId(),.5,.5,.5,.5,0u,1024u);
+
+    //simpleDraw->drawHeatMap(navyMapping->getViewSamples()->getId(),.0,0,.5,.5,0.f,1.f);
+    //simpleDraw->drawHeatMap(navyMapping->getOffsetX()->getId(),.0,0,.5,.5,-1.f,1.f);
+    //simpleDraw->drawHeatMap(navyMapping->getSmoothX()->getId(),.5,.5,.5,.5,-1.f,1.f);
+    //simpleDraw->drawHeatMap(navyMapping->getSmoothY()->getId(),.0,.0,.5,.5,-1.f,1.f);
+    //navyMapping->drawGrid(0,0,.5,.5);
+
+    //simpleDraw->drawHeatMap(navyMapping->getCountMapY()->getId(),.0,0,.5,.5,0u,40u);
+    //simpleDraw->drawHeatMap(navyMapping->getuall()->getId(),.5,.5,.5,.5,0u,40u);
+
+    /*
+       simpleDraw->drawHeatMap(navyMapping->getCountMapX()->getId(),.75,0,.25,.25,0u,40u);
+       simpleDraw->drawHeatMap(navyMapping->getIntegratedX()->getId(),.5,0,.25,.25,0u,1024u);
+       simpleDraw->drawHeatMap(navyMapping->getOffsetX()->getId(),.25,0,.25,.25,-1.f,1.f);
+       simpleDraw->drawHeatMap(navyMapping->getSmoothX()->getId(),.0,.0,.25,.25,-1.f,1.f);
+       simpleDraw->drawHeatMap(navyMapping->getCountMapY()->getId(),.75,.25,.25,.25,0u,40u);
+       simpleDraw->drawHeatMap(navyMapping->getIntegratedY()->getId(),.5,.25,.25,.25,0u,1024u);
+       simpleDraw->drawHeatMap(navyMapping->getOffsetY()->getId(),.25,.25,.25,.25,-1.f,1.f);
+       simpleDraw->drawHeatMap(navyMapping->getSmoothY()->getId(),.0,.25,.25,.25,-1.f,1.f);
+       simpleDraw->drawHeatMap(navyMapping->getuall()->getId(),.75,.5,.25,.25,0u,40u);
+       glDepthFunc(GL_ALWAYS);
+       navyMapping->drawGrid(0.75,0.5,.25,.25);
+       glDepthFunc(GL_LESS);
+       */
+    navyMapping->getShadowMap()->texParameteri (GL_TEXTURE_COMPARE_MODE,GL_NONE);
+    simpleDraw->drawDepth(navyMapping->getShadowMap()->getId(),0,0,.5*(1+Window->isKeyOn('x')),.5*(1+Window->isKeyOn('x')),0.1,10.f);
+    navyMapping->getShadowMap()->texParameteri (GL_TEXTURE_COMPARE_MODE,GL_COMPARE_R_TO_TEXTURE);
+
+
+
+
+  }
+  if(false&&cameraPathConfiguration->isDraw())
+    if(cameraPathConfiguration->getPath())
+      cameraPathConfiguration->getPath()->draw(glm::value_ptr(mvp));
+
+  Window->swap();
+  framecount++;
+}

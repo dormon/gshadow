@@ -182,7 +182,11 @@ namespace simulation{
       glm::vec3 diffuse;
       glm::vec3 specular;
       Light(glm::vec4 position,glm::vec3 diffuse,glm::vec3 specular);
+      Light();
       std::string toStr();
+      void loadFromString(std::string data);
+      void saveToFile(std::string file);
+      void loadFromFile(std::string file);
       bool operator==(Data*);
   };
 

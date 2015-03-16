@@ -4,6 +4,9 @@
 #include<cstdlib>
 #include<geUtil/ArgumentObject.h>
 #include<algorithm>
+#include<streambuf>
+#include<fstream>
+
 
 using namespace simulation;
 Bool::Bool(std::string input){
@@ -296,6 +299,14 @@ Light::Light(glm::vec4 position,glm::vec3 diffuse,glm::vec3 specular){
   this->diffuse  = diffuse;
   this->specular = specular;
 }
+Light::Light(){
+  this->type = LIGHT;
+  this->position = glm::vec4(10.f,10.f,10.f,1.f);
+  this->diffuse  = glm::vec3(1.f,1.f,1.f);
+  this->specular = glm::vec3(1.f,1.f,1.f);
+}
+
+
 std::string Light::toStr(){
   std::stringstream ss;
   ss<<this->position.x<<" "<<this->position.y<<" "<<this->position.z<<" "<<this->position.w<<" ";
@@ -303,6 +314,46 @@ std::string Light::toStr(){
   ss<<this->specular.x<<" "<<this->specular.y<<" "<<this->specular.z;
   return ss.str();
 }
+
+void Light::loadFromString(std::string data){
+  std::size_t pos=0;
+  std::cerr<<data<<std::endl;
+  pos=data.find(" ");
+  for(int i=0;i<4;++i){
+    this->position[i]=std::atof(data.substr(0,pos).c_str());
+    data=data.substr(pos+1);pos=data.find(" ");
+  }
+  for(int i=0;i<3;++i){
+    this->diffuse[i]=std::atof(data.substr(0,pos).c_str());
+    data=data.substr(pos+1);pos=data.find(" ");
+  }
+  for(int i=0;i<2;++i){
+    this->specular[i]=std::atof(data.substr(0,pos).c_str());
+    data=data.substr(pos+1);pos=data.find(" ");
+  }
+  data=data.substr(pos+1);
+  this->specular[2]=std::atof(data.c_str());
+}
+void Light::saveToFile(std::string file){
+  std::ofstream out(file.c_str());
+  out<<this->toStr();
+  out.close();
+}
+void Light::loadFromFile(std::string file){
+  std::ifstream t(file.c_str());
+  std::string str;
+
+  t.seekg(0, std::ios::end);   
+  str.reserve(t.tellg());
+  t.seekg(0, std::ios::beg);
+
+  str.assign((std::istreambuf_iterator<char>(t)),
+      std::istreambuf_iterator<char>());
+  t.close();
+  this->loadFromString(str);
+}
+
+
 bool Light::operator==(Data*b){
   return 
     this->type     == b->type && 
@@ -310,6 +361,8 @@ bool Light::operator==(Data*b){
     this->diffuse  == ((Light*)b)->diffuse  &&
     this->specular == ((Light*)b)->specular;
 }
+
+
 
 std::vector<float>*Gauge::getData(){
   return &this->values;

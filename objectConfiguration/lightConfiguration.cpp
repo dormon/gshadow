@@ -29,11 +29,12 @@ void objconf::deinitLight(){
 }
 
 
+/*
 simulation::Light*objconf::getLight(unsigned i){
   if(i>=lightConfiguration.lights.size())return lightConfiguration.lights[0];
   return lightConfiguration.lights[i];
 }
-
+*/
 void createLightBarVar();
 
 void TW_CALL setCurrentAsActive(void *clientData){
@@ -65,3 +66,37 @@ void objconf::setLightAntTweakBar(){
 
   createLightBarVar();
 }
+
+LightConfiguration::LightConfiguration(){
+  this->_bar = TwNewBar("light configurator");
+
+  this->_light = new simulation::Light();
+  float*pos  = glm::value_ptr(this->_light->position);
+  float*dif  = glm::value_ptr(this->_light->diffuse );
+  float*spec = glm::value_ptr(this->_light->specular);
+
+  TwAddVarRW(this->_bar,"xpos"    ,TW_TYPE_FLOAT  ,pos+0," label='xpos' help='xpos of current light'");
+  TwAddVarRW(this->_bar,"ypos"    ,TW_TYPE_FLOAT  ,pos+1," label='ypos' help='ypos of current light'");
+  TwAddVarRW(this->_bar,"zpos"    ,TW_TYPE_FLOAT  ,pos+2," label='zpos' help='zpos of current light'");
+  TwAddVarRW(this->_bar,"diffuse" ,TW_TYPE_COLOR3F,dif  ," noalpha help='Light diffuse color.' "     );
+  TwAddVarRW(this->_bar,"speculra",TW_TYPE_COLOR3F,spec ," noalpha help='Light specular color.' "    );
+  this->_openDialog = new AntOpenDialog(this->_bar);
+  this->_openDialog->setOpenCallBack(this->_load,this);
+  this->_openDialog->setSaveCallBack(this->_save,this);
+
+}
+void LightConfiguration::_load(std::string name,void*A){
+  LightConfiguration*_this=(LightConfiguration*)A;
+  _this->_light->loadFromFile(name);
+
+}
+void LightConfiguration::_save(std::string name,void*A){
+  LightConfiguration*_this=(LightConfiguration*)A;
+  _this->_light->saveToFile(name);
+}
+
+
+LightConfiguration::~LightConfiguration(){
+  TwDeleteBar(this->_bar);
+}
+
