@@ -4,6 +4,8 @@
 #include<GL/glew.h>
 #include<geGL/ProgramObject.h>
 #include"../app/SilhouetteShaderGenerator.h"
+#include"fastAdjacency.h"
+
 
 typedef struct{
 	float*Points;
@@ -22,6 +24,7 @@ typedef struct{
 	unsigned**TriangleEdge;
   unsigned*ClassCard;
   unsigned MaxOpposite;
+  Adjacency*adj;
 }SAdjecency;
 
 typedef struct{

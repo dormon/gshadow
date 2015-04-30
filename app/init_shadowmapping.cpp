@@ -53,9 +53,9 @@ void CShadowMap::Begin(float*M,float*V,float*P){
 	glPolygonOffset(2.5,10);//abychom zabranili pigmentaci
 
 	this->CreateShadowMap->use();
-	this->CreateShadowMap->set("m",1,GL_FALSE,M);
-	this->CreateShadowMap->set("v",1,GL_FALSE,V);
-	this->CreateShadowMap->set("p",1,GL_FALSE,P);
+	this->CreateShadowMap->set("m",1,GL_FALSE,(const float*)M);
+	this->CreateShadowMap->set("v",1,GL_FALSE,(const float*)V);
+	this->CreateShadowMap->set("p",1,GL_FALSE,(const float*)P);
 
 }
 

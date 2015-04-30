@@ -556,7 +556,7 @@ void CSintorn::ComputeShadowFrusta(float*LP,glm::mat4 mvp){
   //std::cerr<<"CSintorn::ComputeShadowFrusta"<<std::endl;
   this->SFProgram->use();
   this->SFProgram->set("NumTriangles",this->Adjacency->NumTriangles);
-  this->SFProgram->set("ModelViewProjection",1,GL_FALSE,glm::value_ptr(mvp));
+  this->SFProgram->set("ModelViewProjection",1,GL_FALSE,(const float*)glm::value_ptr(mvp));
   this->SFProgram->set("LightPosition",1,LP);
   this->SFProgram->set("TransposeInverseModelViewProjection",1,GL_FALSE,(float*)glm::value_ptr(glm::inverse(glm::transpose(mvp))));
   this->Triangles->bindBase(GL_SHADER_STORAGE_BUFFER,0);

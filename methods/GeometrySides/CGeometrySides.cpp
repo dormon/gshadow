@@ -239,7 +239,7 @@ CGeometrySides::~CGeometrySides(){
 void CGeometrySides::DrawSides(float*mvp,simulation::Light*Light){
   if(this->Universal){
     this->UProgram->use();
-    this->UProgram->set("mvp",1,GL_FALSE,mvp);
+    this->UProgram->set("mvp",1,GL_FALSE,(const float*)mvp);
     this->UProgram->set("LightPosition",1,glm::value_ptr(Light->position));
     //this->UVAO->Bind();
     this->uvao->bind();

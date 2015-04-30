@@ -338,7 +338,7 @@ void NavyMapping::_computeViewSamples(){
   this->_viewSamples->bindImage(1,0);
   this->_viewSamplesProgram->use();
   this->_viewSamplesProgram->set("windowSize",winSize.x,winSize.y);
-  this->_viewSamplesProgram->set("mvp",1,GL_FALSE,glm::value_ptr(mvp));
+  this->_viewSamplesProgram->set("mvp",1,GL_FALSE,(const float*)glm::value_ptr(mvp));
   unsigned workSizex=winSize.x/GETUINT(VS_SIZE_X)+1;
   unsigned workSizey=winSize.y/GETUINT(VS_SIZE_Y)+1;
   glDispatchCompute(workSizex,workSizey,1);

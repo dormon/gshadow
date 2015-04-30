@@ -9,6 +9,7 @@
 #include<glm/gtc/matrix_transform.hpp>
 #include<glm/gtc/type_ptr.hpp>
 #include<glm/gtc/matrix_access.hpp>
+#include<SDL2/SDL.h>
 
 
 using namespace std;
@@ -362,101 +363,111 @@ void FreeAdjacency(SAdjecency*Adj){
 
 
 void ComputeAdjacency(
-		SAdjecency*Adjacency,
+		SAdjecency*adjacency,
 		float*Points,
 		unsigned NumTriangles){
+  unsigned start=SDL_GetTicks();
+  adjacency->adj=new Adjacency((const float*)Points,NumTriangles,2);
+  unsigned adjtime=SDL_GetTicks();
 	SortTriangles(
-			&Adjacency->Points,
-			&Adjacency->NumPoints,
-			&Adjacency->Triangles,
-			&Adjacency->NumTriangles,
+			&adjacency->Points,
+			&adjacency->NumPoints,
+			&adjacency->Triangles,
+			&adjacency->NumTriangles,
 			Points,
 			NumTriangles);
 
 	ComputePointTriangleAdjacency(
-			&Adjacency->PointTriangleNum,
-			&Adjacency->PointTriangles,
-			Adjacency->NumPoints,
-			Adjacency->Triangles,
-			Adjacency->NumTriangles);
+			&adjacency->PointTriangleNum,
+			&adjacency->PointTriangles,
+			adjacency->NumPoints,
+			adjacency->Triangles,
+			adjacency->NumTriangles);
 
 	ComputePointEdgeAdjacency(
-			&Adjacency->PointEdgeNum,
-			&Adjacency->PointEdge,
-			Adjacency->PointTriangleNum,
-			Adjacency->PointTriangles,
-			Adjacency->NumPoints,
-			Adjacency->Triangles,
-			Adjacency->NumTriangles);
+			&adjacency->PointEdgeNum,
+			&adjacency->PointEdge,
+			adjacency->PointTriangleNum,
+			adjacency->PointTriangles,
+			adjacency->NumPoints,
+			adjacency->Triangles,
+			adjacency->NumTriangles);
 
 	ComputeEdge(
-			&Adjacency->Edges,
-			&Adjacency->NumEdges,
-			Adjacency->PointEdgeNum,
-			Adjacency->PointEdge,
-			Adjacency->NumPoints);
+			&adjacency->Edges,
+			&adjacency->NumEdges,
+			adjacency->PointEdgeNum,
+			adjacency->PointEdge,
+			adjacency->NumPoints);
 
 	ComputeEdgeIndex(
-			&Adjacency->EdgeIndex,
-			Adjacency->NumEdges,
-			Adjacency->PointEdgeNum,
-			Adjacency->PointEdge,
-			Adjacency->NumPoints);
+			&adjacency->EdgeIndex,
+			adjacency->NumEdges,
+			adjacency->PointEdgeNum,
+			adjacency->PointEdge,
+			adjacency->NumPoints);
 
 	ComputeOppositeNum(
-			&Adjacency->EdgeOppositeNum,
-			Adjacency->NumEdges,
-			Adjacency->PointEdgeNum,
-			Adjacency->PointEdge,
-			Adjacency->EdgeIndex,
-			Adjacency->Triangles,
-			Adjacency->NumTriangles);
+			&adjacency->EdgeOppositeNum,
+			adjacency->NumEdges,
+			adjacency->PointEdgeNum,
+			adjacency->PointEdge,
+			adjacency->EdgeIndex,
+			adjacency->Triangles,
+			adjacency->NumTriangles);
 
 	ComputeOpposite(
-			&Adjacency->EdgeOpposite,
-			Adjacency->EdgeIndex,
-			Adjacency->EdgeOppositeNum,
-			Adjacency->NumEdges,
-			Adjacency->PointEdge,
-			Adjacency->PointEdgeNum,
-			Adjacency->Triangles,
-			Adjacency->NumTriangles);
-  Adjacency->MaxOpposite=0;
-  for(unsigned e=0;e<Adjacency->NumEdges;++e){
-    if(Adjacency->EdgeOppositeNum[e]>Adjacency->MaxOpposite)
-      Adjacency->MaxOpposite=Adjacency->EdgeOppositeNum[e];
+			&adjacency->EdgeOpposite,
+			adjacency->EdgeIndex,
+			adjacency->EdgeOppositeNum,
+			adjacency->NumEdges,
+			adjacency->PointEdge,
+			adjacency->PointEdgeNum,
+			adjacency->Triangles,
+			adjacency->NumTriangles);
+  adjacency->MaxOpposite=0;
+  for(unsigned e=0;e<adjacency->NumEdges;++e){
+    if(adjacency->EdgeOppositeNum[e]>adjacency->MaxOpposite)
+      adjacency->MaxOpposite=adjacency->EdgeOppositeNum[e];
   }
-  Adjacency->ClassCard=new unsigned[Adjacency->MaxOpposite];
-  for(unsigned m=0;m<Adjacency->MaxOpposite;++m)Adjacency->ClassCard[m]=0;
-  for(unsigned e=0;e<Adjacency->NumEdges;++e)
-    Adjacency->ClassCard[Adjacency->EdgeOppositeNum[e]-1]++;
+  adjacency->ClassCard=new unsigned[adjacency->MaxOpposite];
+  for(unsigned m=0;m<adjacency->MaxOpposite;++m)adjacency->ClassCard[m]=0;
+  for(unsigned e=0;e<adjacency->NumEdges;++e)
+    adjacency->ClassCard[adjacency->EdgeOppositeNum[e]-1]++;
+
+  unsigned stdadjtime=SDL_GetTicks();
+
+  std::cerr<<"old: "<<stdadjtime-adjtime<<std::endl;
+  std::cerr<<"new: "<<adjtime-start<<std::endl;
+
+
 
   unsigned OppositePairRemoved=0;
-  for(unsigned e=0;e<Adjacency->NumEdges;++e){
-    unsigned numO=Adjacency->EdgeOppositeNum[e];
+  for(unsigned e=0;e<adjacency->NumEdges;++e){
+    unsigned numO=adjacency->EdgeOppositeNum[e];
     for(unsigned o0=0;o0<numO-1;++o0){
       for(unsigned o1=o0+1;o1<numO-1;++o1){
-        unsigned o0i=Adjacency->EdgeOpposite[e][o0];
-        unsigned o1i=Adjacency->EdgeOpposite[e][o1];
-        unsigned ai=Adjacency->Edges[e][0];
-        unsigned bi=Adjacency->Edges[e][1];
+        unsigned o0i=adjacency->EdgeOpposite[e][o0];
+        unsigned o1i=adjacency->EdgeOpposite[e][o1];
+        unsigned ai=adjacency->Edges[e][0];
+        unsigned bi=adjacency->Edges[e][1];
         
         glm::vec3 o0v=glm::vec3(
-            Adjacency->Points[o0i*3+0],
-            Adjacency->Points[o0i*3+1],
-            Adjacency->Points[o0i*3+2]);
+            adjacency->Points[o0i*3+0],
+            adjacency->Points[o0i*3+1],
+            adjacency->Points[o0i*3+2]);
         glm::vec3 o1v=glm::vec3(
-            Adjacency->Points[o1i*3+0],
-            Adjacency->Points[o1i*3+1],
-            Adjacency->Points[o1i*3+2]);
+            adjacency->Points[o1i*3+0],
+            adjacency->Points[o1i*3+1],
+            adjacency->Points[o1i*3+2]);
         glm::vec3 av=glm::vec3(
-            Adjacency->Points[ai*3+0],
-            Adjacency->Points[ai*3+1],
-            Adjacency->Points[ai*3+2]);
+            adjacency->Points[ai*3+0],
+            adjacency->Points[ai*3+1],
+            adjacency->Points[ai*3+2]);
         glm::vec3 bv=glm::vec3(
-            Adjacency->Points[bi*3+0],
-            Adjacency->Points[bi*3+1],
-            Adjacency->Points[bi*3+2]);
+            adjacency->Points[bi*3+0],
+            adjacency->Points[bi*3+1],
+            adjacency->Points[bi*3+2]);
         glm::vec3 n0=glm::normalize(glm::cross(o1v-o0v,av-o0v));
         glm::vec3 n1=glm::normalize(glm::cross(bv-o0v,o1v-o0v));
         if(glm::length(n1-n0)<=0.00001)
@@ -885,7 +896,7 @@ void CShadowShader::SetUniforms(ge::gl::ProgramObject*Prg,float*M,float*V,float*
 	//Prg->Set("m",1,GL_FALSE,M);
 	//Prg->Set("v",1,GL_FALSE,V);
 	//Prg->Set("p",1,GL_FALSE,P);
-	Prg->set("mvp",1,GL_FALSE,M);
+	Prg->set("mvp",1,GL_FALSE,(const float*)M);
 	Prg->set("LightPosition",1,L);
 }
 

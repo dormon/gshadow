@@ -145,6 +145,8 @@ void main(){
 
     precise int Multiplicity=0;
     int Num=int(IBuffer[gid+2].x)+3;
+    if(Num>20)Num=0;
+    if(Num<0)Num=0;
 
     for(int i=3;i<Num;++i){
 #define T0 P[0].xyz

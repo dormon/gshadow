@@ -310,7 +310,7 @@ void CComputeSidesSOEPlane::ComputeSides(float*mvp,simulation::Light*Light){
   this->ComputeProgram->set("NumEdge",this->Adjacency->NumEdges);
 
   this->ComputeProgram->set("LightPosition",1,glm::value_ptr(Light->position));
-  this->ComputeProgram->set("mvp",1,GL_FALSE,mvp);
+  this->ComputeProgram->set("mvp",1,GL_FALSE,(const float*)mvp);
 
   //this->Input->BindRange(GL_SHADER_STORAGE_BUFFER,0,0,
   //    sizeof(float)*4*(2+1+this->Adjacency->MaxOpposite)*this->Adjacency->NumEdges);

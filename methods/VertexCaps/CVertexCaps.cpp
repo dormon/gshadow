@@ -68,7 +68,7 @@ CVertexCaps::~CVertexCaps(){
 void CVertexCaps::DrawCaps(float*mvp,simulation::Light*Light){
   this->Program->use();
   this->Program->set("LightPosition",1,glm::value_ptr(Light->position));
-  this->Program->set("mvp",1,GL_FALSE,mvp);
+  this->Program->set("mvp",1,GL_FALSE,(const float*)mvp);
   this->VAO->bind();
   glDrawArrays(GL_TRIANGLES,0,this->Adjacency->NumTriangles*6);
   this->VAO->unbind();

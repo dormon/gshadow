@@ -98,7 +98,7 @@ void DrawPrimitive::_setStateSet(){
 void DrawPrimitive::setView(glm::mat4 view){
   this->_view=view;
   ge::gl::ProgramObject*program=this->_getActiveProgram();
-  program->set("v",1,GL_FALSE,glm::value_ptr(this->_view));
+  program->set("v",1,GL_FALSE,(const float*)glm::value_ptr(this->_view));
 }
 
 void DrawPrimitive::setProjection(glm::mat4 projection){

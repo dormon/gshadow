@@ -102,7 +102,7 @@ void CTessellationSides::DrawSides(
   unsigned PatchVertices=2+1+this->Adjacency->MaxOpposite;
   this->VAO->bind();
   this->Program->use();
-  this->Program->set("mvp",1,GL_FALSE,mvp);
+  this->Program->set("mvp",1,GL_FALSE,(const float*)mvp);
   this->Program->set("LightPosition",1,glm::value_ptr(Light->position));
   glPatchParameteri(GL_PATCH_VERTICES,PatchVertices);
   glDrawElements(GL_PATCHES,PatchVertices*this->Adjacency->NumEdges,

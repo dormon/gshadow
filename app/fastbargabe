@@ -1,0 +1,51 @@
+unsigned*e2tp;
+float*ptp;
+
+int cmpr(float*a,float*b){
+  for(unsigned i=0;i<3;++i){
+    if(a[i]<b[i])return-1;
+    if(a[i]>b[i])return+1;
+  }
+  return 0;
+}
+
+int comp( const void* a, const void* b ) {
+  unsigned ai=*(unsigned*)a;
+  unsigned bi=*(unsigned*)b;
+  int xx;
+  xx=cmpr(ptp+e2tp[ai*3+0],ptp+e2tp[bi*3+0]);
+  if(!xx)return xx;
+  xx=cmpr(ptp+e2tp[ai*3+1],ptp+e2tp[bi*3+1]);
+  if(!xx)return xx;
+  return cmpr(ptp+e2tp[ai*3+2],ptp+e2tp[bi*3+2]);
+}
+
+
+
+unsigned*e2t=new unsigned[numTriangles*3*3];
+unsigned e2tc=0;
+for(unsigned t=0;t<numTriangles;++t){//loop over triangles
+  unsigned ts=t*3*3;
+  unsigned ti[3]={ts+0,ts+3,ts+6};
+  int ab=cmpr(triangles+ti[0],triangles+ti[1]);
+  int ac=cmpr(triangles+ti[0],triangles+ti[2]);
+  int bc=cmpr(triangles+ti[1],triangles+ti[2]);
+  if(ab*ac*bc==0)continue;
+  if(ab<0){e2t[e2tc*3+0]=ti[0];e2t[e2tc*3+1]=ti[1];e2t[e2tc*3+2]=ti[2];}
+  else    {e2t[e2tc*3+0]=ti[1];e2t[e2tc*3+1]=ti[0];e2t[e2tc*3+2]=ti[2];}
+  e2tc++;
+  if(ac<0){e2t[e2tc*3+0]=ti[0];e2t[e2tc*3+1]=ti[2];e2t[e2tc*3+2]=ti[1];}
+  else    {e2t[e2tc*3+0]=ti[2];e2t[e2tc*3+1]=ti[0];e2t[e2tc*3+2]=ti[1];}
+  e2tc++;
+  if(bc<0){e2t[e2tc*3+0]=ti[1];e2t[e2tc*3+1]=ti[2];e2t[e2tc*3+2]=ti[0];}
+  else    {e2t[e2tc*3+0]=ti[2];e2t[e2tc*3+1]=ti[1];e2t[e2tc*3+2]=ti[0];}
+  e2tc++;
+}
+
+unsigned*ind=new unsigned[e2tc];
+for(unsigned i=0;i<e2tc;++i)
+ind[i]=i;
+e2tp=e2t;
+ptp=triangles;
+qsort(ind,e2tc,sizeof(unsigned),comp);
+

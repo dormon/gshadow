@@ -1,4 +1,4 @@
-SOURCEDIRS=app/ standard/ mymath/ methods/ GPUPerfApi/ geometry/ drawPrimitive/ simulationData/ argumentLoader/ objectConfiguration/
+SOURCEDIRS=app/ standard/ mymath/ methods/ GPUPerfApi/ geometry/ drawPrimitive/ simulationData/ argumentLoader/ objectConfiguration/ svgPrinter/
 #patsubst
 #-include ${DEPS}
 #-MMD
@@ -20,9 +20,9 @@ INCLUDEDIRS=${foreach var,${SRCDIR},-I ${var}}
 
 
 BIN=svetlo
-LIBS      = -lGLU -lSDL2 -lGLEW -lassimp -lAntTweakBar -lgeGL -lgeUtil -lGPUPerfAPIGL -lAntTweakBar -lIL -lILU -lILUT -lGL -g
-CFLAGS    = -std=c++1y -Wall ${INCLUDEDIRS}
-CPP       = g++-4.9
+LIBS      = -lGLU -lSDL2 -lGLEW -lassimp -lAntTweakBar -lgeGL -lgeUtil -lGPUPerfAPIGL -lAntTweakBar -lIL -lILU -lILUT -lGL -g -O3
+CFLAGS    = -std=c++1y -Wall -O3 ${INCLUDEDIRS}
+CPP       = g++
 #CPP       = wing++
 #CPP       = /usr/bin/i586-mingw32msvc-g++
 

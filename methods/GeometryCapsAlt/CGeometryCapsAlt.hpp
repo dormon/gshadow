@@ -17,7 +17,8 @@ class CGeometryCapsAlt
     ge::gl::BufferObject*VBO;
     ge::gl::VertexArrayObject*VAO;
     ge::gl::ProgramObject*Program;
-    SAdjecency*Adjacency;
+    unsigned _nofTriangles;
+    SAdjecency*_adjacency;
   public:
     CGeometryCapsAlt(SAdjecency*Adjacency);
     ~CGeometryCapsAlt();

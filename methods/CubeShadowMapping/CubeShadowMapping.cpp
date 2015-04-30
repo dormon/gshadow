@@ -115,7 +115,7 @@ void CubeShadowMapping::createShadowMap(float*M,simulation::Light*light){
           -light->position[0],
           -light->position[1],
           -light->position[2]));
-  this->_createProgram->set("m",1,GL_FALSE,glm::value_ptr(modelMatrix));
+  this->_createProgram->set("m",1,GL_FALSE,(const float*)glm::value_ptr(modelMatrix));
 
   for(unsigned side=0;side<6;++side){
     this->_createProgram->set("v",1,GL_FALSE,glm::value_ptr(this->_lightViewMatrix[side]));

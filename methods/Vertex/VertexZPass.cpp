@@ -328,7 +328,7 @@ void VertexZPass::_drawStencil(){
 
   this->_programSide->use();
   this->_programSide->set("lightPosition",1,glm::value_ptr(GETLIGHT->position));
-  this->_programSide->set("mvp",1,GL_FALSE,glm::value_ptr(mvp));
+  this->_programSide->set("mvp",1,GL_FALSE,(const float*)glm::value_ptr(mvp));
 
   if(GETBOOL(USE_MULTIDRAW)){
     if(GETBOOL(USE_INSTANCING)){

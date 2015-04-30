@@ -118,7 +118,7 @@ void RTWBack::_createRTWMask(){
   this->_createRTWMaskProgram->use();
   //this->_createRTWMaskProgram->set("BPV",1,GL_FALSE,glm::value_ptr(this->_bpv));
   glm::mat4 mvp = this->_lightProjection*this->_lightView;
-  this->_createRTWMaskProgram->set("mvp",1,GL_FALSE,glm::value_ptr(mvp));
+  this->_createRTWMaskProgram->set("mvp",1,GL_FALSE,(const float*)glm::value_ptr(mvp));
 
   this->_createRTWMaskProgram->set("shadowMapSize",GETUINT(RESOLUTION));
   this->_sumX->bind(GL_TEXTURE0);

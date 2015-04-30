@@ -22,6 +22,8 @@ class CComputeSides
     ge::gl::VertexArrayObject* _vao;
     SAdjecency*                _adjacency;
     unsigned                   _workGroupSize;
+    unsigned                   _maxMult;
+    unsigned                   _nofEdges;
   public:
     CComputeSides(SAdjecency*Adjacency,unsigned WorkGroupSize,bool CullSides);
     virtual ~CComputeSides();

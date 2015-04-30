@@ -154,7 +154,7 @@ CGeometryCaps::~CGeometryCaps(){
 void CGeometryCaps::DrawCaps(float*mvp,simulation::Light*Light){
   if(this->Universal){
     this->UProgram->use();
-    this->UProgram->set("mvp",1,GL_FALSE,mvp);
+    this->UProgram->set("mvp",1,GL_FALSE,(const float*)mvp);
     this->UProgram->set("LightPosition",1,glm::value_ptr(Light->position));
     this->UVAO->bind();
     glDrawArrays(GL_POINTS,0,this->Adjacency->NumEdges);

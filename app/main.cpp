@@ -262,9 +262,8 @@ CubeShadowMappingTemplate cubeShadowMappingParam,cubeShadowMappingParamLast;
 simulation::SimulationData*simData=NULL;
 
 int main(int Argc,char*Argv[]){
-
   //*
-  ge::util::ArgumentLoader*argLoader;
+  ge::util::ArgumentLoader*argLoader=NULL;
   try{
     argLoader=new ge::util::ArgumentLoader(Argc,Argv);
   }catch(std::string&e){
@@ -291,8 +290,26 @@ int main(int Argc,char*Argv[]){
 
   Args=new ge::util::ArgumentObject(Argc,Argv);
 
-  ModelFile          = Args->getArg("-m","models/ot/ot.obj");
+  ModelFile          = Args->getArg("-m","models/o/o.3ds");
+  //ModelFile          = Args->getArg("-m","models/2quads/2quads.obj");
+  //ModelFile          = Args->getArg("-m","models/2_3quads/2_3quads.obj");
+
+  //ModelFile          = Args->getArg("-m","/media/old/home/dormon/Plocha/sponza/sponza.obj");
+
 //  ModelFile          = Args->getArg("-m","/home/dormon/Plocha/ot/o.obj");
+//  ModelFile          = Args->getArg("-m","/home/dormon/Desktop/sphere_2_9999.obj");
+//  ModelFile          = Args->getArg("-m","/home/dormon/Desktop/sphere_4_9999.obj");
+//  ModelFile          = Args->getArg("-m","/home/dormon/Desktop/sphere_6_9999.obj");
+
+//  ModelFile          = Args->getArg("-m","/home/dormon/Desktop/sphere_2_19998.obj");
+//  ModelFile          = Args->getArg("-m","/home/dormon/Desktop/sphere_2_30000.obj");
+//  ModelFile          = Args->getArg("-m","/home/dormon/Desktop/sphere_2_39999.obj");
+//  ModelFile          = Args->getArg("-m","/home/dormon/Desktop/sphere_2_49998.obj");
+//  ModelFile          = Args->getArg("-m","/home/dormon/Desktop/sphere_8_90000.obj");
+//
+//  ModelFile          = Args->getArg("-m","/home/dormon/Desktop/triangle_1_9999.obj");
+//  ModelFile          = Args->getArg("-m","/home/dormon/Desktop/triangle_9_90000.obj");
+
 
 
   ShaderDir          = Args->getArg("--shader-directory","shaders/");
@@ -449,7 +466,6 @@ int main(int Argc,char*Argv[]){
       CameraParam.Fovy);
   cameraConfiguration->getCamera()->down(15);*/
 
-  std::cerr<<"ano\n";
   //if(TestParam.Test)TestInit();
   //else
   init();
@@ -642,7 +658,15 @@ void idle(){
   framecount++;
 }
 
+
 void init(){
+  /*
+  ge::gl::TextureObject*tex=new ge::gl::TextureObject(GL_TEXTURE_3D,GL_RGBA32F,2,32,32,32);
+  std::cerr<<tex->getInfo();
+  exit(0);
+  */
+
+
   MergeQuery=new ge::gl::AsynchronousQueryObject(GL_TIME_ELAPSED,GL_QUERY_RESULT_NO_WAIT,ge::gl::AsynchronousQueryObject::UINT64);
   gbufferQuery          = new ge::gl::AsynchronousQueryObject(MergeQuery);
   programPipeline=new ge::gl::ProgramPipelineObject();
@@ -663,6 +687,9 @@ void init(){
   InitDrawStencilToTexture();
 
   InitModel(ModelFile.c_str());
+  std::cerr<<"NumTriangles: "<<ModelAdjacency.NumTriangles<<std::endl;
+  std::cerr<<"NumEdges: "<<ModelAdjacency.NumEdges<<std::endl;
+  std::cerr<<"MaxMultiplicity: "<<ModelAdjacency.MaxOpposite<<std::endl;
   objconf::setCameraAntTweakBar();
   objconf::setLightAntTweakBar();
   //objconf::setCameraPathAntTweakBar();
@@ -792,10 +819,10 @@ void DrawScene(){
 }
 
 void ShaderSetMatrix(ge::gl::ProgramObject*P){
-  P->set("m",1,GL_FALSE,glm::value_ptr(Model));
-  P->set("v",1,GL_FALSE,glm::value_ptr(View));
-  P->set("p",1,GL_FALSE,glm::value_ptr(Projection));
-  P->set("mvp",1,GL_FALSE,glm::value_ptr(mvp));
+  P->set("m",1,GL_FALSE,(const float*)glm::value_ptr(Model));
+  P->set("v",1,GL_FALSE,(const float*)glm::value_ptr(View));
+  P->set("p",1,GL_FALSE,(const float*)glm::value_ptr(Projection));
+  P->set("mvp",1,GL_FALSE,(const float*)glm::value_ptr(mvp));
 }
 
 void DrawGBuffer(){
@@ -804,9 +831,10 @@ void DrawGBuffer(){
   sceneDIBO    ->bindBase(GL_SHADER_STORAGE_BUFFER,FRUSTUMCULLING_BINDING_DIBO);
   sceneAABBData->bindBase(GL_SHADER_STORAGE_BUFFER,FRUSTUMCULLING_BINDING_AABB);
   frustumCullingProgram->set("numAABB",(unsigned)sceneDIBOSize);
-  frustumCullingProgram->set("mvp",1,GL_FALSE,glm::value_ptr(mvp));
+  frustumCullingProgram->set("mvp",1,GL_FALSE,(const float*)glm::value_ptr(mvp));
   glDispatchCompute(sceneDIBOSize/FRUSTUMCULLING_WORKGROUP_SIZE_X+1,1,1);
   glMemoryBarrier(GL_ALL_BARRIER_BITS);
+
   // */
   deferred_EnableFBO(&Deferred);
   deferred_SetTextures(&Deferred);

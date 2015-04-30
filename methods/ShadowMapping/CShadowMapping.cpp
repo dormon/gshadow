@@ -74,7 +74,7 @@ void CShadowMapping::createShadowMask(){
 
   GETGPUGAUGE(MEASURE_CREATESHADOWMASK)->begin();
   this->_createShadowMask->use();
-  this->_createShadowMask->set("BPV",1,GL_FALSE,glm::value_ptr(this->_bpv));
+  this->_createShadowMask->set("BPV",1,GL_FALSE,(const float*)glm::value_ptr(this->_bpv));
   GETTEXTURE(GBUFFER_POSITION)->bind(GL_TEXTURE0);
   this->_shadowMap->bind(GL_TEXTURE1);
   this->_shadowMaskFBO->bind();

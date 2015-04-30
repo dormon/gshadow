@@ -1,24 +1,47 @@
 #include"CGeometryCapsAlt.hpp"
 
+#define FAST_ADJACENCY
+
 CGeometryCapsAlt::CGeometryCapsAlt(
-    SAdjecency*Adjacency){
+    SAdjecency*Adj){
   //std::cerr<<"################################## new GeometryCapsAlt sides"<<std::endl;
-  this->Adjacency=Adjacency;
+  this->_adjacency=Adj;
   this->VAO=new ge::gl::VertexArrayObject();
 
+
+#ifdef FAST_ADJACENCY
+  Adjacency*ad=this->_adjacency->adj;
+  this->_nofTriangles=ad->getNofTriangles();;
   this->VBO=new ge::gl::BufferObject(
-      sizeof(float)*4*3*this->Adjacency->NumTriangles,
+      sizeof(float)*4*3*this->_nofTriangles,
       NULL,GL_STATIC_DRAW);
   float*Ptr=(float*)this->VBO->map();
-	for(unsigned t=0;t<this->Adjacency->NumTriangles;++t){
-		for(unsigned p=0;p<3;++p){
-			for(unsigned i=0;i<3;++i)
-				Ptr[(t*3+p)*4+i]=
-          this->Adjacency->Points[this->Adjacency->Triangles[t*3+p]*3+i];
-			Ptr[(t*3+p)*4+3]=1;
-		}
-	}
+  //std::cerr<<"CGeometryCapsAlt\n";
+  for(unsigned t=0;t<this->_nofTriangles;++t){
+    for(unsigned p=0;p<3;++p){
+      for(unsigned i=0;i<3;++i)
+        Ptr[(t*3+p)*4+i]=ad->getVertices()[(t*3+p)*3+i];
+      Ptr[(t*3+p)*4+3]=1;
+    }
+  }
+
   this->VBO->unmap();
+#else//FAST_ADJACENCY
+  this->_nofTriangles=this->_adjacency->NumTriangles;
+  this->VBO=new ge::gl::BufferObject(
+      sizeof(float)*4*3*this->_nofTriangles,
+      NULL,GL_STATIC_DRAW);
+  float*Ptr=(float*)this->VBO->map();
+  for(unsigned t=0;t<this->_nofTriangles;++t){
+    for(unsigned p=0;p<3;++p){
+      for(unsigned i=0;i<3;++i)
+        Ptr[(t*3+p)*4+i]=
+          this->_adjacency->Points[this->_adjacency->Triangles[t*3+p]*3+i];
+      Ptr[(t*3+p)*4+3]=1;
+    }
+  }
+  this->VBO->unmap();
+#endif//FAST_ADJACENCY
 
   this->Program=new ge::gl::ProgramObject(
       ShaderDir+"methods/GeometryCapsAlt/geometrycaps.vp",
@@ -27,7 +50,7 @@ CGeometryCapsAlt::CGeometryCapsAlt(
 
   //this->VAO->AddAttrib(this->VBO,this->Program,"Position");
 
-  
+
   this->VAO->bind();
   this->VBO->bind(GL_ARRAY_BUFFER);
   glEnableVertexAttribArray(0);
@@ -40,10 +63,10 @@ CGeometryCapsAlt::CGeometryCapsAlt(
 
 void CGeometryCapsAlt::DrawCaps(float*mvp,simulation::Light*Light){
   this->Program->use();
-  this->Program->set("mvp",1,GL_FALSE,mvp);
+  this->Program->set("mvp",1,GL_FALSE,(const float*)mvp);
   this->Program->set("LightPosition",1,glm::value_ptr(Light->position));
   this->VAO->bind();
-  glDrawArrays(GL_TRIANGLES,0,this->Adjacency->NumTriangles*3);
+  glDrawArrays(GL_TRIANGLES,0,this->_nofTriangles*3);
 }
 
 CGeometryCapsAlt::~CGeometryCapsAlt(){
