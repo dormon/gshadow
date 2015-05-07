@@ -1,5 +1,6 @@
 #include"NavyMapping.h"
 
+#include"../../GPUPerfApi/GpuPerfApi.h"
 #include"../ShadowMapping/createsm.h"
 
 #define CLASSNAME NavyMapping
@@ -19,6 +20,7 @@ DEFVARSSTART
   "light",
   "gbuffer.position",
   "shadowMask",
+  "gpa",
   "nv.program.VS.WORKGROUP_SIZE_X",
   "nv.program.VS.WORKGROUP_SIZE_Y",
   "nv.program.FDV.WORKGROUP_SIZE_X",
@@ -51,6 +53,7 @@ DEFVARSIDSTART
   LIGHT,
   GBUFFER_POSITION,
   SHADOWMASK,
+  GPA,
   VS_SIZE_X,
   VS_SIZE_Y,
   FDV_SIZE_X,
@@ -354,6 +357,15 @@ void NavyMapping::_fastCreateDV(){
   glDispatchCompute(this->_dvsWorkSize[0].x,this->_dvsWorkSize[0].y,1);
   glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
+/*
+  NDormon::GpuPerfApi*gpa=(NDormon::GpuPerfApi*)GETOBJECT(GPA);
+  std::cerr<<gpa->getResults([](void*A){
+      NavyMapping*_this= ((NavyMapping*)A);
+        glDispatchCompute(_this->_dvsWorkSize[0].x,_this->_dvsWorkSize[0].y,1);
+      },this)<<std::endl;
+  */
+  //return;
+
   this->_fastdvProgram->use();
   for(unsigned i=0;i<this->_dvsTex.size()-1;++i){
     this->_dvsTex[i+0]->bindImage(0,0);
@@ -362,6 +374,22 @@ void NavyMapping::_fastCreateDV(){
     glDispatchCompute(this->_dvsWorkSize[i+1].x,this->_dvsWorkSize[i+1].y,1);
     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
   }
+
+  /*
+  NDormon::GpuPerfApi*gpa=(NDormon::GpuPerfApi*)GETOBJECT(GPA);
+  std::cerr<<gpa->getResults([](void*A){
+    NavyMapping*_this=(NavyMapping*)A;
+    _this->_fastdvProgram->use();
+    for(unsigned i=0;i<_this->_dvsTex.size()-1;++i){
+      _this->_dvsTex[i+0]->bindImage(0,0);
+      _this->_dvsTex[i+1]->bindImage(1,0);
+      _this->_fastdvProgram->set("windowSize",_this->_dvsWorkSize[i].x,_this->_dvsWorkSize[i].y);
+      glDispatchCompute(_this->_dvsWorkSize[i+1].x,_this->_dvsWorkSize[i+1].y,1);
+      glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+    }
+  },this)<<std::endl;
+  */
+
   /*float data[4]={0,0,0,0};
     glBindTexture(GL_TEXTURE_2D,this->_dvsTex[this->_dvsTex.size()-1]->getId());
     glGetTexImage(GL_TEXTURE_2D,0,GL_RGBA,GL_FLOAT,data);
@@ -447,11 +475,11 @@ void NavyMapping::_unwarp(){
   this->_unwarpProgram->use();
   this->_unwarpProgram->set("shadowMapSize",GETUINT(RESOLUTION));
   this->_unwarpProgram->set("windowSize",winSize.x,winSize.y);
+
   this->_setNVParam(this->_unwarpProgram);
-  
-  this->_dvsTex[this->_dvsTex.size()-1]->bindImage(2,0);
+
   //this->_smoothX->bind(GL_TEXTURE3);
-  
+
   unsigned workSizex=winSize.x/GETUINT(FDV_SIZE_X)+1;
   unsigned workSizey=winSize.y/GETUINT(FDV_SIZE_Y)+1;
   glDispatchCompute(workSizex,workSizey,1);
@@ -471,12 +499,11 @@ void NavyMapping::_unwarpAll(){
   this->_uallProgram->set("shadowMapSize",GETUINT(RESOLUTION));
   this->_uallProgram->set("windowSize",winSize.x,winSize.y);
 
-  this->_dvsTex[this->_dvsTex.size()-1]->bindImage(2,0);
   this->_setNVParam(this->_uallProgram);
   /*
-  this->_smoothX->bind(GL_TEXTURE3);
-  this->_smoothY->bind(GL_TEXTURE4);
-  */
+     this->_smoothX->bind(GL_TEXTURE3);
+     this->_smoothY->bind(GL_TEXTURE4);
+     */
 
   unsigned workSizex=winSize.x/GETUINT(FDV_SIZE_X)+1;
   unsigned workSizey=winSize.y/GETUINT(FDV_SIZE_Y)+1;
@@ -494,13 +521,12 @@ void NavyMapping::drawGrid(float x,float y,float sx,float sy){
   this->_drawGridProgram->use();
   this->_drawGridProgram->set("shadowMapSize",GETUINT(RESOLUTION));
 
-  this->_dvsTex[this->_dvsTex.size()-1]->bindImage(2,0);
 
   this->_setNVParam(this->_drawGridProgram);
   /*
-  this->_smoothX->bind(GL_TEXTURE3);
-  this->_smoothY->bind(GL_TEXTURE4);
-  */
+     this->_smoothX->bind(GL_TEXTURE3);
+     this->_smoothY->bind(GL_TEXTURE4);
+     */
   this->_emptyVAO->bind();
   glPatchParameteri(GL_PATCH_VERTICES,1);
   glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
@@ -519,7 +545,6 @@ void NavyMapping::_createNVMap(){
   this->_createNVMapProgram->set("tessFactor",GETUINT(TESS_FACTOR));
 
   this->_setNVParam(this->_createNVMapProgram);
-  this->_dvsTex[this->_dvsTex.size()-1]->bindImage(2,0);
 
   this->_fbo->bind();
   glColorMask(GL_FALSE,GL_FALSE,GL_FALSE,GL_FALSE);
@@ -556,7 +581,6 @@ void NavyMapping::_createNVMask(){
   this->_createNVMaskProgram->set("shadowMapSize",GETUINT(RESOLUTION));
 
   this->_setNVParam(this->_createNVMaskProgram);
-  this->_dvsTex[this->_dvsTex.size()-1]->bindImage(2,0);
 
   GETTEXTURE(GBUFFER_POSITION)->bind(GL_TEXTURE0);
   this->_shadowMap->bind(GL_TEXTURE1);

@@ -24,6 +24,7 @@ class CComputeSides
     unsigned                   _workGroupSize;
     unsigned                   _maxMult;
     unsigned                   _nofEdges;
+    ge::gl::CommandList*       _computeList;
   public:
     CComputeSides(SAdjecency*Adjacency,unsigned WorkGroupSize,bool CullSides);
     virtual ~CComputeSides();

@@ -49,6 +49,7 @@ ge::util::ArgumentObject*Args;
 ge::util::CameraPath*CameraMation;
 std::string CameraMationFile="sponzaprulet";
 
+ge::util::FPSPrinter*fpsPrinter;
 
 CGeometryCaps        *GeometryCaps         = NULL;
 CGeometryCapsAlt     *GeometryCapsAlt      = NULL;
@@ -180,7 +181,7 @@ glm::mat4 mvp;
 
 ge::util::WindowObject*Window;
 
-NDormon::CGpuPerfApi*GPA;
+NDormon::GpuPerfApi*GPA=NULL;
 bool GPAavalable=true;
 
 unsigned framecount=0;
@@ -290,11 +291,19 @@ int main(int Argc,char*Argv[]){
 
   Args=new ge::util::ArgumentObject(Argc,Argv);
 
+ // ModelFile          = Args->getArg("-m","models/o/o.3ds");
+  //ModelFile          = Args->getArg("-m","/home/dormon/Desktop/hairball.obj");
+
   ModelFile          = Args->getArg("-m","models/o/o.3ds");
+
   //ModelFile          = Args->getArg("-m","models/2quads/2quads.obj");
   //ModelFile          = Args->getArg("-m","models/2_3quads/2_3quads.obj");
 
-  //ModelFile          = Args->getArg("-m","/media/old/home/dormon/Plocha/sponza/sponza.obj");
+ // ModelFile          = Args->getArg("-m","/media/old/home/dormon/Plocha/sponza/sponza.obj");
+  //ModelFile          = Args->getArg("-m","/home/dormon/Desktop/koule_10000_1x1.obj");
+  //ModelFile          = Args->getArg("-m","/home/dormon/Desktop/powerplant/powerplant.obj");
+
+
 
 //  ModelFile          = Args->getArg("-m","/home/dormon/Plocha/ot/o.obj");
 //  ModelFile          = Args->getArg("-m","/home/dormon/Desktop/sphere_2_9999.obj");
@@ -419,7 +428,6 @@ int main(int Argc,char*Argv[]){
   SintornParamLast.ShadowFrustaPerWorkGroup++;
 
   delete Args;
-
   Window=new ge::util::WindowObject(
       windowParam.size[0],
       windowParam.size[1],
@@ -441,8 +449,8 @@ int main(int Argc,char*Argv[]){
   }
 
   try{
-    GPA=new NDormon::CGpuPerfApi(Window->getContext());
-    GPA->EnableComputeShader();
+    GPA=new NDormon::GpuPerfApi(Window->getContext());
+    GPA->enableComputeShader();
   }catch(std::string&e){
     std::cerr<<e<<std::endl;
     GPAavalable=false;
@@ -451,23 +459,12 @@ int main(int Argc,char*Argv[]){
   ge::gl::setHighDebugMessage();
 
   EmptyVAO=new ge::gl::VertexArrayObject();
-  //todo addAttrib
 
   glEnable(GL_DEPTH_TEST);
   glDepthFunc(GL_LEQUAL);
   glDisable(GL_CULL_FACE);
 
-  //create camera
-  /*
-  Camera=new ge::util::CameraObject(
-      windowParam.size,
-      CameraParam.Near,
-      CameraParam.Far,
-      CameraParam.Fovy);
-  cameraConfiguration->getCamera()->down(15);*/
 
-  //if(TestParam.Test)TestInit();
-  //else
   init();
   Window->mainLoop();
 
@@ -496,23 +493,7 @@ void Mouse(){
 void Wheel(int d){
 }
 
-float Elapsed=0;
-float framelen=0;
-int FPS=0;
 float Speed=.5f;
-int Num=0;
-int Lapsed=0;
-
-bool AfterGLInit=false;
-float MeasureTime=0;
-float InitTime=0;
-unsigned FrameCount=0;
-unsigned StencilMeasurements=0;
-unsigned ComputeMeasurements=0;
-unsigned LastStencilMeasurement=0;
-unsigned LastComputeMeasurement=0;
-unsigned long long StencilMeasurementAccum=0;
-unsigned long long ComputeMeasurementAccum=0;
 
 bool Linked=false;
 
@@ -548,24 +529,6 @@ void drawDiffuseSpecular(bool useShadows,simulation::Light*L){
 glm::mat4 camView=glm::mat4(1.f),camProj=glm::perspective(1.5f,1.f,1.f,1000.f);
 
 void idle(){
-  Elapsed+=Window->getDeltaIdleTime();
-  framelen+=Window->getDeltaIdleTime();
-  float PerNumSecond=1;
-  if(Elapsed>=PerNumSecond){
-    FPS=framecount/PerNumSecond;
-    cout<<"PerFrame: "<<framelen/framecount*1000<<" miliseconds"<<endl;
-    framelen=0;
-    framecount=0;
-    Elapsed=0;
-    if(QueryTimePassed>0){
-      Num++;
-      Lapsed+=QueryTimePassed;
-    }
-    std::cerr<<"GBuffer creation:     "<<gbufferQuery->getui64()         <<std::endl;
-  }
-  Uint32 Curr=SDL_GetTicks();
-  Diff=Curr-Last;
-  Last=Curr;
 
   cameraConfiguration->getCamera()->right  ((Window->isKeyDown('d')-Window->isKeyDown('a'))*Speed);
   cameraConfiguration->getCamera()->up     ((Window->isKeyDown(' ')-Window->isKeyDown('c'))*Speed);
@@ -655,18 +618,11 @@ void idle(){
 
 
   Window->swap();
-  framecount++;
+  fpsPrinter->endOfFrame();
 }
 
 
 void init(){
-  /*
-  ge::gl::TextureObject*tex=new ge::gl::TextureObject(GL_TEXTURE_3D,GL_RGBA32F,2,32,32,32);
-  std::cerr<<tex->getInfo();
-  exit(0);
-  */
-
-
   MergeQuery=new ge::gl::AsynchronousQueryObject(GL_TIME_ELAPSED,GL_QUERY_RESULT_NO_WAIT,ge::gl::AsynchronousQueryObject::UINT64);
   gbufferQuery          = new ge::gl::AsynchronousQueryObject(MergeQuery);
   programPipeline=new ge::gl::ProgramPipelineObject();
@@ -710,7 +666,6 @@ void init(){
 
   TwBar*Bar;
   Bar=TwNewBar("TweakBar");
-  TwAddVarRO(Bar,"FPS"    ,TW_TYPE_INT32  ,&FPS       ," label='FPS' help='Frames per second' "         );
   TwAddVarRW(Bar,"Speed"  ,TW_TYPE_FLOAT  ,&Speed     ," label='Movement speed' min=0 max=2 step=0.01"  );
   TwAddVarRW(Bar,"SSAO"   ,TW_TYPE_BOOLCPP,&SSAOEnable," help='Toggle screenspace ambient occlussion.' ");
   TwAddVarRW(Bar,"Shadows",TW_TYPE_BOOLCPP,&SSEnable  ," help='Toggle shadows on.' "                    );
@@ -745,6 +700,7 @@ void init(){
   simData->insertVariable("gbuffer.position",new simulation::Object(Deferred.position));
   simData->insertVariable("gbuffer.fbo"     ,new simulation::Object(Deferred.fbo     ));
   simData->insertVariable("gbuffer.stencil" ,new simulation::Object(Deferred.depth ));
+  simData->insertVariable("gpa"             ,new simulation::Object(GPA            ));
   simData->insertVariable("computeMethod.program.WORKGROUPSIZE", new simulation::Int(64));
   simData->insertVariable("computeMethod.program.CULL_SIDE", new simulation::Bool(true));
   simData->insertVariable("measure.computeGeometry.computeSides",new simulation::GpuGauge());
@@ -796,6 +752,9 @@ void init(){
       TessellationParam.CullSides,
       TessellationParam.UseStencilValueExport);
   GeometryCapsAlt=new CGeometryCapsAlt(&ModelAdjacency);
+
+  fpsPrinter = new ge::util::FPSPrinter(200);
+  fpsPrinter->start();
 }
 
 
@@ -987,19 +946,19 @@ void DrawSintorn(simulation::Light*L){
 
   if(Window->isKeyOn('b')){
     if(GPAavalable){
-      GPA->BeginSession();
-      for(unsigned p=0;p<GPA->GetNumPasses();++p){
-        GPA->BeginPass();
+      GPA->beginSession();
+      for(unsigned p=0;p<GPA->getNumPasses();++p){
+        GPA->beginPass();
 
-        GPA->BeginSample(0);
+        GPA->beginSample(0);
         Sintorn->GenerateHierarchyTexture(Deferred.depth->getId(),Deferred.normal->getId(),glm::value_ptr(L->position));
         //Sintorn->GenerateHierarchy(Deferred.depth->getId(),Deferred.normal->getId(),L->Position);
-        GPA->EndSample();
+        GPA->endSample();
 
-        GPA->EndPass();
+        GPA->endPass();
       }
-      GPA->EndSession();
-      std::cerr<<GPA->GetResults()<<std::endl;
+      GPA->endSession();
+      std::cerr<<GPA->getResults()<<std::endl;
     }
   }else{
 
@@ -1025,21 +984,21 @@ void DrawSintorn(simulation::Light*L){
   //
   if(Window->isKeyOn('n')){
     if(GPAavalable){
-      GPA->BeginSession();
-      for(unsigned p=0;p<GPA->GetNumPasses();++p){
-        GPA->BeginPass();
+      GPA->beginSession();
+      for(unsigned p=0;p<GPA->getNumPasses();++p){
+        GPA->beginPass();
 
-        GPA->BeginSample(0);
+        GPA->beginSample(0);
 
         Sintorn->RasterizeTexture();
         //Sintorn->Rasterize();
 
-        GPA->EndSample();
+        GPA->endSample();
 
-        GPA->EndPass();
+        GPA->endPass();
       }
-      GPA->EndSession();
-      std::cerr<<GPA->GetResults()<<std::endl;
+      GPA->endSession();
+      std::cerr<<GPA->getResults()<<std::endl;
     }
   }else{
     //*
@@ -1172,19 +1131,19 @@ void DrawComputeSOE(simulation::Light*Light){
 
   if(Window->isKeyOn('n')){
     if(GPAavalable){
-      GPA->BeginSession();
-      for(unsigned p=0;p<GPA->GetNumPasses();++p){
-        GPA->BeginPass();
+      GPA->beginSession();
+      for(unsigned p=0;p<GPA->getNumPasses();++p){
+        GPA->beginPass();
 
-        GPA->BeginSample(0);
+        GPA->beginSample(0);
         ComputeSidesSOE->ComputeSides(glm::value_ptr(mvp),Light);
 
-        GPA->EndSample();
+        GPA->endSample();
 
-        GPA->EndPass();
+        GPA->endPass();
       }
-      GPA->EndSession();
-      std::cerr<<GPA->GetResults()<<std::endl;
+      GPA->endSession();
+      std::cerr<<GPA->getResults()<<std::endl;
     }
   }else
     ComputeSidesSOE->ComputeSides(glm::value_ptr(mvp),Light);
@@ -1403,18 +1362,12 @@ void InitModel(const char* File){
   sceneAABBData->unmap();
   sceneDIBO->unmap();
 
-  std::cerr<<"AABB number: "<<sceneBB.size()<<std::endl;
-  try{
-    frustumCullingProgram=new ge::gl::ProgramObject(
-        ShaderDir+"app/frustumCulling.comp",
-        ge::gl::ShaderObject::define("FRUSTUMCULLING_BINDING_DIBO"    ,FRUSTUMCULLING_BINDING_DIBO    )+
-        ge::gl::ShaderObject::define("FRUSTUMCULLING_BINDING_AABB"    ,FRUSTUMCULLING_BINDING_AABB    )+
-        ge::gl::ShaderObject::define("FRUSTUMCULLING_WORKGROUP_SIZE_X",FRUSTUMCULLING_WORKGROUP_SIZE_X)+
-        "");
-  }catch(std::string&e){
-    std::cerr<<e<<std::endl;
-  }
-
+  frustumCullingProgram=new ge::gl::ProgramObject(
+      ShaderDir+"app/frustumCulling.comp",
+      ge::gl::ShaderObject::define("FRUSTUMCULLING_BINDING_DIBO"    ,FRUSTUMCULLING_BINDING_DIBO    )+
+      ge::gl::ShaderObject::define("FRUSTUMCULLING_BINDING_AABB"    ,FRUSTUMCULLING_BINDING_AABB    )+
+      ge::gl::ShaderObject::define("FRUSTUMCULLING_WORKGROUP_SIZE_X",FRUSTUMCULLING_WORKGROUP_SIZE_X)+
+      "");
 
   SceneBuffer->unmap();
 
@@ -1425,20 +1378,7 @@ void InitModel(const char* File){
   sceneVAO->addAttrib(SceneBuffer,0,3,GL_FLOAT,sizeof(float)*6,(GLvoid*)(sizeof(float)*0));
   sceneVAO->addAttrib(SceneBuffer,1,3,GL_FLOAT,sizeof(float)*6,(GLvoid*)(sizeof(float)*3));
 
-  /*
-     SceneBuffer->bind(GL_ARRAY_BUFFER);
-     glEnableVertexAttribArray(0);
-     glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,
-     sizeof(float)*6,(GLvoid*)(sizeof(float)*0));
-
-     glEnableVertexAttribArray(1);
-     glVertexAttribPointer(1,3,GL_FLOAT,GL_FALSE,
-     sizeof(float)*6,(GLvoid*)(sizeof(float)*3));
-
-     glBindVertexArray(0);
-     */
   ComputeAdjacency(&ModelAdjacency,RawTriangles,SceneNumTriangles);
-
 }
 
 void destroy(){

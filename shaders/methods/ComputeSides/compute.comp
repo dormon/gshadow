@@ -1,17 +1,5 @@
 #version 430 core
 
-#ifndef BINDING_IBUFFER
-#define BINDING_IBUFFER 0
-#endif//BINDING_IBUFFER
-
-#ifndef BINDING_OBUFFER
-#define BINDING_OBUFFER 1
-#endif//BINDING_OBUFFER
-
-#ifndef BINDING_COUNTER
-#define BINDING_COUNTER 2
-#endif//BINDING_COUNTER
-
 #ifndef MAX_MULTIPLICITY
 #define MAX_MULTIPLICITY 4
 #endif//MAX_MULTIPLICITY
@@ -23,9 +11,9 @@
 
 layout(local_size_x=WORKGROUP_SIZE_X)in;
 
-layout(std430,binding=BINDING_IBUFFER)buffer SInput  {vec4 IBuffer[];};
-layout(std430,binding=BINDING_OBUFFER)buffer SOutput {vec4 OBuffer[];};
-layout(std430,binding=BINDING_COUNTER)buffer SCounter{uint Counter[];};
+layout(std430,binding=4)buffer SInput  {vec4 IBuffer[];};
+layout(std430,binding=5)buffer SOutput {vec4 OBuffer[];};
+layout(std430,binding=6)buffer SCounter{uint Counter[];};
 
 
 uniform uint NumEdge=0;

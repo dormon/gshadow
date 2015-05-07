@@ -37,15 +37,14 @@ using namespace std;
 
 //#include"CLight.hpp"
 
-#include<geGL/BufferObject.h>
-#include<geGL/ProgramObject.h>
-#include<geGL/VertexArrayObject.h>
-#include<geGL/AsynchronousQueryObject.h>
-#include<geGL/DebugMessage.h>
+#include<geGL/geGL.h>
+#include<geGL/UniformCommands.h>
+#include<geGL/ProgramCommands.h>
 
 #include<geUtil/WindowObject.h>
 #include<geUtil/ArgumentObject.h>
-#include"../GPUPerfApi/CGpuPerfApi.hpp"
+#include<geUtil/FPSPrinter.h>
+#include"../GPUPerfApi/GpuPerfApi.h"
 
 #include"CGenerateGeometryShaderSilhouette.hpp"
 #include"CGenerateVertexShaderSilhouette.hpp"
