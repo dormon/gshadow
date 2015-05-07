@@ -505,7 +505,7 @@ bool ConvexHullSilhouette::isSilhouette(ConvexHullPointLineSegments hull,unsigne
 ConvexHullSilhouette::ConvexHullSilhouette(ConvexHullPointLineSegments hull,glm::vec3 light){
   this->light=light;
   unsigned prevUniq;
-  unsigned actUniq;
+  unsigned actUniq=0;
   std::vector<bool>used;
   for(unsigned u=0;u<hull.uniqPoints.size();++u)used.push_back(false);
 
@@ -602,7 +602,7 @@ MinFrustumPlanes::MinFrustumPlanes(ConvexHullSilhouette hull){
       else break;
     }
 
-    unsigned tIndex;
+    unsigned tIndex=0;
     for(unsigned i=0;i<hull.lineLoop.size();++i){
       if(i==l)continue;
       glm::vec3 d=hull.points[hull.lineLoop[i]];
