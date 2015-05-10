@@ -132,27 +132,23 @@ void NavyMapping::createShadowMask(GLuint mask){
 
 NavyMapping::NavyMapping(simulation::SimulationData*data):simulation::SimulationObject(data){
   this->_simulationData->registerUser(this);
-  this->_shadowMap = NULL;
-  this->_fbo       = NULL;
+  this->_shadowMap     = NULL;
+  this->_fbo           = NULL;
   this->_shadowMaskFBO = NULL;
-  this->_emptyVAO  = new ge::gl::VertexArrayObject();
+  this->_emptyVAO      = new ge::gl::VertexArrayObject();
   this->_computeMatrices   ();
   this->_createShadowMap   ();
   this->_createShadowMapFBO();
 
-  //NAVY MAP
-  this->_viewSamples = new ge::gl::TextureObject(GL_TEXTURE_2D,GL_RG32F,1,
-      GETUVEC2(WINDOWSIZE).x,GETUVEC2(WINDOWSIZE).y);
-  this->_viewSamplesProgram = new ge::gl::ProgramObject(
-      GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/viewSamples.comp",
-      this->_simulationData->define("nv.program.VS"));
+  std::string dir=GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/";
+  std::string dvnv=ge::gl::ShaderObject::include(dir+"dv.vp")+ge::gl::ShaderObject::include(dir+"nv.vp");
 
-  this->_fastdv0Program = new ge::gl::ProgramObject(
-      GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/fastdv0.comp",
-      this->_simulationData->define("nv.program.FDV"));
-  this->_fastdvProgram = new ge::gl::ProgramObject(
-      GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/fastdv.comp",
-      this->_simulationData->define("nv.program.FDV"));
+  //NAVY MAP
+  this->_viewSamples = new ge::gl::TextureObject(GL_TEXTURE_2D,GL_RG32F,1,GETUVEC2(WINDOWSIZE).x,GETUVEC2(WINDOWSIZE).y);
+  this->_viewSamplesProgram = new ge::gl::ProgramObject(dir+"viewSamples.comp",this->_simulationData->define("nv.program.VS"));
+
+  this->_fastdv0Program = new ge::gl::ProgramObject(dir+"fastdv0.comp",this->_simulationData->define("nv.program.FDV"));
+  this->_fastdvProgram  = new ge::gl::ProgramObject(dir+"fastdv.comp" ,this->_simulationData->define("nv.program.FDV"));
 
   unsigned size[2]={
     this->_getDiv(GETUVEC2(WINDOWSIZE).x,GETUINT(FDV_SIZE_X)),
@@ -167,93 +163,50 @@ NavyMapping::NavyMapping(simulation::SimulationData*data):simulation::Simulation
   this->_dvsWorkSize.push_back(glm::uvec2(1u,1u));
   this->_dvsTex.push_back(new ge::gl::TextureObject(GL_TEXTURE_2D,GL_RGBA32F,1,1,1));
 
-  this->_countMapX = new ge::gl::TextureObject(GL_TEXTURE_2D,GL_R32UI,1,GETUINT(RESOLUTION),GETUINT(RESOLUTION));
-  this->_countMapY = new ge::gl::TextureObject(GL_TEXTURE_2D,GL_R32UI,1,GETUINT(RESOLUTION),GETUINT(RESOLUTION));
+  auto create2DSquareTex=[](GLenum format,unsigned size){
+    return new ge::gl::TextureObject(GL_TEXTURE_2D,format,1,size,size);
+  };
+  auto setTexParam=[](ge::gl::TextureObject*t){
+    t->texParameteri(GL_TEXTURE_WRAP_S    ,GL_CLAMP_TO_EDGE);
+    t->texParameteri(GL_TEXTURE_WRAP_T    ,GL_CLAMP_TO_EDGE);
+    t->texParameteri(GL_TEXTURE_MIN_FILTER,GL_LINEAR       );
+    t->texParameteri(GL_TEXTURE_MAG_FILTER,GL_LINEAR)      ;
+  };
 
-  this->_fastCreateCountMapProgram = new ge::gl::ProgramObject(
-      GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/countMap.comp",
-      this->_simulationData->define("nv.program.COUNTMAP")+
-      ge::gl::ShaderObject::include(GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/dv.vp"));
+  this->_countMapX = create2DSquareTex(GL_R32UI,GETUINT(RESOLUTION));
+  this->_countMapY = create2DSquareTex(GL_R32UI,GETUINT(RESOLUTION));
 
-  this->_integratedX = new ge::gl::TextureObject(GL_TEXTURE_2D,GL_R32UI,1,GETUINT(RESOLUTION),GETUINT(RESOLUTION));
-  this->_integratedY = new ge::gl::TextureObject(GL_TEXTURE_2D,GL_R32UI,1,GETUINT(RESOLUTION),GETUINT(RESOLUTION));
+  this->_fastCreateCountMapProgram = new ge::gl::ProgramObject(dir+"countMap.comp",this->_simulationData->define("nv.program.COUNTMAP")+dvnv);
+
+  this->_integratedX = create2DSquareTex(GL_R32UI,GETUINT(RESOLUTION));
+  this->_integratedY = create2DSquareTex(GL_R32UI,GETUINT(RESOLUTION));
   this->_integratedXCount = new ge::gl::TextureObject(GL_TEXTURE_1D,GL_R32UI,1,GETUINT(RESOLUTION));
   this->_integratedYCount = new ge::gl::TextureObject(GL_TEXTURE_1D,GL_R32UI,1,GETUINT(RESOLUTION));
-  this->_integrateProgram = new ge::gl::ProgramObject(
-      GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/integrate.comp",
-      this->_simulationData->define("nv.program.INTEGRATE"));
-
-  this->_offsetX = new ge::gl::TextureObject(GL_TEXTURE_2D,GL_R32F,1,GETUINT(RESOLUTION),GETUINT(RESOLUTION));
-  this->_offsetX->texParameteri(GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
-  this->_offsetX->texParameteri(GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
-  this->_offsetX->texParameteri(GL_TEXTURE_MIN_FILTER,GL_LINEAR);
-  this->_offsetX->texParameteri(GL_TEXTURE_MAG_FILTER,GL_LINEAR);
-
-  this->_offsetY = new ge::gl::TextureObject(GL_TEXTURE_2D,GL_R32F,1,GETUINT(RESOLUTION),GETUINT(RESOLUTION));
-  this->_offsetY->texParameteri(GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
-  this->_offsetY->texParameteri(GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
-  this->_offsetY->texParameteri(GL_TEXTURE_MIN_FILTER,GL_LINEAR);
-  this->_offsetY->texParameteri(GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+  this->_integrateProgram = new ge::gl::ProgramObject(dir+"integrate.comp",this->_simulationData->define("nv.program.INTEGRATE"));
 
 
-  this->_offsetProgram = new  ge::gl::ProgramObject(
-      GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/offset.comp",
-      this->_simulationData->define("nv.program.OFFSET"));
+  this->_offsetX = create2DSquareTex(GL_R32F,GETUINT(RESOLUTION));
+  this->_offsetY = create2DSquareTex(GL_R32F,GETUINT(RESOLUTION));
+  setTexParam(this->_offsetX);
+  setTexParam(this->_offsetY);
+  this->_offsetProgram = new ge::gl::ProgramObject(dir+"offset.comp",this->_simulationData->define("nv.program.OFFSET"));
 
-  this->_smoothX = new ge::gl::TextureObject(GL_TEXTURE_2D,GL_R32F,1,GETUINT(RESOLUTION),GETUINT(RESOLUTION));
-  this->_smoothX->texParameteri(GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
-  this->_smoothX->texParameteri(GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
-  this->_smoothX->texParameteri(GL_TEXTURE_MIN_FILTER,GL_LINEAR);
-  this->_smoothX->texParameteri(GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+  this->_smoothX = create2DSquareTex(GL_R32F,GETUINT(RESOLUTION));
+  this->_smoothY = create2DSquareTex(GL_R32F,GETUINT(RESOLUTION));
+  setTexParam(this->_smoothX);
+  setTexParam(this->_smoothY);
+  this->_smoothProgram = new ge::gl::ProgramObject(dir+"smooth.comp",this->_simulationData->define("nv.program.SMOOTH"));
 
-  this->_smoothY = new ge::gl::TextureObject(GL_TEXTURE_2D,GL_R32F,1,GETUINT(RESOLUTION),GETUINT(RESOLUTION));
-  this->_smoothY->texParameteri(GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
-  this->_smoothY->texParameteri(GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
-  this->_smoothY->texParameteri(GL_TEXTURE_MIN_FILTER,GL_LINEAR);
-  this->_smoothY->texParameteri(GL_TEXTURE_MAG_FILTER,GL_LINEAR);
-
-
-  this->_smoothProgram = new  ge::gl::ProgramObject(
-      GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/smooth.comp",
-      this->_simulationData->define("nv.program.SMOOTH"));
-
-  this->_unwarpProgram = new ge::gl::ProgramObject(
-      GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/unwarp.comp",
-      this->_simulationData->define("nv.program.COUNTMAP")+
-      ge::gl::ShaderObject::include(GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/dv.vp")+
-      ge::gl::ShaderObject::include(GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/nv.vp"));
-
-  this->_drawGridProgram = new ge::gl::ProgramObject(
-      GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/drawgrid.vp",
-      GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/drawgrid.cp",
-      GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/drawgrid.ep",
-      ge::gl::ShaderObject::include(GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/dv.vp")+
-      ge::gl::ShaderObject::include(GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/nv.vp"),
-      GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/drawgrid.fp");
+  this->_unwarpProgram   = new ge::gl::ProgramObject(dir+"unwarp.comp",this->_simulationData->define("nv.program.COUNTMAP")+dvnv);
+  this->_drawGridProgram = new ge::gl::ProgramObject(dir+"drawgrid.vp",dir+"drawgrid.cp",dir+"drawgrid.ep",dvnv,dir+"drawgrid.fp");
 
   this->_uall = new ge::gl::TextureObject(GL_TEXTURE_2D,GL_R32UI,1,GETUINT(RESOLUTION),GETUINT(RESOLUTION));
-  this->_uallProgram = new ge::gl::ProgramObject(
-      GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/uall.comp",
-      this->_simulationData->define("nv.program.COUNTMAP")+
-      ge::gl::ShaderObject::include(GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/dv.vp")+
-      ge::gl::ShaderObject::include(GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/nv.vp"));
+  this->_uallProgram = new ge::gl::ProgramObject(dir+"uall.comp",this->_simulationData->define("nv.program.COUNTMAP")+dvnv);
 
-  this->_createNVMapProgram = new ge::gl::ProgramObject(
-      GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/createNVTS.vp",
-      GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/createNVTS.cp",
-      ge::gl::ShaderObject::include(GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/dv.vp")+
-      ge::gl::ShaderObject::include(GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/nv.vp"),
-      GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/createNVTS.ep",
-      ge::gl::ShaderObject::include(GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/dv.vp")+
-      ge::gl::ShaderObject::include(GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/nv.vp"),
-      GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/createNVTS.fp");
-
-  this->_createNVMaskProgram = new ge::gl::ProgramObject(
-      GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/createNVMask.vp",
-      GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/createNVMask.gp",
-      GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/createNVMask.fp",
-      ge::gl::ShaderObject::include(GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/dv.vp")+
-      ge::gl::ShaderObject::include(GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/nv.vp"));
+  std::string shader=dir+"createNVTS";
+  this->_createNVMapProgram  = new ge::gl::ProgramObject(shader+".vp",shader+".cp",dvnv,shader+".ep",dvnv,shader+".fp");
+  shader=dir+"createNVMask";
+  this->_createNVMaskProgram = new ge::gl::ProgramObject(shader+".vp",shader+".gp",shader+".fp",dvnv);
 }
 
 void NavyMapping::_setNVParam(ge::gl::ProgramObject*prog){
@@ -261,7 +214,6 @@ void NavyMapping::_setNVParam(ge::gl::ProgramObject*prog){
   this->_dvsTex[this->_dvsTex.size()-1]->bindImage(2,0);
   this->_smoothX->bind(GL_TEXTURE3);
   this->_smoothY->bind(GL_TEXTURE4);
-
 }
 
 NavyMapping::~NavyMapping(){
@@ -478,8 +430,6 @@ void NavyMapping::_unwarp(){
 
   this->_setNVParam(this->_unwarpProgram);
 
-  //this->_smoothX->bind(GL_TEXTURE3);
-
   unsigned workSizex=winSize.x/GETUINT(FDV_SIZE_X)+1;
   unsigned workSizey=winSize.y/GETUINT(FDV_SIZE_Y)+1;
   glDispatchCompute(workSizex,workSizey,1);
@@ -500,10 +450,6 @@ void NavyMapping::_unwarpAll(){
   this->_uallProgram->set("windowSize",winSize.x,winSize.y);
 
   this->_setNVParam(this->_uallProgram);
-  /*
-     this->_smoothX->bind(GL_TEXTURE3);
-     this->_smoothY->bind(GL_TEXTURE4);
-     */
 
   unsigned workSizex=winSize.x/GETUINT(FDV_SIZE_X)+1;
   unsigned workSizey=winSize.y/GETUINT(FDV_SIZE_Y)+1;
@@ -523,10 +469,6 @@ void NavyMapping::drawGrid(float x,float y,float sx,float sy){
 
 
   this->_setNVParam(this->_drawGridProgram);
-  /*
-     this->_smoothX->bind(GL_TEXTURE3);
-     this->_smoothY->bind(GL_TEXTURE4);
-     */
   this->_emptyVAO->bind();
   glPatchParameteri(GL_PATCH_VERTICES,1);
   glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
