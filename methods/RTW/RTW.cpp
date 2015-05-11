@@ -26,6 +26,7 @@ DEFVARSSTART
   "rtw.program.CIM1D.WALKING_WINDOW_SIZE",
   "rtw.program.CSM.TESS_FACTOR",
   "rtw.importance_passes",
+  "rtw.drawLinesToSM",
   "measure.rtw.createImportance",
   "measure.rtw.createShadowMap",
   "measure.rtw.createShadowMask",
@@ -56,6 +57,7 @@ DEFVARSIDSTART
   CIM1D_WINDOW_SIZE,
   TESS_FACTOR,
   PASSES,
+  LINE_TO_SM,
   MEASURE_CREATEIMPORTANCE,
   MEASURE_CREATESHADOWMAP,
   MEASURE_CREATESHADOWMASK,
@@ -248,6 +250,7 @@ RTWBack::RTWBack(simulation::SimulationData*data):simulation::SimulationObject(d
   this->_createRTWProgram = new ge::gl::ProgramObject(
       GETSTRING(SHADERDIRECTORY)+"methods/RTW/createRTWTS.vp",
       GETSTRING(SHADERDIRECTORY)+"methods/RTW/createRTWTS.cp",
+      ge::gl::ShaderObject::include(GETSTRING(SHADERDIRECTORY)+"methods/RTW/warpFunction.vp"),
       GETSTRING(SHADERDIRECTORY)+"methods/RTW/createRTWTS.ep",
       ge::gl::ShaderObject::include(GETSTRING(SHADERDIRECTORY)+"methods/RTW/warpFunction.vp"),
       GETSTRING(SHADERDIRECTORY)+"methods/RTW/createRTWTS.fp");
@@ -255,6 +258,7 @@ RTWBack::RTWBack(simulation::SimulationData*data):simulation::SimulationObject(d
   this->_drawGridProgram = new ge::gl::ProgramObject(
       GETSTRING(SHADERDIRECTORY)+"methods/RTW/drawgrid.vp",
       GETSTRING(SHADERDIRECTORY)+"methods/RTW/drawgrid.cp",
+      ge::gl::ShaderObject::include(GETSTRING(SHADERDIRECTORY)+"methods/RTW/warpFunction.vp"),
       GETSTRING(SHADERDIRECTORY)+"methods/RTW/drawgrid.ep",
       ge::gl::ShaderObject::include(GETSTRING(SHADERDIRECTORY)+"methods/RTW/warpFunction.vp"),
       GETSTRING(SHADERDIRECTORY)+"methods/RTW/drawgrid.fp");
@@ -452,9 +456,9 @@ void RTWBack::_createRTWMap(){
   GETVAO(SCENEVAO)->bind();
   //glDrawArrays(GL_TRIANGLES,0,this->_adjacency->NumTriangles*3);
   glPatchParameteri(GL_PATCH_VERTICES,3);
-  //glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
+  if(GETBOOL(LINE_TO_SM))glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
   glDrawArrays(GL_PATCHES,0,GETADJACENCY->NumTriangles*3);//this->_adjacency->NumTriangles*3);
-  //glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
+  if(GETBOOL(LINE_TO_SM))glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
 
   GETVAO(SCENEVAO)->unbind();
 

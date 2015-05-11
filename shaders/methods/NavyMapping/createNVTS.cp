@@ -4,29 +4,16 @@ layout(vertices=3)out;
 
 uniform uint tessFactor=32u;
 
-bool pointVisible(vec2 a){
-  return all(greaterThan(a.xy,vec2(-1)))&&all(lessThan(a.xy,vec2(+1)));
-}
-
 bool isEdgeVisible(vec2 a,vec2 b){
-  //x=a+t*(b-a)
-  //-1<a+t*(b-a)
-  //+1>a+t*(b-a)
-  //(-1-a)/(b-a) < t
-  //(+1-a)/(b-a) > t
   float mint=min(min((-1-a.x)/(b.x-a.x),(-1-a.y)/(b.y-a.y)),0);
   float maxt=max(max((+1-a.x)/(b.x-a.x),(+1-a.y)/(b.y-a.y)),1);
   return mint<maxt;
 }
 
 bool pointsVisible(vec2 a,vec2 b,vec2 c){
-  //if(isEdgeVisible(a,b))return true;
-  //if(isEdgeVisible(a,c))return true;
-  //if(isEdgeVisible(b,c))return true;
-
-  if(pointVisible(a))return true;
-  if(pointVisible(b))return true;
-  if(pointVisible(c))return true;
+  if(isEdgeVisible(a,b))return true;
+  if(isEdgeVisible(a,c))return true;
+  if(isEdgeVisible(b,c))return true;
   return false;
 }
 

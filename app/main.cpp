@@ -297,9 +297,9 @@ int main(int Argc,char*Argv[]){
 
   Args=new ge::util::ArgumentObject(Argc,Argv);
 
-  //ModelFile          = Args->getArg("-m","models/o/o.3ds");
+  ModelFile          = Args->getArg("-m","models/o/o.3ds");
 //  ModelFile          = Args->getArg("-m","/media/data/models/Sponza/sponza.obj");
-  ModelFile          = Args->getArg("-m","/media/data/models/conference/conference.obj");
+  //ModelFile          = Args->getArg("-m","/media/data/models/conference/conference.obj");
   //ModelFile          = Args->getArg("-m","/home/dormon/Desktop/hairball.obj");
 
   //ModelFile          = Args->getArg("-m","models/o/o.3ds");
@@ -764,6 +764,8 @@ void init(){
   simData->insertVariable("rtw.program.CIM1D.WALKING_WINDOW_SIZE",new simulation::Uint(16));
   simData->insertVariable("rtw.program.CSM.TESS_FACTOR"          ,new simulation::Uint(32));
   simData->insertVariable("rtw.importance_passes"                ,new simulation::Uint(4));
+  simData->insertVariable("rtw.drawLinesToSM"                    ,new simulation::Bool(false));
+
 
   simData->insertVariable("nv.program.VS.WORKGROUP_SIZE_X",new simulation::Uint(8));
   simData->insertVariable("nv.program.VS.WORKGROUP_SIZE_Y",new simulation::Uint(8));
