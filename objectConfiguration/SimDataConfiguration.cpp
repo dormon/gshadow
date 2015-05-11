@@ -55,6 +55,13 @@ ShadowMethodConfig::ShadowMethodConfig(std::string name,simulation::SimulationOb
             ShadowMethodConfig::_set<float>,
             this->_callbackData[this->_callbackData.size()-1]," step=0.1");
         break;
+      case simulation::GPUGAUGE:
+        this->_callbackData.push_back(new CallBackData(this,varName,&((simulation::GpuGauge*)data)->enabled));
+        TwAddVarCB(this->_bar,(varName).c_str(),TW_TYPE_BOOLCPP,
+            ShadowMethodConfig::_get<bool>,
+            ShadowMethodConfig::_set<bool>,
+            this->_callbackData[this->_callbackData.size()-1]," ");
+        break;
       default:
         break;
     }

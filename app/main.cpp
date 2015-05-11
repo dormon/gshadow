@@ -297,7 +297,9 @@ int main(int Argc,char*Argv[]){
 
   Args=new ge::util::ArgumentObject(Argc,Argv);
 
- // ModelFile          = Args->getArg("-m","models/o/o.3ds");
+  //ModelFile          = Args->getArg("-m","models/o/o.3ds");
+//  ModelFile          = Args->getArg("-m","/media/data/models/Sponza/sponza.obj");
+  ModelFile          = Args->getArg("-m","/media/data/models/conference/conference.obj");
   //ModelFile          = Args->getArg("-m","/home/dormon/Desktop/hairball.obj");
 
   //ModelFile          = Args->getArg("-m","models/o/o.3ds");
@@ -305,7 +307,7 @@ int main(int Argc,char*Argv[]){
   //ModelFile          = Args->getArg("-m","models/2quads/2quads.obj");
   //ModelFile          = Args->getArg("-m","models/2_3quads/2_3quads.obj");
 
-  ModelFile          = Args->getArg("-m","/media/old/home/dormon/Plocha/sponza/sponza.obj");
+  //ModelFile          = Args->getArg("-m","/media/old/home/dormon/Plocha/sponza/sponza.obj");
   //ModelFile          = Args->getArg("-m","/home/dormon/Desktop/koule_10000_1x1.obj");
   //ModelFile          = Args->getArg("-m","/home/dormon/Desktop/powerplant/powerplant.obj");
 
@@ -714,25 +716,54 @@ void init(){
   simData->insertVariable("gpa"             ,new simulation::Object(GPA            ));
   simData->insertVariable("computeMethod.program.WORKGROUPSIZE", new simulation::Int(64));
   simData->insertVariable("computeMethod.program.CULL_SIDE", new simulation::Bool(true));
-  simData->insertVariable("measure.computeGeometry.computeSides",new simulation::GpuGauge());
-  simData->insertVariable("measure.computeGeometry.draw",new simulation::GpuGauge());
-  simData->insertVariable("measure.computeGeometry.blit",new simulation::GpuGauge());
+  simData->insertVariable("measure.computeGeometry.computeSides",new simulation::GpuGauge(false,true));
+  simData->insertVariable("measure.computeGeometry.draw",new simulation::GpuGauge(false,true));
+  simData->insertVariable("measure.computeGeometry.blit",new simulation::GpuGauge(false,true));
 
 
   simData->insertVariable("shadowMask",new simulation::Object(shadowMask));
-  simData->insertVariable("measure.shadowMap.createShadowMap" ,new simulation::GpuGauge());
-  simData->insertVariable("measure.shadowMap.createShadowMask",new simulation::GpuGauge());
-  simData->insertVariable("measure.rtw.createImportance",new simulation::GpuGauge());
-  simData->insertVariable("measure.rtw.createShadowMap",new simulation::GpuGauge());
-  simData->insertVariable("measure.rtw.createShadowMask",new simulation::GpuGauge());
+  simData->insertVariable("measure.shadowMap.createShadowMap" ,new simulation::GpuGauge(false,true));
+  simData->insertVariable("measure.shadowMap.createShadowMask",new simulation::GpuGauge(false,true));
 
-  simData->insertVariable("camera",new simulation::Object(/*Camera*/cameraConfiguration->getCamera()));
+  simData->insertVariable("measure.rtw.createImportance",new simulation::GpuGauge(false,true));
+  simData->insertVariable("measure.rtw.createShadowMap",new simulation::GpuGauge(false,true));
+  simData->insertVariable("measure.rtw.createShadowMask",new simulation::GpuGauge(false,true));
+  simData->insertVariable("measure.rtw.importance2D",new simulation::GpuGauge(false,true));
+  simData->insertVariable("measure.rtw.importance1D",new simulation::GpuGauge(false,true));
+  simData->insertVariable("measure.rtw.smooth"      ,new simulation::GpuGauge(false,true));
+  simData->insertVariable("measure.rtw.sum"         ,new simulation::GpuGauge(false,true));
+  simData->insertVariable("measure.rtw.whole"       ,new simulation::GpuGauge(false,true));
 
-  simData->insertVariable("rtw.program.CIM.WORKGROUP_SIZE_X",new simulation::Uint(8));
-  simData->insertVariable("rtw.program.CIM.WORKGROUP_SIZE_Y",new simulation::Uint(8));
-  simData->insertVariable("rtw.program.CIM1D.WORKGROUP_SIZE_X",new simulation::Uint(64));
+  simData->insertVariable("measure.nv.computeViewSamples",new simulation::GpuGauge(false,true));
+  simData->insertVariable("measure.nv.dv"                ,new simulation::GpuGauge(false,true));
+  simData->insertVariable("measure.nv.countmap"          ,new simulation::GpuGauge(false,true));
+  simData->insertVariable("measure.nv.integratex"        ,new simulation::GpuGauge(false,true));
+  simData->insertVariable("measure.nv.offsetx"           ,new simulation::GpuGauge(false,true));
+  simData->insertVariable("measure.nv.smootx"            ,new simulation::GpuGauge(false,true));
+  simData->insertVariable("measure.nv.unwarpx"           ,new simulation::GpuGauge(false,true));
+  simData->insertVariable("measure.nv.integratey"        ,new simulation::GpuGauge(false,true));
+  simData->insertVariable("measure.nv.offsety"           ,new simulation::GpuGauge(false,true));
+  simData->insertVariable("measure.nv.smooty"            ,new simulation::GpuGauge(false,true));
+  simData->insertVariable("measure.nv.wholewarp"         ,new simulation::GpuGauge(false,true));
+  simData->insertVariable("measure.nv.whole"             ,new simulation::GpuGauge(false,true));
+  simData->insertVariable("measure.nv.wholex"            ,new simulation::GpuGauge(false,true));
+  simData->insertVariable("measure.nv.wholey"            ,new simulation::GpuGauge(false,true));
+
+
+
+
+
+
+
+
+  simData->insertVariable("camera",new simulation::Object(cameraConfiguration->getCamera()));
+
+  simData->insertVariable("rtw.program.CIM.WORKGROUP_SIZE_X"     ,new simulation::Uint(8));
+  simData->insertVariable("rtw.program.CIM.WORKGROUP_SIZE_Y"     ,new simulation::Uint(8));
+  simData->insertVariable("rtw.program.CIM1D.WORKGROUP_SIZE_X"   ,new simulation::Uint(64));
   simData->insertVariable("rtw.program.CIM1D.WALKING_WINDOW_SIZE",new simulation::Uint(16));
-  simData->insertVariable("rtw.program.CSM.TESS_FACTOR",new simulation::Uint(32));
+  simData->insertVariable("rtw.program.CSM.TESS_FACTOR"          ,new simulation::Uint(32));
+  simData->insertVariable("rtw.importance_passes"                ,new simulation::Uint(4));
 
   simData->insertVariable("nv.program.VS.WORKGROUP_SIZE_X",new simulation::Uint(8));
   simData->insertVariable("nv.program.VS.WORKGROUP_SIZE_Y",new simulation::Uint(8));

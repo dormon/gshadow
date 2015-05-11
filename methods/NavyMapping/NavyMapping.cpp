@@ -15,6 +15,8 @@ DEFVARSSTART
   "shadowMapMethods.fovy",
   "shadowMapMethods.near",
   "shadowMapMethods.far",
+  "shadowMapMethods.offset.factor",
+  "shadowMapMethods.offset.units",
   "window.size",
   "adjacency",
   "light",
@@ -37,7 +39,21 @@ DEFVARSSTART
   "nv.program.NVMAP.TESS_FACTOR",
   "nv.drawLinesToSM",
   "measure.shadowMap.createShadowMap",
-  "measure.shadowMap.createShadowMask"
+  "measure.shadowMap.createShadowMask",
+  "measure.nv.computeViewSamples",
+  "measure.nv.dv"                ,
+  "measure.nv.countmap"          ,
+  "measure.nv.integratex"        ,
+  "measure.nv.offsetx"           ,
+  "measure.nv.smootx"            ,
+  "measure.nv.unwarpx"           ,
+  "measure.nv.integratey"        ,
+  "measure.nv.offsety"           ,
+  "measure.nv.smooty"            ,
+  "measure.nv.wholewarp"         ,
+  "measure.nv.whole"             ,
+  "measure.nv.wholex"            ,
+  "measure.nv.wholey"
 DEFVARSEND
 
 DEFVARSIDSTART
@@ -48,6 +64,8 @@ DEFVARSIDSTART
   FOVY,
   NEAR,
   FAR,
+  FACTOR,
+  UNITS,
   WINDOWSIZE,
   ADJACENCY,
   LIGHT,
@@ -70,7 +88,21 @@ DEFVARSIDSTART
   TESS_FACTOR,
   LINE_TO_SM,
   MEASURE_CREATESHADOWMAP,
-  MEASURE_CREATESHADOWMASK
+  MEASURE_CREATESHADOWMASK,
+  MEASURE_CVS,
+  MEASURE_DV,
+  MEASURE_COUNTMAP,
+  MEASURE_INTEGRATEX,
+  MEASURE_OFFSETX,
+  MEASURE_SMOOTHX,
+  MEASURE_UNWARPX,
+  MEASURE_INTEGRATEY,
+  MEASURE_OFFSETY,
+  MEASURE_SMOOTHY,
+  MEASURE_WHOLEWARP,
+  MEASURE_WHOLE,
+  MEASURE_WHOLEX,
+  MEASURE_WHOLEY
 DEFVARSIDEND
 
 DEFGETNOFDEP
@@ -101,27 +133,73 @@ void NavyMapping::update(){
 }
 
 void NavyMapping::createShadowMask(){
-  this->_computeViewSamples();
-  this->_fastCreateDV();
-  if(GETFLOAT(WARP_FACTOR)>0.f){
-    this->_fastCreateCountMap();
-    this->_integrate(this->_integratedX,this->_integratedXCount,this->_countMapX);
-    this->_createOffset(this->_offsetX,this->_integratedX,this->_integratedXCount);
-    this->_smooth(this->_smoothX,this->_offsetX,this->_integratedXCount);
-    this->_unwarp();
-    this->_integrate(this->_integratedY,this->_integratedYCount,this->_countMapY);
-    this->_createOffset(this->_offsetY,this->_integratedY,this->_integratedYCount);
-    this->_smooth(this->_smoothY,this->_offsetY,this->_integratedYCount);
+  GETGPUGAUGE(MEASURE_WHOLE)->begin();
+  {
+
+    GETGPUGAUGE(MEASURE_CVS)->begin();
+    this->_computeViewSamples();
+    GETGPUGAUGE(MEASURE_CVS)->end();
+
+    GETGPUGAUGE(MEASURE_DV)->begin();
+    this->_fastCreateDV();
+    GETGPUGAUGE(MEASURE_DV)->end();
+
+    GETGPUGAUGE(MEASURE_WHOLEWARP)->begin();
+    if(GETFLOAT(WARP_FACTOR)>0.f){
+
+      GETGPUGAUGE(MEASURE_COUNTMAP)->begin();
+      this->_fastCreateCountMap();
+      GETGPUGAUGE(MEASURE_COUNTMAP)->end();
+
+      GETGPUGAUGE(MEASURE_WHOLEX)->begin();
+      {
+        GETGPUGAUGE(MEASURE_INTEGRATEX)->begin();
+        this->_integrate(this->_integratedX,this->_integratedXCount,this->_countMapX);
+        GETGPUGAUGE(MEASURE_INTEGRATEX)->end();
+
+        GETGPUGAUGE(MEASURE_OFFSETX)->begin();
+        this->_createOffset(this->_offsetX,this->_integratedX,this->_integratedXCount);
+        GETGPUGAUGE(MEASURE_OFFSETX)->end();
+
+        GETGPUGAUGE(MEASURE_SMOOTHX)->begin();
+        this->_smooth(this->_smoothX,this->_offsetX,this->_integratedXCount);
+        GETGPUGAUGE(MEASURE_SMOOTHX)->end();
+      }
+      GETGPUGAUGE(MEASURE_WHOLEX)->end();
+
+      GETGPUGAUGE(MEASURE_UNWARPX)->begin();
+      this->_unwarp();
+      GETGPUGAUGE(MEASURE_UNWARPX)->end();
+
+      GETGPUGAUGE(MEASURE_WHOLEY)->begin();
+      {
+        GETGPUGAUGE(MEASURE_INTEGRATEY)->begin();
+        this->_integrate(this->_integratedY,this->_integratedYCount,this->_countMapY);
+        GETGPUGAUGE(MEASURE_INTEGRATEY)->end();
+
+        GETGPUGAUGE(MEASURE_OFFSETY)->begin();
+        this->_createOffset(this->_offsetY,this->_integratedY,this->_integratedYCount);
+        GETGPUGAUGE(MEASURE_OFFSETY)->end();
+
+        GETGPUGAUGE(MEASURE_SMOOTHY)->begin();
+        this->_smooth(this->_smoothY,this->_offsetY,this->_integratedYCount);
+        GETGPUGAUGE(MEASURE_SMOOTHY)->end();
+      }
+      GETGPUGAUGE(MEASURE_WHOLEY)->end();
+    }
+    GETGPUGAUGE(MEASURE_WHOLEWARP)->end();
+    //this->_unwarpAll();
+
+    GETGPUGAUGE(MEASURE_CREATESHADOWMAP)->begin();
+    this->_createNVMap();
+    GETGPUGAUGE(MEASURE_CREATESHADOWMAP)->end();
+
+    GETGPUGAUGE(MEASURE_CREATESHADOWMASK)->begin();
+    this->_createNVMask();
+    GETGPUGAUGE(MEASURE_CREATESHADOWMASK)->end();
+
   }
-  //this->_unwarpAll();
-
-  GETGPUGAUGE(MEASURE_CREATESHADOWMAP)->begin();
-  this->_createNVMap();
-  GETGPUGAUGE(MEASURE_CREATESHADOWMAP)->end();
-
-  GETGPUGAUGE(MEASURE_CREATESHADOWMASK)->begin();
-  this->_createNVMask();
-  GETGPUGAUGE(MEASURE_CREATESHADOWMASK)->end();
+  GETGPUGAUGE(MEASURE_WHOLE)->end();
 }
 
 void NavyMapping::createShadowMask(GLuint mask){
@@ -309,13 +387,13 @@ void NavyMapping::_fastCreateDV(){
   glDispatchCompute(this->_dvsWorkSize[0].x,this->_dvsWorkSize[0].y,1);
   glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
-/*
-  NDormon::GpuPerfApi*gpa=(NDormon::GpuPerfApi*)GETOBJECT(GPA);
-  std::cerr<<gpa->getResults([](void*A){
-      NavyMapping*_this= ((NavyMapping*)A);
-        glDispatchCompute(_this->_dvsWorkSize[0].x,_this->_dvsWorkSize[0].y,1);
-      },this)<<std::endl;
-  */
+  /*
+     NDormon::GpuPerfApi*gpa=(NDormon::GpuPerfApi*)GETOBJECT(GPA);
+     std::cerr<<gpa->getResults([](void*A){
+     NavyMapping*_this= ((NavyMapping*)A);
+     glDispatchCompute(_this->_dvsWorkSize[0].x,_this->_dvsWorkSize[0].y,1);
+     },this)<<std::endl;
+     */
   //return;
 
   this->_fastdvProgram->use();
@@ -328,19 +406,19 @@ void NavyMapping::_fastCreateDV(){
   }
 
   /*
-  NDormon::GpuPerfApi*gpa=(NDormon::GpuPerfApi*)GETOBJECT(GPA);
-  std::cerr<<gpa->getResults([](void*A){
-    NavyMapping*_this=(NavyMapping*)A;
-    _this->_fastdvProgram->use();
-    for(unsigned i=0;i<_this->_dvsTex.size()-1;++i){
-      _this->_dvsTex[i+0]->bindImage(0,0);
-      _this->_dvsTex[i+1]->bindImage(1,0);
-      _this->_fastdvProgram->set("windowSize",_this->_dvsWorkSize[i].x,_this->_dvsWorkSize[i].y);
-      glDispatchCompute(_this->_dvsWorkSize[i+1].x,_this->_dvsWorkSize[i+1].y,1);
-      glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-    }
-  },this)<<std::endl;
-  */
+     NDormon::GpuPerfApi*gpa=(NDormon::GpuPerfApi*)GETOBJECT(GPA);
+     std::cerr<<gpa->getResults([](void*A){
+     NavyMapping*_this=(NavyMapping*)A;
+     _this->_fastdvProgram->use();
+     for(unsigned i=0;i<_this->_dvsTex.size()-1;++i){
+     _this->_dvsTex[i+0]->bindImage(0,0);
+     _this->_dvsTex[i+1]->bindImage(1,0);
+     _this->_fastdvProgram->set("windowSize",_this->_dvsWorkSize[i].x,_this->_dvsWorkSize[i].y);
+     glDispatchCompute(_this->_dvsWorkSize[i+1].x,_this->_dvsWorkSize[i+1].y,1);
+     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+     }
+     },this)<<std::endl;
+     */
 
   /*float data[4]={0,0,0,0};
     glBindTexture(GL_TEXTURE_2D,this->_dvsTex[this->_dvsTex.size()-1]->getId());
@@ -497,7 +575,7 @@ void NavyMapping::_createNVMap(){
   glClear(GL_DEPTH_BUFFER_BIT);
 
   glEnable(GL_POLYGON_OFFSET_FILL);
-  glPolygonOffset(15.5,10);
+  glPolygonOffset(GETFLOAT(FACTOR),GETFLOAT(UNITS));
 
   GETVAO(SCENEVAO)->bind();
   //glDrawArrays(GL_TRIANGLES,0,this->_adjacency->NumTriangles*3);

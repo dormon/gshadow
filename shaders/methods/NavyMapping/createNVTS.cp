@@ -20,13 +20,13 @@ bool isEdgeVisible(vec2 a,vec2 b){
 }
 
 bool pointsVisible(vec2 a,vec2 b,vec2 c){
-  if(isEdgeVisible(a,b))return true;
-  if(isEdgeVisible(a,c))return true;
-  if(isEdgeVisible(b,c))return true;
+  //if(isEdgeVisible(a,b))return true;
+  //if(isEdgeVisible(a,c))return true;
+  //if(isEdgeVisible(b,c))return true;
 
-  //if(pointVisible(a))return true;
-  //if(pointVisible(b))return true;
-  //if(pointVisible(c))return true;
+  if(pointVisible(a))return true;
+  if(pointVisible(b))return true;
+  if(pointVisible(c))return true;
   return false;
 }
 

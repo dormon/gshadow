@@ -25,9 +25,15 @@ DEFVARSSTART
   "rtw.program.CIM1D.WORKGROUP_SIZE_X",
   "rtw.program.CIM1D.WALKING_WINDOW_SIZE",
   "rtw.program.CSM.TESS_FACTOR",
+  "rtw.importance_passes",
   "measure.rtw.createImportance",
   "measure.rtw.createShadowMap",
-  "measure.rtw.createShadowMask"
+  "measure.rtw.createShadowMask",
+  "measure.rtw.importance2D",
+  "measure.rtw.importance1D",
+  "measure.rtw.smooth",
+  "measure.rtw.sum",
+  "measure.rtw.whole"
 DEFVARSEND
 
 DEFVARSIDSTART
@@ -49,9 +55,15 @@ DEFVARSIDSTART
   CIM1D_SIZE_X,
   CIM1D_WINDOW_SIZE,
   TESS_FACTOR,
+  PASSES,
   MEASURE_CREATEIMPORTANCE,
   MEASURE_CREATESHADOWMAP,
-  MEASURE_CREATESHADOWMASK
+  MEASURE_CREATESHADOWMASK,
+  MEASURE_IMPORTANCE2D,
+  MEASURE_IMPORTANCE1D,
+  MEASURE_SMOOTH,
+  MEASURE_SUM,
+  MEASURE_WHOLE
 DEFVARSIDEND
 
 DEFGETNOFDEP
@@ -135,20 +147,38 @@ void RTWBack::_createRTWMask(){
 }
 
 void RTWBack::createShadowMask(){
-  GETGPUGAUGE(MEASURE_CREATEIMPORTANCE)->begin();
-  this->_createImportance();
-  this->_createImportance1D();
-  this->_smoothImportance1D();
-  this->_sumImportance1D();
-  GETGPUGAUGE(MEASURE_CREATEIMPORTANCE)->end();
+  GETGPUGAUGE(MEASURE_WHOLE)->begin();
+  {
+    GETGPUGAUGE(MEASURE_CREATEIMPORTANCE)->begin();
+    {
+      GETGPUGAUGE(MEASURE_IMPORTANCE2D)->begin();
+      this->_createImportance();
+      GETGPUGAUGE(MEASURE_IMPORTANCE2D)->end();
 
-  GETGPUGAUGE(MEASURE_CREATESHADOWMAP)->begin();
-  this->_createRTWMap();
-  GETGPUGAUGE(MEASURE_CREATESHADOWMAP)->end();
+      GETGPUGAUGE(MEASURE_IMPORTANCE1D)->begin();
+      this->_createImportance1D();
+      GETGPUGAUGE(MEASURE_IMPORTANCE1D)->end();
 
-  GETGPUGAUGE(MEASURE_CREATESHADOWMASK)->begin();
-  this->_createRTWMask();
-  GETGPUGAUGE(MEASURE_CREATESHADOWMASK)->end();
+      GETGPUGAUGE(MEASURE_SMOOTH)->begin();
+      this->_smoothImportance1D();
+      GETGPUGAUGE(MEASURE_SMOOTH)->end();
+
+      GETGPUGAUGE(MEASURE_SUM)->begin();
+      this->_sumImportance1D();
+      GETGPUGAUGE(MEASURE_SUM)->end();
+    }
+    GETGPUGAUGE(MEASURE_CREATEIMPORTANCE)->end();
+
+
+    GETGPUGAUGE(MEASURE_CREATESHADOWMAP)->begin();
+    this->_createRTWMap();
+    GETGPUGAUGE(MEASURE_CREATESHADOWMAP)->end();
+
+    GETGPUGAUGE(MEASURE_CREATESHADOWMASK)->begin();
+    this->_createRTWMask();
+    GETGPUGAUGE(MEASURE_CREATESHADOWMASK)->end();
+  }
+  GETGPUGAUGE(MEASURE_WHOLE)->end();
 }
 
 RTWBack::RTWBack(simulation::SimulationData*data):simulation::SimulationObject(data){
@@ -204,7 +234,7 @@ RTWBack::RTWBack(simulation::SimulationData*data):simulation::SimulationObject(d
       GETUINT(RESOLUTION));
   this->_sumY = new ge::gl::TextureObject(GL_TEXTURE_1D,GL_R32F,1,
       GETUINT(RESOLUTION));
-  
+
   this->_sumX->texParameteri(GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
   this->_sumX->texParameteri(GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
   this->_sumX->texParameteri(GL_TEXTURE_MIN_FILTER,GL_LINEAR);
@@ -221,7 +251,7 @@ RTWBack::RTWBack(simulation::SimulationData*data):simulation::SimulationObject(d
       GETSTRING(SHADERDIRECTORY)+"methods/RTW/createRTWTS.ep",
       ge::gl::ShaderObject::include(GETSTRING(SHADERDIRECTORY)+"methods/RTW/warpFunction.vp"),
       GETSTRING(SHADERDIRECTORY)+"methods/RTW/createRTWTS.fp");
- 
+
   this->_drawGridProgram = new ge::gl::ProgramObject(
       GETSTRING(SHADERDIRECTORY)+"methods/RTW/drawgrid.vp",
       GETSTRING(SHADERDIRECTORY)+"methods/RTW/drawgrid.cp",
@@ -302,14 +332,18 @@ void RTWBack::_createImportance(){
   GETTEXTURE(GBUFFER_POSITION)->bind(GL_TEXTURE0);
   this->_importanceMap->bindImage(1,0);
 
-  glDispatchCompute(workSizex,workSizey,1);
-  glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-  glDispatchCompute(workSizex,workSizey,1);
-  glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-  glDispatchCompute(workSizex,workSizey,1);
-  glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-  glDispatchCompute(workSizex,workSizey,1);
+  for(unsigned i=0;i<GETUINT(PASSES);++i){
+    glDispatchCompute(workSizex,workSizey,1);
+    glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+  }
 
+  /*
+     glDispatchCompute(workSizex,workSizey,1);
+     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+     glDispatchCompute(workSizex,workSizey,1);
+     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+     glDispatchCompute(workSizex,workSizey,1);
+     */
 }
 
 ge::gl::TextureObject*RTWBack::getImportanceMap(){

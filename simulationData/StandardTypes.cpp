@@ -399,7 +399,7 @@ GpuGauge::GpuGauge(bool enabled,bool synch){
   this->type=GPUGAUGE;
   this->query=new ge::gl::AsynchronousQueryObject(
       GL_TIME_ELAPSED,
-      GL_QUERY_RESULT_NO_WAIT,
+      synch?GL_QUERY_RESULT:GL_QUERY_RESULT_NO_WAIT,//_NO_WAIT,
       ge::gl::AsynchronousQueryObject::UINT64);
   this->synch=synch;
   this->enabled=enabled;
@@ -421,5 +421,7 @@ void GpuGauge::end(){
   if(!this->enabled)return;
   if(this->synch)glFinish();
   this->query->end();
-  this->insert(this->query->getui64()/1000000000.f);
+  float val=this->query->getui64()/1000000000.f;
+  //this->insert(val);
+  std::cerr<<val<<std::endl;
 }
