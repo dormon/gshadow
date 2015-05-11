@@ -34,6 +34,9 @@ namespace ge{
             enum Type     type       = F32     ,
             enum Semantic semantic   = POSITION);
         unsigned size();
+        std::string type2Str();
+        std::string semantic2Str();
+        std::string toStr();
     };
 
     class VertexAttrib{
@@ -53,6 +56,7 @@ namespace ge{
         unsigned   getStride();
         unsigned   getOffset();
         VertexAttribDataDescriptor&getDataDescriptor();
+        std::string toStr();
     };
 
     class MeshVertices{
@@ -65,6 +69,7 @@ namespace ge{
         unsigned   addVertexAttrib(VertexAttrib&attrib);
         const void*getAttrib(unsigned index,unsigned vertex);
         unsigned   getAttribSize(unsigned index);
+        std::string toStr();
     };
 
     class MeshPrimitives{

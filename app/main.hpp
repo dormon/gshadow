@@ -71,7 +71,8 @@ using namespace std;
 #include"../methods/ComputeGeometry/ComputeGeometry.h"
 #include"../methods/RTW/RTW.h"
 
-
+#include"AssimpLoader.h"
+#include"Scene.h"
 
 #include<geUtil/CameraObject.h>
 #include<geUtil/CameraPath.h>

@@ -8,7 +8,7 @@ namespace ge{
         const aiScene*_data;
         std::map<aiMesh*,MeshGeometry*>_aiMesh2MeshGeometry;
         Mesh* _createMesh (aiMesh*mesh);
-        Model*_createModel(aiNode*node);
+        Model*_createModel(aiNode*node,const aiScene*scene);
       public:
         AssimpScene(const aiScene*data);
         ~AssimpScene();
@@ -41,6 +41,8 @@ Mesh*AssimpScene::_createMesh(aiMesh*mesh){
     return m;
   }
   m->geometry = new MeshGeometry();
+  this->_aiMesh2MeshGeometry.insert(std::pair<aiMesh*,MeshGeometry*>(mesh,m->geometry));
+  this->geometries.push_back(m->geometry);
 
 
   std::vector<unsigned>indices;
@@ -67,13 +69,10 @@ Mesh*AssimpScene::_createMesh(aiMesh*mesh){
         indices.size(),
         VertexAttribDataDescriptor(3,
           VertexAttribDataDescriptor::F32,VertexAttribDataDescriptor::POSITION));
-    for(unsigned f=0;f<mesh->mNumFaces;++f){
-      for(unsigned i=0;i<mesh->mFaces[f].mNumIndices;++i){
-        aiVector3D*V=mesh->mVertices+mesh->mFaces[f].mIndices[i];
-        for(unsigned k=0;k<3;++k){
-        }
-      }
-    }
+    float*ptr=(float*)m->geometry->positionData;
+    for(unsigned i=0;i<indices.size();++i)
+      for(unsigned k=0;k<3;++k)
+        ptr[i*3+k]=mesh->mVertices[i][k];
   }
   if(mesh->HasNormals()){
     MeshGeometry::createxAttribData(
@@ -82,7 +81,10 @@ Mesh*AssimpScene::_createMesh(aiMesh*mesh){
         indices.size(),
         VertexAttribDataDescriptor(3,
           VertexAttribDataDescriptor::F32,VertexAttribDataDescriptor::NORMAL));
-
+    float*ptr=(float*)m->geometry->normalData;
+    for(unsigned i=0;i<indices.size();++i)
+      for(unsigned k=0;k<3;++k)
+        ptr[i*3+k]=mesh->mNormals[i][k];
   }
   //TODO other types of attribs
 
@@ -92,26 +94,22 @@ Mesh*AssimpScene::_createMesh(aiMesh*mesh){
 
 }
 
-Model*AssimpScene::_createModel(aiNode*node){
+Model*AssimpScene::_createModel(aiNode*node,const aiScene*scene){
   Model*model=new Model();
-  /*
-     for(unsigned i=0;i<node->mNumMeshes;++i)
-     model->meshes.push_back(AssimpScene::_createMesh(node->mMeshes+i));
-     */
+  for(unsigned i=0;i<node->mNumMeshes;++i)
+    model->meshes.push_back(AssimpScene::_createMesh(
+          scene->mMeshes[node->mMeshes[i]]));
+  for(unsigned n=0;n<node->mNumChildren;++n)
+    model->models.push_back(AssimpScene::_createModel(
+          node->mChildren[n],
+          scene));
   return model;
 }
 
 AssimpScene::AssimpScene(const aiScene*data){
   this->_data=data;
-  //this->_data->mRootNode->
-  this->root = new Model();
-
-  /*
-     for(unsigned m=0;m<this->_data->mNumMeshes;++m){
-     aiMesh*mesh=this->_data->mMeshes[m];
-     }
-     */
-
+  this->root = AssimpScene::_createModel(
+      this->_data->mRootNode,this->_data);
 }
 
 AssimpScene::~AssimpScene(){

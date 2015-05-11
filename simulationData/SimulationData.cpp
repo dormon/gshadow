@@ -537,9 +537,11 @@ void SimulationData::setAsChanged(std::string name){
 }
 
 void SimulationData::sendUpdate(){
-  for(unsigned u=0;u<this->_users.size();++u){
-    this->_sendUpdate[u]=false;
-    this->_users[u]->update();
+  for(unsigned u=0;u<this->_users.size();++u){//loop over users
+    if(this->_sendUpdate[u]){//do we have to sent update?
+      this->_sendUpdate[u]=false;//next time we will skip this user
+      this->_users[u]->update();//sent update
+    }
   }
 }
 

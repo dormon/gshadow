@@ -1,4 +1,5 @@
 #include"Scene.h"
+#include<sstream>
 
 using namespace ge::db;
 
@@ -25,6 +26,46 @@ unsigned VertexAttribDataDescriptor::size(){
     sizeof(double            ),
   };
   return typeBytes[this->type]*this->components;
+}
+
+std::string VertexAttribDataDescriptor::type2Str(){
+  const std::string typeNames[]={
+    "I8 ",
+    "I16",
+    "I32",
+    "I64",
+    "U8 ",
+    "U16",
+    "U32",
+    "U64",
+    "F32",
+    "F64"
+  };
+  if(this->type<=F64)return typeNames[this->type];
+  std::stringstream ss;
+  ss<<(unsigned)(this->type-F64-1);
+  return ss.str();
+}
+
+std::string VertexAttribDataDescriptor::semantic2Str(){
+  const std::string semanticNames[]={
+    "POSITION",
+    "COORD   ",
+    "NORMAL  ",
+    "BINORMAL",
+    "TANGENT ",
+    "COLOR   "
+  };
+  if(this->semantic<=COLOR)return semanticNames[this->semantic];
+  std::stringstream ss;
+  ss<<(unsigned)(this->semantic-COLOR-1);
+  return ss.str();
+}
+
+std::string VertexAttribDataDescriptor::toStr(){
+  std::stringstream ss;
+  ss<<this->type2Str()<<" "<<this->components<<" "<<this->semantic2Str();
+  return ss.str();
 }
 
 VertexAttrib::VertexAttrib(
@@ -58,6 +99,15 @@ VertexAttribDataDescriptor&VertexAttrib::getDataDescriptor(){
   return this->_dataDescriptor;
 }
 
+std::string VertexAttrib::toStr(){
+  std::stringstream ss;
+  ss<<this->_ptr   <<" ";
+  ss<<this->_stride<<" ";
+  ss<<this->_offset<<" ";
+  ss<<this->_dataDescriptor.toStr();
+  return ss.str();
+}
+
 MeshVertices::MeshVertices(unsigned nofVertices){
   this->_nofVertices = nofVertices;
 }
@@ -79,6 +129,14 @@ const void*MeshVertices::getAttrib(
 
 unsigned   MeshVertices::getAttribSize(unsigned index){
   return this->_attribs[index].getDataDescriptor().size();
+}
+
+std::string MeshVertices::toStr(){
+  std::stringstream ss;
+  ss<<this->_nofVertices<<std::endl;
+  for(unsigned i=0;i<this->_attribs.size();++i)
+    ss<<this->_attribs[i].toStr()<<std::endl;
+  return ss.str();
 }
 
 MeshPrimitives::MeshPrimitives(
@@ -114,9 +172,9 @@ void MeshGeometry::createxAttribData(
     void**data,
     unsigned nofVertices,
     VertexAttribDataDescriptor dataDescriptor){
-    *data = new char*[dataDescriptor.size()*nofVertices];
-    VertexAttrib attrib((const void*)*data,dataDescriptor);
-    vertices->addVertexAttrib(attrib);
+  *data = new char*[dataDescriptor.size()*nofVertices];
+  VertexAttrib attrib((const void*)*data,dataDescriptor);
+  vertices->addVertexAttrib(attrib);
 }
 
 MeshGeometry::MeshGeometry(){

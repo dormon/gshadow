@@ -43,7 +43,37 @@ DEFVARSIDEND
 DEFGETNOFDEP
 DEFGETDEP
 
+DEFUPDATEROUTINESSTART
+  GETPOINTER(_computeMatrices   ),
+  GETPOINTER(_createShadowMap   ),
+  GETPOINTER(_createShadowMapFBO),
+DEFUPDATEROUTINESEND
+
+DEFUPDATEROUTINEIDSTART
+  COMPUTEMATRICES   ,
+  CREATESHADOWMAP   ,
+  CREATESHADOWMAPFBO,
+DEFUPDATEROUTINEIDEND
+
+DEFVAR2UPDATESTART
+  FOCUSPOINT,getMask(COMPUTEMATRICES   ),
+  LIGHT     ,getMask(COMPUTEMATRICES   ),
+  FOVY      ,getMask(COMPUTEMATRICES   ),
+  NEAR      ,getMask(COMPUTEMATRICES   ),
+  FAR       ,getMask(COMPUTEMATRICES   ),
+  RESOLUTION,getMask(CREATESHADOWMAP   ),
+  SHADOWMASK,getMask(CREATESHADOWMAPFBO),
+DEFVAR2UPDATEEND
+
+DEFUPDATE
+
+
+
+
+/*
 void CShadowMapping::update(){
+  //std::cerr<<"CShadowMapping::update()"<<std::endl;
+  //std::cerr<<"FOCUS CHANGED: "<<this->_changed[VARS[FOCUSPOINT]]<<std::endl;
   if(
       this->_changed[VARS[FOCUSPOINT]]||
       this->_changed[VARS[LIGHT     ]]||
@@ -66,7 +96,7 @@ void CShadowMapping::update(){
     this->_changed[VARS[SHADOWMASK]]=false;
   }
 }
-
+// */
 void CShadowMapping::createShadowMask(){
   GETGPUGAUGE(MEASURE_CREATESHADOWMAP)->begin();
   this->CreateShadowMap();
@@ -102,14 +132,15 @@ CShadowMapping::CShadowMapping(simulation::SimulationData*data):simulation::Simu
   this->_createShadowMap   ();
   this->_createShadowMapFBO();
 
+  std::string dir=GETSTRING(SHADERDIRECTORY)+"methods/ShadowMapping/";
   this->_csm = new ge::gl::ProgramObject(
-      GETSTRING(SHADERDIRECTORY)+"methods/ShadowMapping/createshadowmap.vp",
-      GETSTRING(SHADERDIRECTORY)+"methods/ShadowMapping/createshadowmap.fp");
+      dir+"createshadowmap.vp",
+      dir+"createshadowmap.fp");
 
   this->_createShadowMask = new ge::gl::ProgramObject(
-      GETSTRING(SHADERDIRECTORY)+"methods/ShadowMapping/createShadowMask.vp",
-      GETSTRING(SHADERDIRECTORY)+"methods/ShadowMapping/createShadowMask.gp",
-      GETSTRING(SHADERDIRECTORY)+"methods/ShadowMapping/createShadowMask.fp");
+      dir+"createShadowMask.vp",
+      dir+"createShadowMask.gp",
+      dir+"createShadowMask.fp");
 }
 
 CShadowMapping::~CShadowMapping(){

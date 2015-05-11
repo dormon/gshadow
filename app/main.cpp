@@ -74,6 +74,7 @@ objconf::CameraPathConfiguration* cameraPathConfiguration = NULL;
 objconf::CameraConfiguration    * cameraConfiguration     = NULL;
 objconf::LightConfiguration     * lightConfiguration      = NULL;
 objconf::ShadowMethodConfig     * navyConfig              = NULL;
+objconf::ShadowMethodConfig     * rtwConfig               = NULL;
 
 ShadowMethod*mm;
 
@@ -85,6 +86,11 @@ void DrawExtended();
 
 
 //SceneModel
+ge::db::ModelLoaderManager*modelLoaderManager = NULL;
+ge::db::AssimpLoader*      assimpLoader       = NULL;
+ge::db::Scene*             scene              = NULL;
+
+
 ge::gl::BufferObject*SceneBuffer;
 //GLuint SceneVAO;
 ge::gl::VertexArrayObject*sceneVAO;
@@ -294,12 +300,12 @@ int main(int Argc,char*Argv[]){
  // ModelFile          = Args->getArg("-m","models/o/o.3ds");
   //ModelFile          = Args->getArg("-m","/home/dormon/Desktop/hairball.obj");
 
-  ModelFile          = Args->getArg("-m","models/o/o.3ds");
+  //ModelFile          = Args->getArg("-m","models/o/o.3ds");
 
   //ModelFile          = Args->getArg("-m","models/2quads/2quads.obj");
   //ModelFile          = Args->getArg("-m","models/2_3quads/2_3quads.obj");
 
- // ModelFile          = Args->getArg("-m","/media/old/home/dormon/Plocha/sponza/sponza.obj");
+  ModelFile          = Args->getArg("-m","/media/old/home/dormon/Plocha/sponza/sponza.obj");
   //ModelFile          = Args->getArg("-m","/home/dormon/Desktop/koule_10000_1x1.obj");
   //ModelFile          = Args->getArg("-m","/home/dormon/Desktop/powerplant/powerplant.obj");
 
@@ -528,6 +534,11 @@ void drawDiffuseSpecular(bool useShadows,simulation::Light*L){
 
 glm::mat4 camView=glm::mat4(1.f),camProj=glm::perspective(1.5f,1.f,1.f,1000.f);
 
+void setConfig(objconf::ShadowMethodConfig**config,simulation::SimulationObject*method,std::string name){
+  if(( method) && (!*config))*config=new objconf::ShadowMethodConfig(name,(simulation::SimulationObject*)method,simData);
+  if((!method) && ( *config)){delete *config;*config = NULL;}
+}
+
 void idle(){
 
   cameraConfiguration->getCamera()->right  ((Window->isKeyDown('d')-Window->isKeyDown('a'))*Speed);
@@ -541,13 +552,8 @@ void idle(){
 
 
 
-  if(navyMapping){
-    if(!navyConfig)navyConfig=new objconf::ShadowMethodConfig("navyconfig",(simulation::SimulationObject*)navyMapping,simData);
-  }
-  if(!navyMapping){
-    if(navyConfig)delete navyConfig;
-    navyConfig=NULL;
-  }
+  setConfig(&navyConfig,navyMapping,"navyconfig");
+  setConfig(&rtwConfig ,rtw        ,"rtwconfig" );
 
   if(Window->isKeyOn('q'))exit(0);
 
@@ -624,7 +630,7 @@ void idle(){
 
 void init(){
   MergeQuery=new ge::gl::AsynchronousQueryObject(GL_TIME_ELAPSED,GL_QUERY_RESULT_NO_WAIT,ge::gl::AsynchronousQueryObject::UINT64);
-  gbufferQuery          = new ge::gl::AsynchronousQueryObject(MergeQuery);
+  gbufferQuery = new ge::gl::AsynchronousQueryObject(MergeQuery);
   programPipeline=new ge::gl::ProgramPipelineObject();
   try{
     DrawShader = new ge::gl::ProgramObject(
@@ -642,19 +648,24 @@ void init(){
   deferred_Init(&Deferred,windowParam.size[0],windowParam.size[1]);
   InitDrawStencilToTexture();
 
+  modelLoaderManager = new ge::db::ModelLoaderManager();
+  assimpLoader       = new ge::db::AssimpLoader();
+  modelLoaderManager->registerLoader(assimpLoader);
+  scene = modelLoaderManager->load(ModelFile);
+  std::cerr<<"sceneGeometries: "<<scene->geometries.size()<<std::endl;
+  std::cerr<<scene->geometries[0]->vertices->toStr()<<std::endl;
+
   InitModel(ModelFile.c_str());
   std::cerr<<"NumTriangles: "<<ModelAdjacency.NumTriangles<<std::endl;
   std::cerr<<"NumEdges: "<<ModelAdjacency.NumEdges<<std::endl;
   std::cerr<<"MaxMultiplicity: "<<ModelAdjacency.MaxOpposite<<std::endl;
-  objconf::setCameraAntTweakBar();
-  objconf::setLightAntTweakBar();
+  //objconf::setCameraAntTweakBar();
+  //objconf::setLightAntTweakBar();
   //objconf::setCameraPathAntTweakBar();
 
   cameraConfiguration = new objconf::CameraConfiguration(windowParam.size);
-
   cameraPathConfiguration = new objconf::CameraPathConfiguration();
   cameraPathConfiguration->setCamera(cameraConfiguration->getCamera());
-
   lightConfiguration = new objconf::LightConfiguration();
 
 
@@ -741,6 +752,8 @@ void init(){
 
   simData->insertVariable("nv.program.DV.WORKGROUP_SIZE_X",new simulation::Uint(8));
   simData->insertVariable("nv.program.DV.WORKGROUP_SIZE_Y",new simulation::Uint(8));
+
+  std::cerr<<simData->toStr()<<std::endl;
 
   navyMapping     = new NavyMapping(simData);
   Shadowmapping   = new CShadowMapping(simData);

@@ -46,6 +46,11 @@
 #define SETBIT(x) (1<<x)
 #define GETBIT(x,y) ((x>>y)&1)
 
+template<typename T>
+unsigned getMask(T t){return (1<<t);}
+template<typename T,typename... Args>
+unsigned getMask(T t,Args... args){return (1<<t)|getMask(args...);}
+
 #define GETCHECKSTRING(name) std::string(#name)+" : "+VARS[name]
 
 #define VAR2UPDATEMETHOD JOIN(CLASSNAME,Var2UpdateMethod)
@@ -86,11 +91,13 @@
     bool toUpdate[UPDATEROUTINESNUM];\
     for(unsigned u=0;u<UPDATEROUTINESNUM;++u)toUpdate[u]=false;\
     for(unsigned i=0;i<VARSNUM;++i)\
-      if(CHANGED(i))\
+      if(CHANGED(i)){\
         for(unsigned u=0;u<UPDATEROUTINESNUM;++u)\
           toUpdate[u]|=GETBIT(updateVar[i],u);\
-  for(unsigned u=0;u<UPDATEROUTINESNUM;++u)\
-    if(toUpdate[u])(this->*UPDATEROUTINES[u])();\
+        CHANGED(i)=false;\
+      }\
+    for(unsigned u=0;u<UPDATEROUTINESNUM;++u)\
+      if(toUpdate[u])(this->*UPDATEROUTINES[u])();\
   }
 
 
