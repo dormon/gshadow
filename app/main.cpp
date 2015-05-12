@@ -297,9 +297,11 @@ int main(int Argc,char*Argv[]){
 
   Args=new ge::util::ArgumentObject(Argc,Argv);
 
-  //ModelFile          = Args->getArg("-m","models/o/o.3ds");
-//  ModelFile          = Args->getArg("-m","/media/data/models/Sponza/sponza.obj");
-  //ModelFile          = Args->getArg("-m","/media/data/models/conference/conference.obj");
+  ModelFile          = Args->getArg("-m","models/o/o.3ds");
+  //ModelFile          = Args->getArg("-m","/media/data/models/Sponza/sponza.obj");
+  //ModelFile          = Args->getArg("-m","/media/data/models/sibenik/sibenik.obj");
+  //ModelFile          = Args->getArg("-m","/media/data/models/conference_corrected/conference.obj");
+  //ModelFile          = Args->getArg("-m","/media/data/models/lost_empire/lost_empire.obj");
   //ModelFile          = Args->getArg("-m","/home/dormon/Desktop/hairball.obj");
 
   //ModelFile          = Args->getArg("-m","models/o/o.3ds");
@@ -307,7 +309,7 @@ int main(int Argc,char*Argv[]){
   //ModelFile          = Args->getArg("-m","models/2quads/2quads.obj");
   //ModelFile          = Args->getArg("-m","models/2_3quads/2_3quads.obj");
 
-  ModelFile          = Args->getArg("-m","/media/old/home/dormon/Plocha/sponza/sponza.obj");
+  //ModelFile          = Args->getArg("-m","/media/old/home/dormon/Plocha/sponza/sponza.obj");
   //ModelFile          = Args->getArg("-m","/home/dormon/Desktop/koule_10000_1x1.obj");
   //ModelFile          = Args->getArg("-m","/home/dormon/Desktop/powerplant/powerplant.obj");
 
@@ -619,11 +621,20 @@ void idle(){
   glColorMask(GL_TRUE,GL_TRUE,GL_TRUE,GL_TRUE);
   glDisable(GL_BLEND);
 
+  /*
+  if(SSMethod==SS_NAVYMAPPING){
+    //simpleDraw->drawHeatMap(navyMapping->getOffsetX()->getId(),.75,0,.25,.25,0u,40u);
+
+    simpleDraw->drawHeatMap(navyMapping->getOffsetX()->getId(),.0,0,.5,.5,-1.f,1.f);
+    simpleDraw->drawHeatMap(navyMapping->getSmoothX()->getId(),.5,0,.5,.5,-1.f,1.f);
+
+  }*/
+
   if(cameraPathConfiguration->isDraw())
     if(cameraPathConfiguration->getPath())
       cameraPathConfiguration->getPath()->draw(glm::value_ptr(mvp));
 
-
+  
 
   Window->swap();
   fpsPrinter->endOfFrame();
@@ -779,6 +790,10 @@ void init(){
   simData->insertVariable("nv.program.SMOOTH.WORKGROUP_SIZE_X",new simulation::Uint(8));
   simData->insertVariable("nv.program.SMOOTH.WORKGROUP_SIZE_Y",new simulation::Uint(8));
   simData->insertVariable("nv.program.smoothWindowSize",new simulation::Uint(16));
+  simData->insertVariable("nv.program.INTEGRATEOFFSET.WORKGROUP_SIZE_X",new simulation::Uint(64));
+  simData->insertVariable("nv.use_fast_smooth",new simulation::Bool(false));
+
+
   simData->insertVariable("nv.program.warpFactor",new simulation::Float(0));
   simData->insertVariable("nv.program.NVMAP.TESS_FACTOR",new simulation::Uint(64));
   simData->insertVariable("nv.drawLinesToSM",new simulation::Bool(false));
@@ -798,6 +813,9 @@ void init(){
       TessellationParam.CullSides,
       TessellationParam.UseStencilValueExport);
   GeometryCapsAlt=new CGeometryCapsAlt(&ModelAdjacency);
+
+  simpleDraw = new DrawPrimitive(ShaderDir+"app/");
+  simpleDraw->setWindowSize(windowParam.size);
 
   fpsPrinter = new ge::util::FPSPrinter(200);
   fpsPrinter->start();

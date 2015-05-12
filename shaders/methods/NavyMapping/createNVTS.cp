@@ -23,6 +23,8 @@ void main(){
     vec4 clipA=nv_getFinal(gl_in[0].gl_Position);
     vec4 clipB=nv_getFinal(gl_in[1].gl_Position);
     vec4 clipC=nv_getFinal(gl_in[2].gl_Position);
+
+
     vec3 A=clipA.xyz/clipA.w;
     vec3 B=clipB.xyz/clipB.w;
     vec3 C=clipC.xyz/clipC.w;
@@ -38,10 +40,22 @@ void main(){
     float a=distance(B,C);
     float b=distance(A,C);
     float c=distance(A,B);
+    
+    /*
+    float pa=distance(gl_in[0].gl_Position.xy/gl_in[0].gl_Position.w,gl_in[1].gl_Position.xy/gl_in[1].gl_Position.w);
+    float pb=distance(gl_in[0].gl_Position.xy/gl_in[0].gl_Position.w,gl_in[2].gl_Position.xy/gl_in[2].gl_Position.w);
+    float pc=distance(gl_in[1].gl_Position.xy/gl_in[1].gl_Position.w,gl_in[2].gl_Position.xy/gl_in[2].gl_Position.w);
+
+    float tessA=min(max(pa/a,1),float(tessFactor));
+    float tessB=min(max(pb/b,1),float(tessFactor));
+    float tessC=min(max(pc/c,1),float(tessFactor));
+    */
+    
     float piece=2./float(tessFactor);
     float tessA=min(max(ceil(a/piece),1),float(tessFactor));
     float tessB=min(max(ceil(b/piece),1),float(tessFactor));
     float tessC=min(max(ceil(c/piece),1),float(tessFactor));
+    
     gl_TessLevelOuter[0]=tessA;
     gl_TessLevelOuter[1]=tessB;
     gl_TessLevelOuter[2]=tessC;

@@ -13,7 +13,7 @@ out vec3 vNormal;//vertex normal in world space
 flat out uint vDI;
 
 void main(){
-  vDI = gl_DrawIDARB;
+  vDI = uint(gl_DrawIDARB);
 	vPosition=(m*vec4(Position,1)).xyz;//vertex position in world space
 	vNormal=(m*vec4(Normal,0)).xyz;//vertex normal in world space
 	gl_Position=vec4(vPosition,1);//vertex position in clip space

@@ -15,8 +15,7 @@
 layout(local_size_x=WORKGROUP_SIZE_X,local_size_y=WORKGROUP_SIZE_Y)in;
 
 layout(r32f ,binding=0)uniform  image2D smoothed;
-layout(r32f ,binding=1)uniform  image2D offset;
-layout(r32ui,binding=2)uniform uimage1D count;
+layout(r32f ,binding=1)uniform  image2D integratedOffset;
 
 uniform uint  shadowMapSize    = 512u;
 uniform float warpFactor       = 0.3;
@@ -27,16 +26,19 @@ uniform uint  smoothWindowSize = 20;
 void main(){
   if(any(greaterThanEqual(COORD,uvec2(shadowMapSize))))return;
 
-  uint counter=0;
-  float val=0;
-  for(int i=-int(smoothWindowSize);i<=int(smoothWindowSize);++i){
-    int pos=int(COORD.y)+i;
-    if(pos<0||pos>=int(shadowMapSize))continue;
-    uint weight=imageLoad(count,pos).x;
-    weight=1u;
-    val+=imageLoad(offset,ivec2(COORD)+ivec2(0,i)).x*weight;
-    counter+=weight;
-  }
+  ivec2 maxCoord=ivec2(COORD)+ivec2(0,smoothWindowSize);
+  ivec2 minCoord=ivec2(COORD)-ivec2(0,smoothWindowSize+1);
+  
+#line 32
+  if(uint(maxCoord.y)>=shadowMapSize)maxCoord.y=int(shadowMapSize)-1;
+  float maxVal=imageLoad(integratedOffset,ivec2(maxCoord)).x;
+  float minVal;
+  if(minCoord.y<0)minVal=0;
+  else minVal=imageLoad(integratedOffset,ivec2(minCoord)).x;
 
-  imageStore(smoothed,ivec2(COORD),vec4(float(val)/float(counter))*warpFactor);
+ if(minCoord.y<0)minCoord.y=0;
+
+  float val=(maxVal-minVal)/float(maxCoord.y-minCoord.y+1);
+
+  imageStore(smoothed,ivec2(COORD),vec4(val)*warpFactor);
 }

@@ -49,6 +49,12 @@ class NavyMapping: public simulation::SimulationObject, public ShadowMethod
     ge::gl::TextureObject* _smoothY;
     ge::gl::ProgramObject* _smoothProgram;
 
+    //6.b smooth
+    ge::gl::TextureObject* _integratedOffsetX;
+    ge::gl::TextureObject* _integratedOffsetY;
+    ge::gl::ProgramObject* _integrateOffsetProgram;
+    ge::gl::ProgramObject* _smoothUsingIntegratedOffsetProgram;
+
     //7. unwarpX
     ge::gl::ProgramObject* _unwarpProgram;
 
@@ -77,6 +83,14 @@ class NavyMapping: public simulation::SimulationObject, public ShadowMethod
         ge::gl::TextureObject*smooth,
         ge::gl::TextureObject*offset,
         ge::gl::TextureObject*integralCount);
+
+    void _integrateOffset(
+        ge::gl::TextureObject*integratedOffset,
+        ge::gl::TextureObject*offset);
+    void _smoothUsingIntegratedOffset(
+        ge::gl::TextureObject*smooth,
+        ge::gl::TextureObject*integratedOffset);
+
     void _unwarp();
     void _unwarpAll();
 

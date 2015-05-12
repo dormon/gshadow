@@ -35,6 +35,8 @@ DEFVARSSTART
   "nv.program.SMOOTH.WORKGROUP_SIZE_X",
   "nv.program.SMOOTH.WORKGROUP_SIZE_Y",
   "nv.program.smoothWindowSize",
+  "nv.program.INTEGRATEOFFSET.WORKGROUP_SIZE_X",
+  "nv.use_fast_smooth",
   "nv.program.warpFactor",
   "nv.program.NVMAP.TESS_FACTOR",
   "nv.drawLinesToSM",
@@ -84,6 +86,8 @@ DEFVARSIDSTART
   SMOOTH_SIZE_X,
   SMOOTH_SIZE_Y,
   SMOOTH_WINDOW,
+  INTOFF_X,
+  USE_FAST_SMOOTH,
   WARP_FACTOR,
   TESS_FACTOR,
   LINE_TO_SM,
@@ -162,7 +166,12 @@ void NavyMapping::createShadowMask(){
         GETGPUGAUGE(MEASURE_OFFSETX)->end();
 
         GETGPUGAUGE(MEASURE_SMOOTHX)->begin();
-        this->_smooth(this->_smoothX,this->_offsetX,this->_integratedXCount);
+        if(!GETBOOL(USE_FAST_SMOOTH)){
+          this->_smooth(this->_smoothX,this->_offsetX,this->_integratedXCount);
+        }else{
+          this->_integrateOffset(this->_integratedOffsetX,this->_offsetX);
+          this->_smoothUsingIntegratedOffset(this->_smoothX,this->_integratedOffsetX);
+        }
         GETGPUGAUGE(MEASURE_SMOOTHX)->end();
       }
       GETGPUGAUGE(MEASURE_WHOLEX)->end();
@@ -182,7 +191,12 @@ void NavyMapping::createShadowMask(){
         GETGPUGAUGE(MEASURE_OFFSETY)->end();
 
         GETGPUGAUGE(MEASURE_SMOOTHY)->begin();
-        this->_smooth(this->_smoothY,this->_offsetY,this->_integratedYCount);
+        if(!GETBOOL(USE_FAST_SMOOTH)){
+          this->_smooth(this->_smoothY,this->_offsetY,this->_integratedYCount);
+        }else{
+          this->_integrateOffset(this->_integratedOffsetY,this->_offsetY);
+          this->_smoothUsingIntegratedOffset(this->_smoothY,this->_integratedOffsetY);
+        }
         GETGPUGAUGE(MEASURE_SMOOTHY)->end();
       }
       GETGPUGAUGE(MEASURE_WHOLEY)->end();
@@ -274,6 +288,17 @@ NavyMapping::NavyMapping(simulation::SimulationData*data):simulation::Simulation
   setTexParam(this->_smoothX);
   setTexParam(this->_smoothY);
   this->_smoothProgram = new ge::gl::ProgramObject(dir+"smooth.comp",this->_simulationData->define("nv.program.SMOOTH"));
+
+
+  this->_integratedOffsetX = create2DSquareTex(GL_R32F,GETUINT(RESOLUTION));
+  this->_integratedOffsetY = create2DSquareTex(GL_R32F,GETUINT(RESOLUTION));
+  setTexParam(this->_integratedOffsetX);
+  setTexParam(this->_integratedOffsetY);
+  this->_integrateOffsetProgram = new ge::gl::ProgramObject(dir+"integrateoffset.comp",this->_simulationData->define("nv.program.INTEGRATEOFFSET"));
+  this->_smoothUsingIntegratedOffsetProgram = new ge::gl::ProgramObject(
+      dir+"smoothUsingIntegratedOffset.comp",this->_simulationData->define("nv.program.SMOOTH"));
+
+
 
   this->_unwarpProgram   = new ge::gl::ProgramObject(dir+"unwarp.comp",this->_simulationData->define("nv.program.COUNTMAP")+dvnv);
   this->_drawGridProgram = new ge::gl::ProgramObject(dir+"drawgrid.vp",dir+"drawgrid.cp",dir+"drawgrid.ep",dvnv,dir+"drawgrid.fp");
@@ -492,6 +517,31 @@ void NavyMapping::_smooth(
   unsigned workSizey=GETUINT(RESOLUTION)/GETUINT(SMOOTH_SIZE_Y)+1;
   glDispatchCompute(workSizex,workSizey,1);
 }
+
+void NavyMapping::_integrateOffset(
+    ge::gl::TextureObject*integratedOffset,
+    ge::gl::TextureObject*offset){
+  integratedOffset->bindImage(0,0);
+  offset          ->bindImage(1,0);
+  this->_integrateOffsetProgram->use();
+  this->_integrateOffsetProgram->set("shadowMapSize",GETUINT(RESOLUTION));
+  unsigned workSizex=GETUINT(RESOLUTION)/GETUINT(INTEGRATE_SIZE_X)+1;
+  glDispatchCompute(workSizex,1,1);
+}
+void NavyMapping::_smoothUsingIntegratedOffset(
+    ge::gl::TextureObject*smooth,
+    ge::gl::TextureObject*integratedOffset){
+  smooth          ->bindImage(0,0);
+  integratedOffset->bindImage(1,0);
+  this->_smoothUsingIntegratedOffsetProgram->use();
+  this->_smoothUsingIntegratedOffsetProgram->set("shadowMapSize",GETUINT(RESOLUTION));
+  this->_smoothUsingIntegratedOffsetProgram->set("smoothWindowSize",GETUINT(SMOOTH_WINDOW));
+  this->_smoothUsingIntegratedOffsetProgram->set("warpFactor",GETFLOAT(WARP_FACTOR));
+  unsigned workSizex=GETUINT(RESOLUTION)/GETUINT(SMOOTH_SIZE_X)+1;
+  unsigned workSizey=GETUINT(RESOLUTION)/GETUINT(SMOOTH_SIZE_Y)+1;
+  glDispatchCompute(workSizex,workSizey,1);
+}
+
 
 void NavyMapping::_unwarp(){
   glm::uvec2 winSize=GETUVEC2(WINDOWSIZE);
