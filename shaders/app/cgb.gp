@@ -16,6 +16,9 @@ uniform mat4 mvp;
 
 //uniform vec3 CameraPosition;
 
+flat in uint vDI[];
+flat out uint gDI;
+
 void main(){
 
 /*
@@ -30,6 +33,7 @@ void main(){
 	//gPlane=vec4(N,CameraPosition.x);
 	//gPlane=vec4(N,d)*float(d>=0)+vec4(-N,-d)*float(d<0);
 	for(int i=2;i>=0;--i){
+    gDI=vDI[i];
 		gl_Position=mvp*gl_in[i].gl_Position;
 		gPosition=vPosition[i];
 
@@ -39,6 +43,8 @@ void main(){
 	}
 	EndPrimitive();
 	for(int i=0;i<3;++i){
+    gDI=vDI[i];
+
 		gl_Position=mvp*gl_in[i].gl_Position;
 		gPosition=vPosition[i];
 		gNormal=vNormal[i];

@@ -1,5 +1,7 @@
 #version 330
 
+#extension GL_ARB_shader_draw_parameters: enable
+
 uniform mat4 m,v,p;//model, view, projecion
 
 layout(location=0)in vec3 Position;//vertex position in model space
@@ -8,7 +10,10 @@ layout(location=1)in vec3 Normal;//vertex normal in model space
 out vec3 vPosition;//vertex position in world space
 out vec3 vNormal;//vertex normal in world space
 
+flat out uint vDI;
+
 void main(){
+  vDI = gl_DrawIDARB;
 	vPosition=(m*vec4(Position,1)).xyz;//vertex position in world space
 	vNormal=(m*vec4(Normal,0)).xyz;//vertex normal in world space
 	gl_Position=vec4(vPosition,1);//vertex position in clip space

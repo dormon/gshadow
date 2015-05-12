@@ -297,7 +297,7 @@ int main(int Argc,char*Argv[]){
 
   Args=new ge::util::ArgumentObject(Argc,Argv);
 
-  ModelFile          = Args->getArg("-m","models/o/o.3ds");
+  //ModelFile          = Args->getArg("-m","models/o/o.3ds");
 //  ModelFile          = Args->getArg("-m","/media/data/models/Sponza/sponza.obj");
   //ModelFile          = Args->getArg("-m","/media/data/models/conference/conference.obj");
   //ModelFile          = Args->getArg("-m","/home/dormon/Desktop/hairball.obj");
@@ -307,7 +307,7 @@ int main(int Argc,char*Argv[]){
   //ModelFile          = Args->getArg("-m","models/2quads/2quads.obj");
   //ModelFile          = Args->getArg("-m","models/2_3quads/2_3quads.obj");
 
-  //ModelFile          = Args->getArg("-m","/media/old/home/dormon/Plocha/sponza/sponza.obj");
+  ModelFile          = Args->getArg("-m","/media/old/home/dormon/Plocha/sponza/sponza.obj");
   //ModelFile          = Args->getArg("-m","/home/dormon/Desktop/koule_10000_1x1.obj");
   //ModelFile          = Args->getArg("-m","/home/dormon/Desktop/powerplant/powerplant.obj");
 
@@ -684,12 +684,12 @@ void init(){
   TwAddVarRW(Bar,"Shadows",TW_TYPE_BOOLCPP,&SSEnable  ," help='Toggle shadows on.' "                    );
 
   TwEnumVal MethodDef[]={
-    {SS_COMPUTE            ,"compute"                            },
-    {SS_SHADOWMAP          ,"shadowmapping"                      },
-    {SS_RTW                ,"rtv"                                },
-    {SS_NAVYMAPPING        ,"ours"                               },
-    {SS_TS                 ,"Tessellation Shader Silhouette Edge"},
-    {SS_NO                 ,"No shadows"                         }
+    {SS_COMPUTE    ,"compute"                            },
+    {SS_SHADOWMAP  ,"shadowmapping"                      },
+    {SS_RTW        ,"rtv"                                },
+    {SS_NAVYMAPPING,"ours"                               },
+    {SS_TS         ,"Tessellation Shader Silhouette Edge"},
+    {SS_NO         ,"No shadows"                         }
   };
   TwType MethodType=TwDefineEnum("SS mode",MethodDef,sizeof(MethodDef)/sizeof(TwEnumVal));
   TwAddVarRW(Bar,"Method",MethodType,&SSMethod,
@@ -824,10 +824,10 @@ void DrawScene(){
 }
 
 void ShaderSetMatrix(ge::gl::ProgramObject*P){
-  P->set("m",1,GL_FALSE,(const float*)glm::value_ptr(Model));
-  P->set("v",1,GL_FALSE,(const float*)glm::value_ptr(View));
-  P->set("p",1,GL_FALSE,(const float*)glm::value_ptr(Projection));
-  P->set("mvp",1,GL_FALSE,(const float*)glm::value_ptr(mvp));
+  P->set("m"  ,1,GL_FALSE,(const float*)glm::value_ptr(Model     ));
+  P->set("v"  ,1,GL_FALSE,(const float*)glm::value_ptr(View      ));
+  P->set("p"  ,1,GL_FALSE,(const float*)glm::value_ptr(Projection));
+  P->set("mvp",1,GL_FALSE,(const float*)glm::value_ptr(mvp       ));
 }
 
 void DrawGBuffer(){
