@@ -15,7 +15,7 @@ DEFVARSSTART
   "shadowMapMethods.near",
   "shadowMapMethods.far",
   "window.size",
-  "adjacency",
+  "fastAdjacency",
   "light",
   "camera",
   "gbuffer.position",
@@ -46,7 +46,7 @@ DEFVARSIDSTART
   NEAR,
   FAR,
   WINDOWSIZE,
-  ADJACENCY,
+  FASTADJACENCY,
   LIGHT,
   CAMERA,
   GBUFFER_POSITION,
@@ -457,7 +457,7 @@ void RTWBack::_createRTWMap(){
   //glDrawArrays(GL_TRIANGLES,0,this->_adjacency->NumTriangles*3);
   glPatchParameteri(GL_PATCH_VERTICES,3);
   if(GETBOOL(LINE_TO_SM))glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
-  glDrawArrays(GL_PATCHES,0,GETADJACENCY->NumTriangles*3);//this->_adjacency->NumTriangles*3);
+  glDrawArrays(GL_PATCHES,0,GETFASTADJACENCY->getNofTriangles()*3);
   if(GETBOOL(LINE_TO_SM))glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
 
   GETVAO(SCENEVAO)->unbind();

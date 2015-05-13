@@ -4,12 +4,11 @@
 #include<geGL/UniformCommands.h>
 #include<geGL/ProgramCommands.h>
 
-CComputeSides::CComputeSides(SAdjecency*Adj,
+CComputeSides::CComputeSides(Adjacency*ad,
     unsigned WorkGroupSize,bool CullSides){
   this->_workGroupSize=WorkGroupSize;
-  this->_adjacency=Adj;
+  this->_adjacency=ad;
   //input
-  Adjacency*ad    = this->_adjacency->adj;
   this->_maxMult  = ad->getMaxMultiplicity();
   this->_nofEdges = ad->getNofEdges();
 

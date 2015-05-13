@@ -3,14 +3,14 @@
 #define FAST_ADJACENCY
 
 CGeometryCapsAlt::CGeometryCapsAlt(
-    SAdjecency*Adj){
+    Adjacency*ad){
   //std::cerr<<"################################## new GeometryCapsAlt sides"<<std::endl;
-  this->_adjacency=Adj;
+  //this->_adjacency=Adj;
   this->VAO=new ge::gl::VertexArrayObject();
 
 
 #ifdef FAST_ADJACENCY
-  Adjacency*ad=this->_adjacency->adj;
+  //Adjacency*ad=this->_adjacency->adj;
   this->_nofTriangles=ad->getNofTriangles();;
   this->VBO=new ge::gl::BufferObject(
       sizeof(float)*4*3*this->_nofTriangles,

@@ -5,6 +5,7 @@
 #include<geGL/BufferObject.h>
 
 #include"../../app/adjacency.hpp"
+#include"../../app/fastAdjacency.h"
 #include"../../simulationData/SimulationData.h"
 
 #include"shaderdir.hpp"
@@ -20,13 +21,13 @@ class CComputeSides
     ge::gl::BufferObject*      _counter;
     ge::gl::BufferObject*      _output;
     ge::gl::VertexArrayObject* _vao;
-    SAdjecency*                _adjacency;
+    Adjacency*                 _adjacency;
     unsigned                   _workGroupSize;
     unsigned                   _maxMult;
     unsigned                   _nofEdges;
     ge::gl::CommandList*       _computeList;
   public:
-    CComputeSides(SAdjecency*Adjacency,unsigned WorkGroupSize,bool CullSides);
+    CComputeSides(Adjacency*adjacency,unsigned WorkGroupSize,bool CullSides);
     virtual ~CComputeSides();
     void ComputeSides(float*mvp,simulation::Light*Light);
     void DrawSides(float*mvp,simulation::Light*Light);

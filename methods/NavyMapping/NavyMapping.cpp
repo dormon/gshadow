@@ -18,7 +18,7 @@ DEFVARSSTART
   "shadowMapMethods.offset.factor",
   "shadowMapMethods.offset.units",
   "window.size",
-  "adjacency",
+  "fastAdjacency",
   "light",
   "gbuffer.position",
   "shadowMask",
@@ -69,7 +69,7 @@ DEFVARSIDSTART
   FACTOR,
   UNITS,
   WINDOWSIZE,
-  ADJACENCY,
+  FASTADJACENCY,
   LIGHT,
   GBUFFER_POSITION,
   SHADOWMASK,
@@ -631,7 +631,7 @@ void NavyMapping::_createNVMap(){
   //glDrawArrays(GL_TRIANGLES,0,this->_adjacency->NumTriangles*3);
   glPatchParameteri(GL_PATCH_VERTICES,3);
   if(GETBOOL(LINE_TO_SM))glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
-  glDrawArrays(GL_PATCHES,0,GETADJACENCY->NumTriangles*3);//this->_adjacency->NumTriangles*3);
+  glDrawArrays(GL_PATCHES,0,GETFASTADJACENCY->getNofTriangles()*3);
   if(GETBOOL(LINE_TO_SM))glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
 
   GETVAO(SCENEVAO)->unbind();

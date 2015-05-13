@@ -5,7 +5,7 @@
 
 DEFVARSSTART
   "shaderDirectory",
-  "adjacency",
+  "fastAdjacency",
   "light",
   "camera",
   "shadowMask",
@@ -20,7 +20,7 @@ DEFVARSEND
 
 DEFVARSIDSTART
   SHADERDIRECTORY=0,
-  ADJACENCY,
+  FASTADJACENCY,
   LIGHT,
   CAMERA,
   SHADOWMASK,
@@ -47,7 +47,7 @@ DEFUPDATEROUTINEIDSTART
 DEFUPDATEROUTINEIDEND
 
 DEFVAR2UPDATESTART
-  ADJACENCY,SETBIT(DATA),
+  FASTADJACENCY,SETBIT(DATA),
   WORKGROUPSIZE,SETBIT(PROGRAM),
   CULL_SIDE,SETBIT(PROGRAM)
 DEFVAR2UPDATEEND
@@ -59,8 +59,8 @@ ComputeGeometry::ComputeGeometry(simulation::SimulationData*data):simulation::Si
   this->_caps    = NULL;
   this->_sides   = NULL;
   this->_maskFBO = NULL;
-  this->_caps  = new CGeometryCapsAlt(GETADJACENCY);
-  this->_sides = new CComputeSides(GETADJACENCY,GETUINT(WORKGROUPSIZE),GETBOOL(CULL_SIDE));
+  this->_caps  = new CGeometryCapsAlt(GETFASTADJACENCY);
+  this->_sides = new CComputeSides(GETFASTADJACENCY,GETUINT(WORKGROUPSIZE),GETBOOL(CULL_SIDE));
   this->_maskFBO = new ge::gl::FramebufferObject();
   this->_maskFBO->attachColorTexture(GL_COLOR_ATTACHMENT0,GETTEXTURE(SHADOWMASK)->getId());
   this->_maskFBO->attachStencilTexture(GETTEXTURE(GBUFFER_STENCIL)->getId());
@@ -83,12 +83,12 @@ ComputeGeometry::~ComputeGeometry(){
 void ComputeGeometry::updateData(){
   if(this->_sides)delete this->_sides;
   if(this->_caps)delete this->_caps;
-  this->_caps  = new CGeometryCapsAlt(GETADJACENCY);
-  this->_sides = new CComputeSides(GETADJACENCY,GETUINT(WORKGROUPSIZE),GETBOOL(CULL_SIDE));
+  this->_caps  = new CGeometryCapsAlt(GETFASTADJACENCY);
+  this->_sides = new CComputeSides(GETFASTADJACENCY,GETUINT(WORKGROUPSIZE),GETBOOL(CULL_SIDE));
 }
 void ComputeGeometry::updateProgram(){
   if(this->_sides)delete this->_sides;
-  this->_sides = new CComputeSides(GETADJACENCY,GETUINT(WORKGROUPSIZE),GETBOOL(CULL_SIDE));
+  this->_sides = new CComputeSides(GETFASTADJACENCY,GETUINT(WORKGROUPSIZE),GETBOOL(CULL_SIDE));
 }
 
 void ComputeGeometry::createShadowMask(){

@@ -87,8 +87,6 @@ using namespace std;
 
 #include<AntTweakBar.h>
 
-#include"adjacency.hpp"
-
 #include"init_shadowmapping.hpp"
 #include"BoundingBox.h"
 

@@ -15,7 +15,7 @@ DEFVARSSTART
   "shadowMapMethods.near",
   "shadowMapMethods.far",
   "window.size",
-  "adjacency",
+  "fastAdjacency",
   "light",
   "gbuffer.position",
   "shadowMask",
@@ -32,7 +32,7 @@ DEFVARSIDSTART
   NEAR,
   FAR,
   WINDOWSIZE,
-  ADJACENCY,
+  FASTADJACENCY,
   LIGHT,
   GBUFFER_POSITION,
   SHADOWMASK,
@@ -187,7 +187,7 @@ void CShadowMapping::CreateShadowMap(){
   glPolygonOffset(2.5,10);
 
   GETVAO(SCENEVAO)->bind();
-  glDrawArrays(GL_TRIANGLES,0,GETADJACENCY->NumTriangles*3);
+  glDrawArrays(GL_TRIANGLES,0,GETFASTADJACENCY->getNofTriangles()*3);
   GETVAO(SCENEVAO)->unbind();
 
   glViewport(0,0,GETUVEC2(WINDOWSIZE).x,GETUVEC2(WINDOWSIZE).y);

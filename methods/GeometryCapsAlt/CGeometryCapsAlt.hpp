@@ -5,6 +5,7 @@
 #include<geGL/BufferObject.h>
 
 #include"../../app/adjacency.hpp"
+#include"../../app/fastAdjacency.h"
 #include"../../simulationData/SimulationData.h"
 
 #include"../StencilMethod/StencilMethod.h"
@@ -20,7 +21,7 @@ class CGeometryCapsAlt
     unsigned _nofTriangles;
     SAdjecency*_adjacency;
   public:
-    CGeometryCapsAlt(SAdjecency*Adjacency);
+    CGeometryCapsAlt(Adjacency*adjacency);
     ~CGeometryCapsAlt();
     void DrawCaps(float*mvp,simulation::Light*Light);
 };

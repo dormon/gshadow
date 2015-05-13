@@ -109,7 +109,8 @@ std::vector<OrthoBoundingBox*>sceneOBB;
 unsigned SceneNumTriangles=0;
 float*RawTriangles;
 
-SAdjecency ModelAdjacency;
+Adjacency*fastAdjacency=NULL;
+
 SSpecificEdge SE;
 
 //sintorn
@@ -260,10 +261,7 @@ struct STestParam{
 
 //SGeometryParam                   GeometryParam,         GeometryParamLast;
 SGeometryTemplate         GeometryTemplate      ,GeometryTemplateLast      ;
-STessellationParam        TessellationParam     ,TessellationParamLast     ;
 SComputeSOEParam          ComputeSOEParam       ,ComputeSOEParamLast       ;
-SComputeParam             ComputeParam          ,ComputeParamLast          ;
-SShadowMapParam           ShadowmapParam        ,ShadowmapParamLast        ;
 SSintornParam             SintornParam          ,SintornParamLast          ;
 CubeShadowMappingTemplate cubeShadowMappingParam,cubeShadowMappingParamLast;
 
@@ -299,6 +297,8 @@ int main(int Argc,char*Argv[]){
   Args=new ge::util::ArgumentObject(Argc,Argv);
 
   ModelFile          = Args->getArg("-m","models/o/o.3ds");
+  //ModelFile          = Args->getArg("-m","/home/dormon/Desktop/lost_empire/lost_empire.obj");
+  //ModelFile          = Args->getArg("-m","/home/dormon/Desktop/san-miguel/san-miguel.obj");
   //ModelFile          = Args->getArg("-m","/home/dormon/Desktop/conference/conference.obj");
   //ModelFile          = Args->getArg("-m","/media/data/models/Sponza/sponza.obj");
   //ModelFile          = Args->getArg("-m","/media/data/models/sibenik/sibenik.obj");
@@ -396,33 +396,11 @@ int main(int Argc,char*Argv[]){
   GeometryTemplateLast=GeometryTemplate;
   GeometryTemplateLast.Deterministic=!GeometryTemplate.Deterministic;
 
-  //tessellation args
-  TessellationParam.ReferenceEdge         = Args->isPresent("--tessellation-start","--tessellation-end","-r");
-  TessellationParam.CullSides             = Args->isPresent("--tessellation-start","--tessellation-end","-c");
-  TessellationParam.UseStencilValueExport = Args->isPresent("--tessellation-start","--tessellation-end","-sve");
-  TessellationParamLast=TessellationParam;
-  TessellationParamLast.ReferenceEdge=!TessellationParam.ReferenceEdge;
-
   //computesoe args
   ComputeSOEParam.WorkGroupSize = Args->getArgi  ("--computesoe-start","--computesoe-end","-w","64");
   ComputeSOEParam.CullSides     = Args->isPresent("--computesoe-start","--computesoe-end","-c");
   ComputeSOEParamLast=ComputeSOEParam;
   ComputeSOEParamLast.CullSides=!ComputeSOEParam.CullSides;
-
-  //compute args
-  ComputeParam.WorkGroupSize = Args->getArgi  ("--compute-start","--compute-end","-w","64");
-  ComputeParam.CullSides     = Args->isPresent("--compute-start","--compute-end","-c");
-  ComputeParamLast=ComputeParam;
-  ComputeParamLast.CullSides=!ComputeParam.CullSides;
-
-  //shadowmap args
-  ShadowmapParam.Resolution    = Args->getArgi("--shadowmap-start","--shadowmap-end","-r"   ,"1024");
-  ShadowmapParam.Fovy          = Args->getArgf("--shadowmap-start","--shadowmap-end","-fovy","45"  );
-  ShadowmapParam.FocusPoint[0] = Args->getArgf("--shadowmap-start","--shadowmap-end","-fpx" ,"0"   );
-  ShadowmapParam.FocusPoint[1] = Args->getArgf("--shadowmap-start","--shadowmap-end","-fpy" ,"-30"   );
-  ShadowmapParam.FocusPoint[2] = Args->getArgf("--shadowmap-start","--shadowmap-end","-fpz" ,"0"   );
-  ShadowmapParamLast=ShadowmapParam;
-  ShadowmapParamLast.Resolution+=1;
 
   //cubeShadowMapping args
   cubeShadowMappingParam.resolution    = Args->getArgi("--shadowmap-start","--shadowmap-end","-r","1024");
@@ -671,9 +649,9 @@ void init(){
   std::cerr<<scene->geometries[0]->vertices->toStr()<<std::endl;
 
   InitModel(ModelFile.c_str());
-  std::cerr<<"NumTriangles: "<<ModelAdjacency.NumTriangles<<std::endl;
-  std::cerr<<"NumEdges: "<<ModelAdjacency.NumEdges<<std::endl;
-  std::cerr<<"MaxMultiplicity: "<<ModelAdjacency.MaxOpposite<<std::endl;
+  std::cerr<<"NumTriangles: "   <<fastAdjacency->getNofTriangles   ()<<std::endl;
+  std::cerr<<"NumEdges: "       <<fastAdjacency->getNofEdges       ()<<std::endl;
+  std::cerr<<"MaxMultiplicity: "<<fastAdjacency->getMaxMultiplicity()<<std::endl;
   //objconf::setCameraAntTweakBar();
   //objconf::setLightAntTweakBar();
   //objconf::setCameraPathAntTweakBar();
@@ -722,7 +700,8 @@ void init(){
   simData->insertVariable("emptyVAO" ,new simulation::Object(EmptyVAO       ));
   simData->insertVariable("sceneVAO" ,new simulation::Object(sceneVAO       ));
   simData->insertVariable("light"    ,lightConfiguration->getLight()                                 );
-  simData->insertVariable("adjacency",new simulation::Object(&ModelAdjacency));
+  //simData->insertVariable("adjacency",new simulation::Object(&ModelAdjacency));
+  simData->insertVariable("fastAdjacency",new simulation::Object(fastAdjacency));
   simData->insertVariable("gbuffer.position",new simulation::Object(Deferred.position));
   simData->insertVariable("gbuffer.fbo"     ,new simulation::Object(Deferred.fbo     ));
   simData->insertVariable("gbuffer.stencil" ,new simulation::Object(Deferred.depth ));
@@ -771,37 +750,7 @@ void init(){
 
   simData->insertVariable("camera",new simulation::Object(cameraConfiguration->getCamera()));
 
-  simData->insertVariable("rtw.program.CIM.WORKGROUP_SIZE_X"     ,new simulation::Uint(8));
-  simData->insertVariable("rtw.program.CIM.WORKGROUP_SIZE_Y"     ,new simulation::Uint(8));
-  simData->insertVariable("rtw.program.CIM1D.WORKGROUP_SIZE_X"   ,new simulation::Uint(64));
-  simData->insertVariable("rtw.program.CIM1D.WALKING_WINDOW_SIZE",new simulation::Uint(16));
-  simData->insertVariable("rtw.program.CSM.TESS_FACTOR"          ,new simulation::Uint(32));
-  simData->insertVariable("rtw.importance_passes"                ,new simulation::Uint(4));
-  simData->insertVariable("rtw.drawLinesToSM"                    ,new simulation::Bool(false));
 
-
-  simData->insertVariable("nv.program.VS.WORKGROUP_SIZE_X",new simulation::Uint(8));
-  simData->insertVariable("nv.program.VS.WORKGROUP_SIZE_Y",new simulation::Uint(8));
-  simData->insertVariable("nv.program.FDV.WORKGROUP_SIZE_X",new simulation::Uint(8));
-  simData->insertVariable("nv.program.FDV.WORKGROUP_SIZE_Y",new simulation::Uint(8));
-  simData->insertVariable("nv.program.COUNTMAP.WORKGROUP_SIZE_X",new simulation::Uint(8));
-  simData->insertVariable("nv.program.COUNTMAP.WORKGROUP_SIZE_Y",new simulation::Uint(8));
-  simData->insertVariable("nv.program.INTEGRATE.WORKGROUP_SIZE_X",new simulation::Uint(64));
-  simData->insertVariable("nv.program.OFFSET.WORKGROUP_SIZE_X",new simulation::Uint(8));
-  simData->insertVariable("nv.program.OFFSET.WORKGROUP_SIZE_Y",new simulation::Uint(8));
-  simData->insertVariable("nv.program.SMOOTH.WORKGROUP_SIZE_X",new simulation::Uint(8));
-  simData->insertVariable("nv.program.SMOOTH.WORKGROUP_SIZE_Y",new simulation::Uint(8));
-  simData->insertVariable("nv.program.smoothWindowSize",new simulation::Uint(16));
-  simData->insertVariable("nv.program.INTEGRATEOFFSET.WORKGROUP_SIZE_X",new simulation::Uint(64));
-  simData->insertVariable("nv.use_fast_smooth",new simulation::Bool(false));
-
-
-  simData->insertVariable("nv.program.warpFactor",new simulation::Float(0));
-  simData->insertVariable("nv.program.NVMAP.TESS_FACTOR",new simulation::Uint(64));
-  simData->insertVariable("nv.drawLinesToSM",new simulation::Bool(false));
-
-  simData->insertVariable("nv.program.DV.WORKGROUP_SIZE_X",new simulation::Uint(8));
-  simData->insertVariable("nv.program.DV.WORKGROUP_SIZE_Y",new simulation::Uint(8));
 
   std::cerr<<simData->toStr()<<std::endl;
 
@@ -810,11 +759,11 @@ void init(){
   rtw             = new RTWBack(simData);
   computeGeometry = new ComputeGeometry(simData);
   TessellationSides=new CTessellationSides(
-      &ModelAdjacency,
-      TessellationParam.ReferenceEdge,
-      TessellationParam.CullSides,
-      TessellationParam.UseStencilValueExport);
-  GeometryCapsAlt=new CGeometryCapsAlt(&ModelAdjacency);
+      fastAdjacency,
+      simData->getBool("tessellation.use_reference_edge"),
+      simData->getBool("tessellation.cull_sides"),
+      simData->getBool("tessellation.use_stencil_value_export"));
+  GeometryCapsAlt=new CGeometryCapsAlt(fastAdjacency);
 
   simpleDraw = new DrawPrimitive(ShaderDir+"app/");
   simpleDraw->setWindowSize(windowParam.size);
@@ -1465,7 +1414,13 @@ void InitModel(const char* File){
   sceneVAO->addAttrib(SceneBuffer,0,3,GL_FLOAT,sizeof(float)*6,(GLvoid*)(sizeof(float)*0));
   sceneVAO->addAttrib(SceneBuffer,1,3,GL_FLOAT,sizeof(float)*6,(GLvoid*)(sizeof(float)*3));
 
-  ComputeAdjacency(&ModelAdjacency,RawTriangles,SceneNumTriangles);
+  //ComputeAdjacency(&ModelAdjacency,RawTriangles,SceneNumTriangles);
+
+  fastAdjacency = new Adjacency((const float*)RawTriangles,SceneNumTriangles,2);
+
+
+
+
 }
 
 void destroy(){

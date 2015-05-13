@@ -5,7 +5,7 @@
 #include<geGL/ProgramObject.h>
 #include<geGL/BufferObject.h>
 
-#include"../../app/adjacency.hpp"
+#include"../../app/fastAdjacency.h"
 #include"../../simulationData/SimulationData.h"
 
 #include"shaderdir.hpp"
@@ -16,9 +16,10 @@ class CTessellationSides
     ge::gl::BufferObject*EBO;
     ge::gl::VertexArrayObject*VAO;
     ge::gl::ProgramObject*Program;
-    SAdjecency*Adjacency;
+    unsigned   _patchVertices;
+    unsigned   _nofEdges;
   public:
-    CTessellationSides(SAdjecency*Adjacency,
+    CTessellationSides(Adjacency*adjacency,
         bool UseReferenceEdge,bool CullSides,
         bool UseStencilValueExport);
     ~CTessellationSides();
