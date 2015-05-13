@@ -10,7 +10,6 @@ void deferred_Init(
 
   D->Create=new ge::gl::ProgramObject(
       ShaderDir+"app/cgb.vp",
-      ShaderDir+"app/cgb.gp",
       ShaderDir+"app/cgb.fp");
   D->Size[0]=Widht;
   D->Size[1]=Height;

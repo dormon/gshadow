@@ -95,6 +95,7 @@ ge::gl::BufferObject*SceneBuffer;
 //GLuint SceneVAO;
 ge::gl::VertexArrayObject*sceneVAO;
 ge::gl::BufferObject*sceneDIBO;
+ge::gl::BufferObject*sceneMaterial;
 ge::gl::BufferObject*sceneAABBData;
 unsigned sceneDIBOSize=0;
 ge::gl::ProgramObject*frustumCullingProgram;
@@ -297,7 +298,8 @@ int main(int Argc,char*Argv[]){
 
   Args=new ge::util::ArgumentObject(Argc,Argv);
 
-  ModelFile          = Args->getArg("-m","models/o/o.3ds");
+  //ModelFile          = Args->getArg("-m","models/o/o.3ds");
+  ModelFile          = Args->getArg("-m","/home/dormon/Desktop/conference/conference.obj");
   //ModelFile          = Args->getArg("-m","/media/data/models/Sponza/sponza.obj");
   //ModelFile          = Args->getArg("-m","/media/data/models/sibenik/sibenik.obj");
   //ModelFile          = Args->getArg("-m","/media/data/models/conference_corrected/conference.obj");
@@ -834,6 +836,7 @@ void DrawScene(){
   glDisable(GL_STENCIL_TEST);
   glColorMask(GL_TRUE,GL_TRUE,GL_TRUE,GL_TRUE);
   sceneVAO->bind();
+  sceneMaterial->bindBase(GL_SHADER_STORAGE_BUFFER,0);
   sceneDIBO->bind(GL_DRAW_INDIRECT_BUFFER);
   glMultiDrawArraysIndirect(GL_TRIANGLES,NULL,sceneDIBOSize,sizeof(unsigned)*4);
   //glDrawArrays(GL_TRIANGLES,0,SceneNumTriangles*3);
@@ -1351,6 +1354,11 @@ void SetMatrix(){
   mvp=Projection*View*Model;
 }
 
+struct MeshMaterial{
+  float diffuse[4];
+  float specular[4];
+};
+
 void InitModel(const char* File){
   const aiScene*SceneModel=aiImportFile(File,
       aiProcess_CalcTangentSpace|
@@ -1374,6 +1382,11 @@ void InitModel(const char* File){
 
   SceneBuffer=new ge::gl::BufferObject(sizeof(float)*SceneNumTriangles*3*2*3);
 
+  sceneMaterial = new ge::gl::BufferObject(sizeof(float)*4*2*SceneModel->mNumMeshes);
+
+  MeshMaterial*mmptr= (MeshMaterial*)sceneMaterial->map();
+
+
   sceneAABB=new AxisAlignBoundingBox();
   sceneDIBOSize=SceneModel->mNumMeshes;
   sceneDIBO=new ge::gl::BufferObject(sizeof(unsigned)*4*sceneDIBOSize);
@@ -1385,6 +1398,15 @@ void InitModel(const char* File){
   RawTriangles=new float[SceneNumTriangles*3*3];
   for(unsigned mesh=0;mesh<SceneModel->mNumMeshes;++mesh){//loop over meshes
     aiMesh*Mesh=SceneModel->mMeshes[mesh];
+
+    aiColor3D c;
+    aiMaterial*mat=SceneModel->mMaterials[Mesh->mMaterialIndex];
+    mat->Get(AI_MATKEY_COLOR_DIFFUSE,c);
+    for(int i=0;i<3;++i)mmptr->diffuse[i]=c[i];
+    mat->Get(AI_MATKEY_COLOR_SPECULAR,c);
+    for(int i=0;i<3;++i)mmptr->specular[i]=c[i];
+    mmptr++;
+
     AxisAlignBoundingBox*aabb=new AxisAlignBoundingBox();
     sceneBB.push_back(aabb);
     dibo[mesh*4+0]=Mesh->mNumFaces*3;
@@ -1435,6 +1457,7 @@ void InitModel(const char* File){
 
   SceneBuffer->unmap();
 
+  sceneMaterial->unmap();
 
 
   aiReleaseImport(SceneModel);
