@@ -298,8 +298,8 @@ int main(int Argc,char*Argv[]){
 
   Args=new ge::util::ArgumentObject(Argc,Argv);
 
-  //ModelFile          = Args->getArg("-m","models/o/o.3ds");
-  ModelFile          = Args->getArg("-m","/home/dormon/Desktop/conference/conference.obj");
+  ModelFile          = Args->getArg("-m","models/o/o.3ds");
+  //ModelFile          = Args->getArg("-m","/home/dormon/Desktop/conference/conference.obj");
   //ModelFile          = Args->getArg("-m","/media/data/models/Sponza/sponza.obj");
   //ModelFile          = Args->getArg("-m","/media/data/models/sibenik/sibenik.obj");
   //ModelFile          = Args->getArg("-m","/media/data/models/conference_corrected/conference.obj");

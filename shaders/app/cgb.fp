@@ -1,4 +1,4 @@
-#version 330
+#version 430
 
 layout(location=0)out uvec4 fColor;//output color
 layout(location=1)out vec3  fPosition;//output position
@@ -19,7 +19,7 @@ struct Material{
   vec4 specular;
 };
 
-layout(std430,binding=0)buffer MatrialBuffer{Material materials[];};
+layout(std430,binding=0)buffer MaterialBuffer{Material materials[];};
 
 void main(){
   vec3  diffuseColor   = vec3(.5,float(vDI%10u)/float(9),0);
