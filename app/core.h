@@ -8,7 +8,7 @@
   enum name{\
     __VA_ARGS__\
   };\
-std::ostream& operator<<(std::ostream& os,const name&val){\
+friend std::ostream& operator<<(std::ostream& os,const name&val){\
   char data[]=#__VA_ARGS__;\
   char*token=std::strtok(data,",");\
   unsigned counter=0;\
