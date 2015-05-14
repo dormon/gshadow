@@ -39,6 +39,7 @@ class DrawPrimitive
   public:
     DrawPrimitive(std::string shaderDir);
     void setWindowSize(unsigned*size);
+    void setWindowSize(glm::uvec2 size);
     void beginTriangles();
     void beginLine();
     void beginPoint();

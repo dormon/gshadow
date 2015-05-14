@@ -53,6 +53,12 @@ void DrawPrimitive::setWindowSize(unsigned*size){
   this->_windowSize[1]=size[1];
 }
 
+void DrawPrimitive::setWindowSize(glm::uvec2 size){
+  this->_windowSize[0]=size[0];
+  this->_windowSize[1]=size[1];
+}
+
+
 void DrawPrimitive::beginTriangles(){
   this->_mode=TRIANGLES;
   this->_setStateSet();

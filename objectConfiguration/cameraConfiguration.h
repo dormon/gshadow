@@ -18,7 +18,7 @@
 
 
 namespace objconf{
-  void setCamera(ge::util::ArgumentObject*args,unsigned*windowSize);
+  void setCamera(ge::util::ArgumentObject*args,glm::uvec2 windowSize);
   void setCameraAntTweakBar();
   void deinitCamera();
   ge::util::CameraObject*getCamera(unsigned i=0);
@@ -38,7 +38,7 @@ namespace objconf{
       static void _farGet(void*A,void*D);
       bool _mouseLock;
     public:
-      CameraConfiguration(unsigned*windowSize,float fovy=45.,float near=1.,float far=9999);
+      CameraConfiguration(glm::uvec2 winSize,float fovy=45.,float near=1.,float far=9999);
       ~CameraConfiguration();
       ge::util::CameraObject*getCamera();
       bool isMouseLock();

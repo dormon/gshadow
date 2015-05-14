@@ -16,10 +16,10 @@ struct{
 
 #define FAR_LIMIT 10000
 
-CameraConfiguration::CameraConfiguration(unsigned*windowSize,float fovy,float near,float far){
+CameraConfiguration::CameraConfiguration(glm::uvec2 windowSize,float fovy,float near,float far){
   this->_bar=TwNewBar("camera configurator");
   this->_camera = new ge::util::CameraObject(
-      windowSize,
+      glm::value_ptr(windowSize),
       near,
       far,
       fovy);
@@ -113,12 +113,12 @@ CameraConfiguration::~CameraConfiguration(){
       }
 
 
-void objconf::setCamera(ge::util::ArgumentObject*args,unsigned*windowSize){
+void objconf::setCamera(ge::util::ArgumentObject*args,glm::uvec2 windowSize){
   cameraConfiguration.param.near = args->getArgf("-near","1");
   cameraConfiguration.param.far  = args->getArgf("-far" ,"9999");
   cameraConfiguration.param.fovy = args->getArgf("-fovy","45" );
   cameraConfiguration.camera = new ge::util::CameraObject(
-      windowSize,
+      glm::value_ptr(windowSize),
       cameraConfiguration.param.near,
       cameraConfiguration.param.far,
       cameraConfiguration.param.fovy);

@@ -245,9 +245,6 @@ bool DSDrawEverything      = false;
 
 bool DisableAnttweakbar=false;
 
-ge::util::ContextParam contextParam;
-ge::util::WindowParam  windowParam;
-
 struct STestParam{
   bool Test;
   std::string CameraMationFile;
@@ -336,18 +333,6 @@ int main(int Argc,char*Argv[]){
   ShaderDir          = Args->getArg("--shader-directory","shaders/");
   DisableAnttweakbar = Args->isPresent("--disable-anttweakbar");
 
-  ge::util::loadContextParam(&contextParam,Args);
-  ge::util::loadWindowParam (&windowParam ,Args);
-  windowParam.size[0]=simData->getUVec2("window.size",glm::uvec2(1024u)).x;
-  windowParam.size[1]=simData->getUVec2("window.size",glm::uvec2(1024u)).y;
-
-
-  contextParam.profile="core";
-  contextParam.version=440;
-
-  objconf::setCamera(Args,windowParam.size);
-  objconf::setLight(Args);
-
   //test args
   TestParam.Test             = Args->isPresent("--test"                     );
   TestParam.CameraMationFile = Args->getArg   ("--test-cameramation"   ,""  );
@@ -404,8 +389,8 @@ int main(int Argc,char*Argv[]){
 
   //cubeShadowMapping args
   cubeShadowMappingParam.resolution    = Args->getArgi("--shadowmap-start","--shadowmap-end","-r","1024");
-  cubeShadowMappingParam.screenSize[0] = windowParam.size[0];
-  cubeShadowMappingParam.screenSize[1] = windowParam.size[1];
+  cubeShadowMappingParam.screenSize[0] = simData->getUVec2("window.size").x;
+  cubeShadowMappingParam.screenSize[1] = simData->getUVec2("window.size").y;
   cubeShadowMappingParam.near          = Args->getArgf("--shadowmap-start","--shadowmap-end","-near","1"   );
   cubeShadowMappingParam.far           = Args->getArgf("--shadowmap-start","--shadowmap-end","-far" ,"1000");
   cubeShadowMappingParamLast=cubeShadowMappingParam;
@@ -419,15 +404,15 @@ int main(int Argc,char*Argv[]){
 
   delete Args;
   Window=new ge::util::WindowObject(
-      windowParam.size[0],
-      windowParam.size[1],
-      windowParam.fullscreen,
+      simData->getUVec2("window.size").x,
+      simData->getUVec2("window.size").y,
+      simData->getBool("window.fullscreen"),
       idle,
       Mouse,
       !DisableAnttweakbar,
-      contextParam.version,
-      contextParam.profile,
-      contextParam.flag);
+      simData->getUint("context.version"),
+      simData->getString("context.profile"),
+      simData->getString("context.debug"));
 
   glewExperimental=GL_TRUE;
   glewInit();
@@ -638,7 +623,7 @@ void init(){
   }catch(std::string&e){
     std::cerr<<e<<std::endl;
   }
-  deferred_Init(&Deferred,windowParam.size[0],windowParam.size[1]);
+  deferred_Init(&Deferred,simData->getUVec2("window.size").x,simData->getUVec2("window.size").y);
   InitDrawStencilToTexture();
 
   modelLoaderManager = new ge::db::ModelLoaderManager();
@@ -656,7 +641,7 @@ void init(){
   //objconf::setLightAntTweakBar();
   //objconf::setCameraPathAntTweakBar();
 
-  cameraConfiguration = new objconf::CameraConfiguration(windowParam.size);
+  cameraConfiguration = new objconf::CameraConfiguration(simData->getUVec2("window.size"));
   cameraPathConfiguration = new objconf::CameraPathConfiguration();
   cameraPathConfiguration->setCamera(cameraConfiguration->getCamera());
   lightConfiguration = new objconf::LightConfiguration();
@@ -718,13 +703,13 @@ void init(){
   simData->insertVariable("measure.shadowMap.createShadowMask",new simulation::GpuGauge(false,true));
 
   simData->insertVariable("measure.rtw.createImportance",new simulation::GpuGauge(false,true));
-  simData->insertVariable("measure.rtw.createShadowMap",new simulation::GpuGauge(false,true));
+  simData->insertVariable("measure.rtw.createShadowMap" ,new simulation::GpuGauge(false,true));
   simData->insertVariable("measure.rtw.createShadowMask",new simulation::GpuGauge(false,true));
-  simData->insertVariable("measure.rtw.importance2D",new simulation::GpuGauge(false,true));
-  simData->insertVariable("measure.rtw.importance1D",new simulation::GpuGauge(false,true));
-  simData->insertVariable("measure.rtw.smooth"      ,new simulation::GpuGauge(false,true));
-  simData->insertVariable("measure.rtw.sum"         ,new simulation::GpuGauge(false,true));
-  simData->insertVariable("measure.rtw.whole"       ,new simulation::GpuGauge(false,true));
+  simData->insertVariable("measure.rtw.importance2D"    ,new simulation::GpuGauge(false,true));
+  simData->insertVariable("measure.rtw.importance1D"    ,new simulation::GpuGauge(false,true));
+  simData->insertVariable("measure.rtw.smooth"          ,new simulation::GpuGauge(false,true));
+  simData->insertVariable("measure.rtw.sum"             ,new simulation::GpuGauge(false,true));
+  simData->insertVariable("measure.rtw.whole"           ,new simulation::GpuGauge(false,true));
 
   simData->insertVariable("measure.nv.computeViewSamples",new simulation::GpuGauge(false,true));
   simData->insertVariable("measure.nv.dv"                ,new simulation::GpuGauge(false,true));
@@ -766,7 +751,7 @@ void init(){
   GeometryCapsAlt=new CGeometryCapsAlt(fastAdjacency);
 
   simpleDraw = new DrawPrimitive(ShaderDir+"app/");
-  simpleDraw->setWindowSize(windowParam.size);
+  simpleDraw->setWindowSize(simData->getUVec2("window.size"));
 
   fpsPrinter = new ge::util::FPSPrinter(200);
   fpsPrinter->start();
@@ -1217,47 +1202,6 @@ void drawCubeShadowmapShadow(simulation::Light*Light){
   }
 
 }
-
-/*
-   void drawNavyMapping(simulation::Light*Light){
-   if(SSMeasureShadowmap)
-   glBeginQuery(GL_TIME_ELAPSED,QueryTime);
-
-//navyMapping->setFocus(Light,ShadowmapParam.FocusPoint,ShadowmapParam.Fovy);
-navyMapping->setFocus(Light,(float*)glm::value_ptr(sceneAABB->getCenter()),ShadowmapParam.Fovy);
-navyMapping->createShadowMap(glm::value_ptr(Model));
-if(Window->isKeyOn('u')){
-navyMapping->writeViewSamples(Deferred.position->getId());
-navyMapping->prefixSum(true);
-navyMapping->smoothGrid(true);
-navyMapping->unwarpX(Deferred.position->getId());
-navyMapping->prefixSum(false);
-navyMapping->smoothGrid(false);
-navyMapping->createNavyMap(glm::value_ptr(Model));
-}
-
-
-if(SSMeasureShadowmap){
-glEndQuery(GL_TIME_ELAPSED);
-glGetQueryObjectuiv(QueryTime,GL_QUERY_RESULT_NO_WAIT,&QueryTimePassedShadowmap);
-}
-
-if(SSMeasureSmapping)
-glBeginQuery(GL_TIME_ELAPSED,QueryTime);
-
-if(Window->isKeyOn('u'))
-navyMapping->drawNavyShadowed(Window->isKeyOn('j'),glm::value_ptr(Pos),Light);
-else
-navyMapping->drawShadowed(glm::value_ptr(Pos),Light);
-
-
-if(SSMeasureSmapping){
-glEndQuery(GL_TIME_ELAPSED);
-glGetQueryObjectuiv(QueryTime,GL_QUERY_RESULT_NO_WAIT,&QueryTimePassedSmapping);
-}
-
-}
-*/
 
 void DrawShadowless(){
   DrawGBuffer();

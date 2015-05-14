@@ -100,7 +100,7 @@ using namespace std;
 #include"../objectConfiguration/cameraPathConfiguration.h"
 #include"../objectConfiguration/SimDataConfiguration.h"
 
-
+#include"core.h"
 
 #define ILUT_USE_OPENGL
 #include <IL/il.h>

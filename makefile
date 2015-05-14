@@ -55,7 +55,7 @@ run:
 	#./svetlo -w 512 -h 512 --shader-directory shaders/ --light-start 0 0 0 1 1 1 1 1 1 1 --light-end  --test-duration 60 --test-method sm --computesoe-start -c --computesoe-end --compute-start -c --compute-end -d -r -fi --geometry-start -d -fi -r -c --geometry-end --tessellation-start -r -sve --tessellation-end --shadowmap-start -r 4096 --shadowmap-end -m ~/Plocha/2tri/2tri.3ds --test-measure-compute
 	#./svetlo -w 1024 -h 1024 --shader-directory shaders/ --light-start 0 0 0 1 1 1 1 1 1 1 --light-end  --test-duration 60 --test-method sm --computesoe-start -c --computesoe-end --compute-start -c --compute-end -d -r -fi --geometry-start -u -d -fi -c -r --geometry-end --tessellation-start -r -sve --tessellation-end --shadowmap-start -r 512 -fpx -3 -fpy 0.5 -fpz -3 --shadowmap-end -m /home/dormon/Plocha/o/o.3ds --test-measure-compute
 	#./svetlo -w ${WIDTH} -h ${HEIGHT} --shader-directory shaders/ --light-start 1.8 0 0 1 1 1 1 1 1 1 --light-end  --test-duration 60 --test-method sm --computesoe-start -c --computesoe-end --compute-start -c --compute-end -d -r -fi --geometry-start -u -d -fi -c -r --geometry-end --tessellation-start -r -sve --tessellation-end --shadowmap-start -r 512 -fpx -3 -fpy 0.5 -fpz -3 --shadowmap-end -m ${MODEL} --test-measure-compute
-	./svetlo window \{ size ${WIDTH} ${HEIGHT} \} \< context.conf \< light.conf \< test0.conf \< methods.conf
+	./svetlo \< window.conf \< context.conf \< light.conf \< test0.conf \< methods.conf
 
 
 gdb:
