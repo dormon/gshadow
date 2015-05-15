@@ -74,6 +74,12 @@ Data::Data(unsigned type,TypeManager*manager){
   this->_manager = manager;
 }
 
+Data::~Data(){}
+
+Data*Data::operator&(){
+  return this;
+}
+
 ArrayData::ArrayData(
     TypeManager*     manager,
     ArrayDescriptor& descriptor): Data(manager->addType(descriptor),manager){  
@@ -82,28 +88,119 @@ ArrayData::ArrayData(
     this->_data[i] = this->_manager->allocate(descriptor.getInnerType());
 }
 
-TypeManager::TypeManager(){
-  this->addType(IntDescriptor   ());
-  this->addType(UintDescriptor  ());
-  this->addType(FloatDescriptor ());
-  this->addType(StringDescriptor());
+ArrayData::~ArrayData(){
+  unsigned size=((ArrayDescriptor&)this->_manager->getType(this->_type)).getSize();
+  for(unsigned i=0;i<size;++i)
+    delete this->_data[i];
+  delete this->_data;
 }
 
-unsigned TypeManager::addType(DataDescriptor descriptor){
+Data*ArrayData::operator[](unsigned i){
+  return this->_data[i];
+}
+
+StructData::StructData(
+    TypeManager*      manager   ,
+    StructDescriptor& descriptor): Data(manager->addType(descriptor),manager){
+  this->_data = new Data*[descriptor.getNofElements()];
+  for(unsigned i=0;i<descriptor.getNofElements();++i)
+    this->_data[i] = this->_manager->allocate(descriptor.getElement(i));
+}
+
+StructData::~StructData(){
+  unsigned elems=((StructDescriptor&)this->_manager->getType(this->_type)).getNofElements();
+  for(unsigned i=0;i<elems;++i)
+    delete this->_data[i];
+  delete this->_data;
+}
+
+Data*StructData::operator[](unsigned i){
+  return this->_data[i];
+}
+
+PtrData::PtrData(
+    TypeManager*manager,
+    PtrDescriptor&descriptor,
+    Data*ptr): Data(manager->addType(descriptor),manager){
+  this->_data = ptr;
+}
+
+PtrData::~PtrData(){}
+
+Data*PtrData::operator*(){
+  return this->_data;
+}
+
+TypeManager::TypeManager(){
+  this->addType(IntDescriptor   (),"int"   );
+  this->addType(UintDescriptor  (),"uint"  );
+  this->addType(FloatDescriptor (),"float" );
+  this->addType(StringDescriptor(),"string");
+}
+
+TypeManager::~TypeManager(){
+}
+
+unsigned TypeManager::addType(DataDescriptor descriptor,std::string name){
   for(unsigned i=0;i<this->_types.size();++i)
     if(this->_types[i]==descriptor)return i;
+
+  if(descriptor.getType()==DataDescriptor::ARRAY)
+    this->addType(((ArrayDescriptor&)descriptor).getInnerType());
+  if(descriptor.getType()==DataDescriptor::STRUCT){
+    unsigned elems=((StructDescriptor&)descriptor).getNofElements();
+    for(unsigned e=0;e<elems;++e)
+      this->addType(((StructDescriptor&)descriptor).getElement(e));
+  }
+  if(descriptor.getType()==DataDescriptor::PTR)
+    this->addType(((PtrDescriptor&)descriptor).getInnerType());
+
   this->_types.push_back(descriptor);
-  return this->_types.size()-1;
+  unsigned typeNumber=this->_types.size()-1;
+  if(name==""){
+    std::stringstream ss;
+    ss<<"type"<<typeNumber;
+    name=ss.str();
+  }
+  this->_typeName.push_back(name);
+  this->_name2Id.insert(std::pair<std::string,unsigned>(name,typeNumber));
+  return typeNumber;
 }
 
-DataDescriptor&TypeManager::getType(unsigned type){
-  return this->_types[type];
+std::string TypeManager::getName(unsigned id){
+  return this->_typeName[id];
+}
+
+DataDescriptor&TypeManager::getType(unsigned id){
+  return this->_types[id];
+}
+
+DataDescriptor&TypeManager::getType(std::string name){
+  return this->_types[this->_name2Id[name]];
+}
+
+unsigned TypeManager::getId(std::string name){
+  return this->_name2Id[name];
 }
 
 Data*TypeManager::allocate(DataDescriptor&descriptor){
-  if(descriptor.getType()==DataDescriptor::INT)return new BaseData<int        >(this);
-  if(descriptor.getType()==DataDescriptor::INT)return new BaseData<unsigned   >(this);
-  if(descriptor.getType()==DataDescriptor::INT)return new BaseData<float      >(this);
-  if(descriptor.getType()==DataDescriptor::INT)return new BaseData<std::string>(this);
+  if(descriptor.getType()==DataDescriptor::INT   )return new BaseData<int        >(this);
+  if(descriptor.getType()==DataDescriptor::UINT  )return new BaseData<unsigned   >(this);
+  if(descriptor.getType()==DataDescriptor::FLOAT )return new BaseData<float      >(this);
+  if(descriptor.getType()==DataDescriptor::STRING)return new BaseData<std::string>(this);
+  if(descriptor.getType()==DataDescriptor::STRUCT)
+    return new StructData(this,(StructDescriptor&)descriptor);
+  if(descriptor.getType()==DataDescriptor::ARRAY )
+    return new ArrayData (this,(ArrayDescriptor &)descriptor);
+  if(descriptor.getType()==DataDescriptor::PTR   )
+    return new PtrData   (this,(PtrDescriptor   &)descriptor);
   return NULL;
+}
+
+Data*TypeManager::allocate(unsigned id){
+  return this->allocate(this->getType(id));
+}
+
+Data*TypeManager::allocate(std::string name){
+  return this->allocate(this->_name2Id[name]);
 }

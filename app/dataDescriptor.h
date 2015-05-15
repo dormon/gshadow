@@ -3,6 +3,7 @@
 #include"core.h"
 #include<iostream>
 #include<vector>
+#include<map>
 #include<typeinfo>
 
 namespace lang{
@@ -66,20 +67,22 @@ namespace lang{
       virtual bool operator==(DataDescriptor&b);
   };
   class TypeManager;
+  class PtrData;
   class Data{
     protected:
       unsigned    _type;
       TypeManager*_manager;
     public:
       Data(unsigned type,TypeManager*manager);
+      virtual ~Data();
+      Data*operator&();
   };
   template<typename T>
   class BaseData: public Data{
     protected:
       T _data;
     public:
-      BaseData(TypeManager*manager,T data=0):
-        Data(0,manager){
+      BaseData(TypeManager*manager,T data=0):Data(0,manager){
         this->_manager=manager;
         if(typeid(T)==typeid(int        ))this->_type = this->_manager->addType(IntDescriptor   ());
         if(typeid(T)==typeid(unsigned   ))this->_type = this->_manager->addType(UintDescriptor  ());
@@ -87,6 +90,7 @@ namespace lang{
         if(typeid(T)==typeid(std::string))this->_type = this->_manager->addType(StringDescriptor());
         this->_data=data;
       }
+      virtual ~BaseData(){}
       T getData(){
         return this->_data;
       }
@@ -99,15 +103,42 @@ namespace lang{
       Data**_data;
     public:
       ArrayData(TypeManager*manager,ArrayDescriptor&descriptor);
+      virtual ~ArrayData();
+      Data*operator[](unsigned i);
+  };
+  class StructData: public Data{
+    protected:
+      Data**_data;
+    public:
+      StructData(TypeManager*manager,StructDescriptor&descriptor);
+      virtual ~StructData();
+      Data*operator[](unsigned i);
+  };
+
+  class PtrData: public Data{
+    protected:
+      Data*_data;
+    public:
+      PtrData(TypeManager*manager,PtrDescriptor&descriptor,Data*ptr=NULL);
+      virtual ~PtrData();
+      Data*operator*();
   };
 
   class TypeManager{
     protected:
-      std::vector<DataDescriptor>_types;
+      std::vector<DataDescriptor>_types   ;
+      std::vector<std::string   >_typeName;
+      std::map<std::string,unsigned>_name2Id;
     public:
       TypeManager();
-      unsigned       addType(DataDescriptor descriptor);
-      DataDescriptor&getType(unsigned type);
+      ~TypeManager();
+      unsigned       addType(DataDescriptor descriptor,std::string name="");
+      std::string    getName(unsigned id);
+      DataDescriptor&getType(unsigned id);
+      DataDescriptor&getType(std::string name);
+      unsigned       getId(std::string name);
       Data*          allocate(DataDescriptor&descriptor);
+      Data*          allocate(unsigned id);
+      Data*          allocate(std::string name);
   };
 }
