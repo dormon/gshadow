@@ -18,11 +18,6 @@
 
 
 namespace objconf{
-  void setCamera(ge::util::ArgumentObject*args,glm::uvec2 windowSize);
-  void setCameraAntTweakBar();
-  void deinitCamera();
-  ge::util::CameraObject*getCamera(unsigned i=0);
-
   class CameraConfiguration
   {
     private:

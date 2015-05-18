@@ -37,6 +37,8 @@
 #define GETFLOAT(var)  GET(getFloat,var,0.f)
 #define GETTEXTURE(var) ((ge::gl::TextureObject*)GETOBJECT(var))
 #define GETVAO(var)     ((ge::gl::VertexArrayObject*)GETOBJECT(var))
+#define GETBUFFER(var)     ((ge::gl::BufferObject*)GETOBJECT(var))
+
 #define GETGPUGAUGE(var) GET(getGpuGauge,var,NULL)
 
 #define CHANGED(var) this->_changed[VARS[var]]

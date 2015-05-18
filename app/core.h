@@ -3,6 +3,7 @@
 #include<iostream>
 #include<cstring>
 #include<sstream>
+#include<vector>
 
 #define DEF_ENUM(name,...)\
   enum name{\
@@ -20,4 +21,13 @@ friend std::ostream& operator<<(std::ostream& os,const name&val){\
   return os;\
 }
 
+template<typename T>
+void _argsToVector(std::vector<T>&vec,T v){
+  vec.push_back(v);
+}
+template<typename T,typename... Args>
+void _argsToVector(std::vector<T>&vec,T v,Args... args){
+  vec.push_back(v);
+  _argsToVector(vec,args...);
+}
 

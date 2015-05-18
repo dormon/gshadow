@@ -2,71 +2,88 @@
 
 using namespace lang;
 
-DataDescriptor::DataDescriptor(Type type){ 
+DataT::DataT(Type type){ 
   this->_type = type;
 }
-DataDescriptor::DataDescriptor(){
+DataT::DataT(){
   this->_type = Type::VOID;
 }
-DataDescriptor::Type DataDescriptor::getType(){
+DataT::Type DataT::getType(){
   return this->_type;
 }
-bool DataDescriptor::operator==(DataDescriptor&b){
+bool DataT::operator==(DataT&b){
   return this->_type==b._type;
 }
-
-IntDescriptor::IntDescriptor      (): DataDescriptor(Type::INT){}
-bool IntDescriptor::operator==(DataDescriptor&b){return this->_type==b.getType();}
-UintDescriptor::UintDescriptor    (): DataDescriptor(Type::UINT){}
-bool UintDescriptor::operator==(DataDescriptor&b){return this->_type==b.getType();}
-FloatDescriptor::FloatDescriptor  (): DataDescriptor(Type::FLOAT){}
-bool FloatDescriptor::operator==(DataDescriptor&b){return this->_type==b.getType();}
-StringDescriptor::StringDescriptor(): DataDescriptor(Type::STRING){}
-bool StringDescriptor::operator==(DataDescriptor&b){return this->_type==b.getType();}
-
-ArrayDescriptor::ArrayDescriptor(
-    DataDescriptor&innerType,
-    unsigned       size     ):DataDescriptor(Type::ARRAY){
+ArrayT::ArrayT(
+    DataT innerType,
+    unsigned       size     ):DataT(Type::ARRAY){
   this->_innerType = innerType;
   this->_size      = size     ;
 }
-bool ArrayDescriptor::operator==(DataDescriptor&b){
+bool ArrayT::operator==(DataT&b){
   if(this->_type!=b.getType())return false;
-  return this->_size==((ArrayDescriptor&)b)._size;
+  return this->_size==((ArrayT&)b)._size;
 }
-DataDescriptor&ArrayDescriptor::getInnerType(){
+DataT&ArrayT::getInnerType(){
   return this->_innerType;
 }
-unsigned ArrayDescriptor::getSize(){
+unsigned ArrayT::getSize(){
   return this->_size;
 }
-StructDescriptor::StructDescriptor(): DataDescriptor(Type::STRUCT){}
-void StructDescriptor::addElement(DataDescriptor&descriptor){
+StructT::StructT(): DataT(Type::STRUCT){}
+void StructT::addElement(DataT&descriptor){
   this->_elements.push_back(descriptor);
 }
-bool StructDescriptor::operator==(DataDescriptor&b){
+bool StructT::operator==(DataT&b){
   if(this->_type!=b.getType())return false;
-  if(this->getNofElements()!=((StructDescriptor&)b).getNofElements())return false;
+  if(this->getNofElements()!=((StructT&)b).getNofElements())return false;
   for(unsigned i=0;i<this->getNofElements();++i)
-    if(!(this->getElement(i)==((StructDescriptor&)b).getElement(i)))return false;
+    if(!(this->getElement(i)==((StructT&)b).getElement(i)))return false;
   return true;
 }
-DataDescriptor&StructDescriptor::getElement(unsigned i){
+DataT&StructT::getElement(unsigned i){
   return this->_elements[i];
 }
-unsigned StructDescriptor::getNofElements(){
+unsigned StructT::getNofElements(){
   return this->_elements.size();
 }
-PtrDescriptor::PtrDescriptor(
-    DataDescriptor&innerType): DataDescriptor(Type::PTR){
+PtrT::PtrT(
+    DataT&innerType): DataT(Type::PTR){
   this->_innerType = innerType;
 }
-bool PtrDescriptor::operator==(DataDescriptor&b){
-  if(this->_type!=b.getType())return false;
-  return this->getInnerType()==((PtrDescriptor&)b).getInnerType();
+PtrT::PtrT(
+    DataT innerType): DataT(Type::PTR){
+  this->_innerType = innerType;
 }
-DataDescriptor&PtrDescriptor::getInnerType(){
+bool PtrT::operator==(DataT&b){
+  if(this->_type!=b.getType())return false;
+  return this->getInnerType()==((PtrT&)b).getInnerType();
+}
+DataT&PtrT::getInnerType(){
   return this->_innerType;
+}
+
+FunctionDescriptor::FunctionDescriptor(DataT&returnType): DataT(DataT::FCE){
+  this->_returnType     = returnType;
+}
+
+DataT&FunctionDescriptor::getReturnType(){
+  return this->_returnType;
+}
+DataT&FunctionDescriptor::getParameterType(unsigned i){
+  return this->_parametersType[i];
+}
+unsigned FunctionDescriptor::getNofParameters(){
+  return this->_parametersType.size();
+}
+
+bool FunctionDescriptor::operator==(DataT&b){
+  if(this->getType()!=b.getType())return false;
+  if(this->getNofParameters()!=((FunctionDescriptor&)b).getNofParameters())return false;
+  if(!(this->getReturnType() ==((FunctionDescriptor&)b).getReturnType()))return false;
+  for(unsigned i=0;i<this->_parametersType.size();++i)
+    if(!(this->getParameterType(i)==((FunctionDescriptor&)b).getParameterType(i)))return false;
+  return true;
 }
 
 Data::Data(unsigned type,TypeManager*manager){
@@ -82,14 +99,14 @@ Data*Data::operator&(){
 
 ArrayData::ArrayData(
     TypeManager*     manager,
-    ArrayDescriptor& descriptor): Data(manager->addType(descriptor),manager){  
+    ArrayT& descriptor): Data(manager->addType(descriptor),manager){  
   this->_data = new Data*[descriptor.getSize()];
   for(unsigned i=0;i<descriptor.getSize();++i)
     this->_data[i] = this->_manager->allocate(descriptor.getInnerType());
 }
 
 ArrayData::~ArrayData(){
-  unsigned size=((ArrayDescriptor&)this->_manager->getType(this->_type)).getSize();
+  unsigned size=((ArrayT&)this->_manager->getType(this->_type)).getSize();
   for(unsigned i=0;i<size;++i)
     delete this->_data[i];
   delete this->_data;
@@ -101,14 +118,14 @@ Data*ArrayData::operator[](unsigned i){
 
 StructData::StructData(
     TypeManager*      manager   ,
-    StructDescriptor& descriptor): Data(manager->addType(descriptor),manager){
+    StructT& descriptor): Data(manager->addType(descriptor),manager){
   this->_data = new Data*[descriptor.getNofElements()];
   for(unsigned i=0;i<descriptor.getNofElements();++i)
     this->_data[i] = this->_manager->allocate(descriptor.getElement(i));
 }
 
 StructData::~StructData(){
-  unsigned elems=((StructDescriptor&)this->_manager->getType(this->_type)).getNofElements();
+  unsigned elems=((StructT&)this->_manager->getType(this->_type)).getNofElements();
   for(unsigned i=0;i<elems;++i)
     delete this->_data[i];
   delete this->_data;
@@ -120,7 +137,7 @@ Data*StructData::operator[](unsigned i){
 
 PtrData::PtrData(
     TypeManager*manager,
-    PtrDescriptor&descriptor,
+    PtrT&descriptor,
     Data*ptr): Data(manager->addType(descriptor),manager){
   this->_data = ptr;
 }
@@ -132,28 +149,36 @@ Data*PtrData::operator*(){
 }
 
 TypeManager::TypeManager(){
-  this->addType(IntDescriptor   (),"int"   );
-  this->addType(UintDescriptor  (),"uint"  );
-  this->addType(FloatDescriptor (),"float" );
-  this->addType(StringDescriptor(),"string");
+  this->addType(BaseT<DataT::VOID  >(),"void"  );
+  this->addType(BaseT<DataT::INT   >(),"int"   );
+  this->addType(BaseT<DataT::UINT  >(),"uint"  );
+  this->addType(BaseT<DataT::FLOAT >(),"float" );
+  this->addType(BaseT<DataT::STRING>(),"string");
+  this->addType(PtrT(BaseT<DataT::INT   >()),"int*"   );
+  this->addType(PtrT(BaseT<DataT::UINT  >()),"uint*"  );
+  this->addType(PtrT(BaseT<DataT::FLOAT >()),"float*" );
+  this->addType(PtrT(BaseT<DataT::STRING>()),"string*");
+  this->addType(ArrayT(BaseT<DataT::FLOAT>(),2),"vec2");
+  this->addType(ArrayT(BaseT<DataT::FLOAT>(),3),"vec3");
+  this->addType(ArrayT(BaseT<DataT::FLOAT>(),4),"vec4");
 }
 
 TypeManager::~TypeManager(){
 }
 
-unsigned TypeManager::addType(DataDescriptor descriptor,std::string name){
+unsigned TypeManager::addType(DataT descriptor,std::string name){
   for(unsigned i=0;i<this->_types.size();++i)
     if(this->_types[i]==descriptor)return i;
 
-  if(descriptor.getType()==DataDescriptor::ARRAY)
-    this->addType(((ArrayDescriptor&)descriptor).getInnerType());
-  if(descriptor.getType()==DataDescriptor::STRUCT){
-    unsigned elems=((StructDescriptor&)descriptor).getNofElements();
+  if(descriptor.getType()==DataT::ARRAY)
+    this->addType(((ArrayT&)descriptor).getInnerType());
+  if(descriptor.getType()==DataT::STRUCT){
+    unsigned elems=((StructT&)descriptor).getNofElements();
     for(unsigned e=0;e<elems;++e)
-      this->addType(((StructDescriptor&)descriptor).getElement(e));
+      this->addType(((StructT&)descriptor).getElement(e));
   }
-  if(descriptor.getType()==DataDescriptor::PTR)
-    this->addType(((PtrDescriptor&)descriptor).getInnerType());
+  if(descriptor.getType()==DataT::PTR)
+    this->addType(((PtrT&)descriptor).getInnerType());
 
   this->_types.push_back(descriptor);
   unsigned typeNumber=this->_types.size()-1;
@@ -171,11 +196,11 @@ std::string TypeManager::getName(unsigned id){
   return this->_typeName[id];
 }
 
-DataDescriptor&TypeManager::getType(unsigned id){
+DataT&TypeManager::getType(unsigned id){
   return this->_types[id];
 }
 
-DataDescriptor&TypeManager::getType(std::string name){
+DataT&TypeManager::getType(std::string name){
   return this->_types[this->_name2Id[name]];
 }
 
@@ -183,17 +208,19 @@ unsigned TypeManager::getId(std::string name){
   return this->_name2Id[name];
 }
 
-Data*TypeManager::allocate(DataDescriptor&descriptor){
-  if(descriptor.getType()==DataDescriptor::INT   )return new BaseData<int        >(this);
-  if(descriptor.getType()==DataDescriptor::UINT  )return new BaseData<unsigned   >(this);
-  if(descriptor.getType()==DataDescriptor::FLOAT )return new BaseData<float      >(this);
-  if(descriptor.getType()==DataDescriptor::STRING)return new BaseData<std::string>(this);
-  if(descriptor.getType()==DataDescriptor::STRUCT)
-    return new StructData(this,(StructDescriptor&)descriptor);
-  if(descriptor.getType()==DataDescriptor::ARRAY )
-    return new ArrayData (this,(ArrayDescriptor &)descriptor);
-  if(descriptor.getType()==DataDescriptor::PTR   )
-    return new PtrData   (this,(PtrDescriptor   &)descriptor);
+unsigned TypeManager::getId(DataT&descriptor){
+  for(unsigned i=0;i<this->_types.size();++i)
+    if(this->_types[i]==descriptor)return i;
+  return this->getId("void");
+}
+Data*TypeManager::allocate(DataT&descriptor){
+  if(descriptor.getType()==DataT::INT   )return new BaseData<int        >(this);
+  if(descriptor.getType()==DataT::UINT  )return new BaseData<unsigned   >(this);
+  if(descriptor.getType()==DataT::FLOAT )return new BaseData<float      >(this);
+  if(descriptor.getType()==DataT::STRING)return new BaseData<std::string>(this);
+  if(descriptor.getType()==DataT::STRUCT)return new StructData(this,(StructT&)descriptor);
+  if(descriptor.getType()==DataT::ARRAY )return new ArrayData (this,(ArrayT &)descriptor);
+  if(descriptor.getType()==DataT::PTR   )return new PtrData   (this,(PtrT   &)descriptor);
   return NULL;
 }
 

@@ -7,64 +7,67 @@
 #include<typeinfo>
 
 namespace lang{
-  class DataDescriptor{
+  class ExpressionDescriptor{
     public:
-      DEF_ENUM(Type,VOID,INT,UINT,FLOAT,STRING,ARRAY,STRUCT,PTR);
+      DEF_ENUM(Type,ADD,SUB,MUL,DIV,MOD);
+  };
+  class DataT{
+    public:
+      DEF_ENUM(Type,VOID,INT,UINT,FLOAT,STRING,ARRAY,STRUCT,PTR,FCE);
     protected:
       Type _type;
     public:
-      DataDescriptor(Type type);
-      DataDescriptor();
+      DataT(Type type);
+      DataT();
       virtual Type getType();
-      virtual bool operator==(DataDescriptor&b);
+      virtual bool operator==(DataT&b);
   };
-  class IntDescriptor: public DataDescriptor{
+  template <DataT::Type type>
+  class BaseT: public DataT{
     public:
-      IntDescriptor();
-      virtual bool operator==(DataDescriptor&b);
+      BaseT(): DataT(type){}
   };
-  class UintDescriptor: public DataDescriptor{
-    public:
-      UintDescriptor();
-      virtual bool operator==(DataDescriptor&b);
-  };
-  class FloatDescriptor: public DataDescriptor{
-    public:
-      FloatDescriptor();
-      virtual bool operator==(DataDescriptor&b);
-  };
-  class StringDescriptor: public DataDescriptor{
-    public:
-      StringDescriptor();
-      virtual bool operator==(DataDescriptor&b);
-  };
-  class ArrayDescriptor: public DataDescriptor{
+  class ArrayT: public DataT{
     protected:
-      DataDescriptor _innerType;
+      DataT _innerType;
       unsigned       _size;
     public:
-      ArrayDescriptor(DataDescriptor&innerType,unsigned size);
-      DataDescriptor& getInnerType();
+      ArrayT(DataT&innerType,unsigned size);
+      ArrayT(DataT innerType,unsigned size);
+      DataT& getInnerType();
       unsigned        getSize();
-      virtual bool operator==(DataDescriptor&b);
+      virtual bool operator==(DataT&b);
   };
-  class StructDescriptor: public DataDescriptor{
+  class StructT: public DataT{
     protected:
-      std::vector<DataDescriptor>_elements;
+      std::vector<DataT>_elements;
     public:
-      StructDescriptor();
-      void addElement(DataDescriptor&descriptor);
-      DataDescriptor&getElement(unsigned i);
+      StructT();
+      void addElement(DataT&descriptor);
+      DataT&getElement(unsigned i);
       unsigned getNofElements();
-      virtual bool operator==(DataDescriptor&b);
+      virtual bool operator==(DataT&b);
   };
-  class PtrDescriptor: public DataDescriptor{
+  class PtrT: public DataT{
     protected:
-      DataDescriptor _innerType;
+      DataT _innerType;
     public:
-      PtrDescriptor(DataDescriptor&innerType);
-      DataDescriptor&getInnerType();
-      virtual bool operator==(DataDescriptor&b);
+      PtrT(DataT&innerType);
+      PtrT(DataT innerType);
+      DataT&getInnerType();
+      virtual bool operator==(DataT&b);
+  };
+  class FunctionDescriptor: public DataT{
+    protected:
+      DataT             _returnType    ;
+      std::vector<DataT>_parametersType;
+    public:
+      FunctionDescriptor(DataT&returnType);
+      void addParameter(DataT&param);
+      DataT&getParameterType(unsigned i);
+      unsigned getNofParameters();
+      DataT&getReturnType();
+      virtual bool operator==(DataT&b);
   };
   class TypeManager;
   class PtrData;
@@ -84,10 +87,10 @@ namespace lang{
     public:
       BaseData(TypeManager*manager,T data=0):Data(0,manager){
         this->_manager=manager;
-        if(typeid(T)==typeid(int        ))this->_type = this->_manager->addType(IntDescriptor   ());
-        if(typeid(T)==typeid(unsigned   ))this->_type = this->_manager->addType(UintDescriptor  ());
-        if(typeid(T)==typeid(float      ))this->_type = this->_manager->addType(FloatDescriptor ());
-        if(typeid(T)==typeid(std::string))this->_type = this->_manager->addType(StringDescriptor());
+        if(typeid(T)==typeid(int        ))this->_type = this->_manager->addType(BaseT<DataT::INT   >());
+        if(typeid(T)==typeid(unsigned   ))this->_type = this->_manager->addType(BaseT<DataT::UINT  >());
+        if(typeid(T)==typeid(float      ))this->_type = this->_manager->addType(BaseT<DataT::FLOAT >());
+        if(typeid(T)==typeid(std::string))this->_type = this->_manager->addType(BaseT<DataT::STRING>());
         this->_data=data;
       }
       virtual ~BaseData(){}
@@ -102,7 +105,7 @@ namespace lang{
     protected:
       Data**_data;
     public:
-      ArrayData(TypeManager*manager,ArrayDescriptor&descriptor);
+      ArrayData(TypeManager*manager,ArrayT&descriptor);
       virtual ~ArrayData();
       Data*operator[](unsigned i);
   };
@@ -110,35 +113,58 @@ namespace lang{
     protected:
       Data**_data;
     public:
-      StructData(TypeManager*manager,StructDescriptor&descriptor);
+      StructData(TypeManager*manager,StructT&descriptor);
       virtual ~StructData();
       Data*operator[](unsigned i);
   };
-
   class PtrData: public Data{
     protected:
       Data*_data;
     public:
-      PtrData(TypeManager*manager,PtrDescriptor&descriptor,Data*ptr=NULL);
+      PtrData(TypeManager*manager,PtrT&descriptor,Data*ptr=NULL);
       virtual ~PtrData();
       Data*operator*();
+  };
+  class Function: public Data{
+    protected:
+      PtrData*_return;
+      PtrData*_parameters;
+    public:
+      Function(unsigned type,TypeManager*manager);
+      virtual void apply()=0;
+  };
+
+  template<typename T>
+  class Add: Function{
+    protected:
+      PtrData*_a;
+      PtrData*_b;
+      PtrData*_o;
+    public:
+      Add(PtrData*o,PtrData*a,PtrData*b){
+        this->_a=a;
+        this->_b=b;
+        this->_o=o;
+      }
+      virtual void apply();
   };
 
   class TypeManager{
     protected:
-      std::vector<DataDescriptor>_types   ;
+      std::vector<DataT>_types   ;
       std::vector<std::string   >_typeName;
       std::map<std::string,unsigned>_name2Id;
     public:
       TypeManager();
       ~TypeManager();
-      unsigned       addType(DataDescriptor descriptor,std::string name="");
-      std::string    getName(unsigned id);
-      DataDescriptor&getType(unsigned id);
-      DataDescriptor&getType(std::string name);
-      unsigned       getId(std::string name);
-      Data*          allocate(DataDescriptor&descriptor);
-      Data*          allocate(unsigned id);
-      Data*          allocate(std::string name);
+      unsigned    addType(DataT descriptor,std::string name="");
+      std::string getName(unsigned id);
+      DataT&      getType(unsigned id);
+      DataT&      getType(std::string name);
+      unsigned    getId(std::string name);
+      unsigned    getId(DataT&descriptor);
+      Data*       allocate(DataT&descriptor);
+      Data*       allocate(unsigned id);
+      Data*       allocate(std::string name);
   };
 }

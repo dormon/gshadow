@@ -66,6 +66,7 @@ CVertexCaps       *VertexCaps        = NULL;
 CShadowMapping    *Shadowmapping     = NULL;
 NavyMapping       *navyMapping       = NULL;
 CubeShadowMapping *cubeShadowMapping = NULL;
+RayTrace          *raytrace          = NULL;
 
 ComputeGeometry   *computeGeometry   = NULL;
 RTWBack           *rtw = NULL;
@@ -123,16 +124,6 @@ GLuint StencilToTextureFBO;
 GLuint ShadowTexture;
 ge::gl::ProgramObject*StencilToTexture;
 ge::gl::ProgramObject*Rasterizer;
-
-GLuint QueryTime;
-GLuint QueryTimePassed;
-GLuint QueryTimePassedShadowmap;
-GLuint QueryTimePassedSmapping;
-GLuint QueryTImePassedVS;
-GLuint QueryTimePassedSintornHDB;
-GLuint QueryTimePassedSintornSF;
-GLuint QueryTimePassedSintornR;
-GLuint QueryTimePassedSintornMerge;
 
 ge::gl::TextureObject*shadowMask;
 
@@ -234,6 +225,7 @@ enum ESSMethod{
   SS_RTW,
   SS_NAVYMAPPING,
   SS_CUBESHADOWMAP,
+  SS_RAYTRACE,
   SS_TS,
   SS_SINTORN,
   SS_NO
@@ -257,7 +249,6 @@ struct STestParam{
 }TestParam;
 
 //SGeometryParam                   GeometryParam,         GeometryParamLast;
-SGeometryTemplate         GeometryTemplate      ,GeometryTemplateLast      ;
 SComputeSOEParam          ComputeSOEParam       ,ComputeSOEParamLast       ;
 SSintornParam             SintornParam          ,SintornParamLast          ;
 CubeShadowMappingTemplate cubeShadowMappingParam,cubeShadowMappingParamLast;
@@ -356,30 +347,9 @@ int main(int Argc,char*Argv[]){
   else if(MethodString=="nm"               )TestParam.Method = SS_NAVYMAPPING;
   else if(MethodString=="cm"               )TestParam.Method = SS_CUBESHADOWMAP;
   else if(MethodString=="si"               )TestParam.Method = SS_SINTORN;
+  else if(MethodString=="ra"               )TestParam.Method = SS_RAYTRACE;
   else TestParam.Method=SS_NO;
 
-  //geometry args
-  GeometryTemplate.Deterministic         = Args->isPresent("--geometry-start","--geometry-end","-d"  );
-  GeometryTemplate.ReferenceEdge         = Args->isPresent("--geometry-start","--geometry-end","-r"  );
-  GeometryTemplate.Universal             = Args->isPresent("--geometry-start","--geometry-end","-u"  );
-  GeometryTemplate.UseVS2GSArray         = Args->isPresent("--geometry-start","--geometry-end","-v2g");
-  GeometryTemplate.UseVertexArray        = Args->isPresent("--geometry-start","--geometry-end","-va" );
-  GeometryTemplate.UseStencilValueExport = Args->isPresent("--geometry-start","--geometry-end","-sve");
-  GeometryTemplate.CullSides             = Args->isPresent("--geometry-start","--geometry-end","-c"  );
-  GeometryTemplate.FrontCapToInfinity    = Args->isPresent("--geometry-start","--geometry-end","-fi" );
-  GeometryTemplate.Version               = Args->getArgi  ("--geometry-start","--geometry-end","-v","430");
-  GeometryTemplate.UseLayouts            = true;
-  GeometryTemplate.CCWIsFrontFace        = true;
-  GeometryTemplate.FrontFaceInside       = false;
-  GeometryTemplate.Visualize             = false;
-  GeometryTemplate.GenerateSides         = true;
-  GeometryTemplate.GenerateCaps          = false;
-  GeometryTemplate.Matrix                = "mvp";
-  GeometryTemplate.Profile               = "core";
-  GeometryTemplate.LightUniform          = "LightPosition";
-  GeometryTemplate.VertexAttribName      = "Position";
-  GeometryTemplateLast=GeometryTemplate;
-  GeometryTemplateLast.Deterministic=!GeometryTemplate.Deterministic;
 
   //computesoe args
   ComputeSOEParam.WorkGroupSize = Args->getArgi  ("--computesoe-start","--computesoe-end","-w","64");
@@ -568,6 +538,15 @@ void idle(){
         mm->createShadowMask();
         drawDiffuseSpecular(true,lightConfiguration->getLight());
         break;
+      case SS_RAYTRACE:
+        mm=raytrace;
+        if(Window->isKeyOn('b')){
+          std::cerr<<GPA->getResults([](void*A){mm->createShadowMask();},mm)<<std::endl;
+        }else{
+          mm->createShadowMask();
+        }
+        drawDiffuseSpecular(true,lightConfiguration->getLight());
+        break;
       default:
         break;
     }
@@ -587,19 +566,20 @@ void idle(){
   glDisable(GL_BLEND);
 
   /*
-  if(SSMethod==SS_NAVYMAPPING){
-    //simpleDraw->drawHeatMap(navyMapping->getOffsetX()->getId(),.75,0,.25,.25,0u,40u);
+     if(SSMethod==SS_NAVYMAPPING){
+  //simpleDraw->drawHeatMap(navyMapping->getOffsetX()->getId(),.75,0,.25,.25,0u,40u);
 
-    simpleDraw->drawHeatMap(navyMapping->getOffsetX()->getId(),.0,0,.5,.5,-1.f,1.f);
-    simpleDraw->drawHeatMap(navyMapping->getSmoothX()->getId(),.5,0,.5,.5,-1.f,1.f);
+  simpleDraw->drawHeatMap(navyMapping->getOffsetX()->getId(),.0,0,.5,.5,-1.f,1.f);
+  simpleDraw->drawHeatMap(navyMapping->getSmoothX()->getId(),.5,0,.5,.5,-1.f,1.f);
 
-  }*/
+  }
+  //*/
 
   if(cameraPathConfiguration->isDraw())
     if(cameraPathConfiguration->getPath())
       cameraPathConfiguration->getPath()->draw(glm::value_ptr(mvp));
 
-  
+
 
   Window->swap();
   fpsPrinter->endOfFrame();
@@ -637,9 +617,6 @@ void init(){
   std::cerr<<"NumTriangles: "   <<fastAdjacency->getNofTriangles   ()<<std::endl;
   std::cerr<<"NumEdges: "       <<fastAdjacency->getNofEdges       ()<<std::endl;
   std::cerr<<"MaxMultiplicity: "<<fastAdjacency->getMaxMultiplicity()<<std::endl;
-  //objconf::setCameraAntTweakBar();
-  //objconf::setLightAntTweakBar();
-  //objconf::setCameraPathAntTweakBar();
 
   cameraConfiguration = new objconf::CameraConfiguration(simData->getUVec2("window.size"));
   cameraPathConfiguration = new objconf::CameraPathConfiguration();
@@ -665,6 +642,7 @@ void init(){
     {SS_RTW        ,"rtv"                                },
     {SS_NAVYMAPPING,"ours"                               },
     {SS_TS         ,"Tessellation Shader Silhouette Edge"},
+    {SS_RAYTRACE   ,"raytrace"                           },
     {SS_NO         ,"No shadows"                         }
   };
   TwType MethodType=TwDefineEnum("SS mode",MethodDef,sizeof(MethodDef)/sizeof(TwEnumVal));
@@ -684,6 +662,7 @@ void init(){
 
   simData->insertVariable("emptyVAO" ,new simulation::Object(EmptyVAO       ));
   simData->insertVariable("sceneVAO" ,new simulation::Object(sceneVAO       ));
+  simData->insertVariable("sceneVBO" ,new simulation::Object(SceneBuffer));
   simData->insertVariable("light"    ,lightConfiguration->getLight()                                 );
   //simData->insertVariable("adjacency",new simulation::Object(&ModelAdjacency));
   simData->insertVariable("fastAdjacency",new simulation::Object(fastAdjacency));
@@ -749,6 +728,8 @@ void init(){
       simData->getBool("tessellation.cull_sides"),
       simData->getBool("tessellation.use_stencil_value_export"));
   GeometryCapsAlt=new CGeometryCapsAlt(fastAdjacency);
+
+  raytrace = new RayTrace(simData);
 
   simpleDraw = new DrawPrimitive(ShaderDir+"app/");
   simpleDraw->setWindowSize(simData->getUVec2("window.size"));
@@ -1061,17 +1042,7 @@ void DrawGeometrySidesCaps(simulation::Light*Light){
 }
 
 void DrawComputeSOEPlane(simulation::Light*Light){
-
-  if(TestParam.MeasureCompute)
-    glBeginQuery(GL_TIME_ELAPSED,QueryTime);
-
   ComputeSidesSOEPlane->ComputeSides(glm::value_ptr(mvp),Light);
-
-  if(TestParam.MeasureCompute){
-    glEndQuery(GL_TIME_ELAPSED);
-    glGetQueryObjectuiv(QueryTime,GL_QUERY_RESULT_NO_WAIT,&QueryTimePassed);
-  }
-
   setGLForStencil(SSZFail);
   if(TestParam.MeasureStencil)stencilShadowsQuery->begin();
   ComputeSidesSOEPlane->DrawSides(glm::value_ptr(mvp),Light);
@@ -1162,16 +1133,7 @@ void DrawComputeSOE(simulation::Light*Light){
 }
 
 void DrawCompute(simulation::Light*Light){
-  if(TestParam.MeasureCompute)
-    glBeginQuery(GL_TIME_ELAPSED,QueryTime);
-
   ComputeSides->ComputeSides(glm::value_ptr(mvp),Light);
-
-  if(TestParam.MeasureCompute){
-    glEndQuery(GL_TIME_ELAPSED);
-    glGetQueryObjectuiv(QueryTime,GL_QUERY_RESULT_NO_WAIT,&QueryTimePassed);
-  }
-
   setGLForStencil(SSZFail);
   if(TestParam.MeasureStencil)stencilShadowsQuery->begin();
   ComputeSides->DrawSides(glm::value_ptr(mvp),Light);
@@ -1181,26 +1143,8 @@ void DrawCompute(simulation::Light*Light){
 }
 
 void drawCubeShadowmapShadow(simulation::Light*Light){
-  if(SSMeasureShadowmap)
-    glBeginQuery(GL_TIME_ELAPSED,QueryTime);
-
   cubeShadowMapping->createShadowMap(glm::value_ptr(Model),Light);
-
-  if(SSMeasureShadowmap){
-    glEndQuery(GL_TIME_ELAPSED);
-    glGetQueryObjectuiv(QueryTime,GL_QUERY_RESULT_NO_WAIT,&QueryTimePassedShadowmap);
-  }
-
-  if(SSMeasureSmapping)
-    glBeginQuery(GL_TIME_ELAPSED,QueryTime);
-
   cubeShadowMapping->drawShadowed(glm::value_ptr(Pos),Light);
-
-  if(SSMeasureSmapping){
-    glEndQuery(GL_TIME_ELAPSED);
-    glGetQueryObjectuiv(QueryTime,GL_QUERY_RESULT_NO_WAIT,&QueryTimePassedSmapping);
-  }
-
 }
 
 void DrawShadowless(){
@@ -1312,18 +1256,18 @@ void InitModel(const char* File){
       for(unsigned i=0;i<3;++i){
         aiVector3D*N=Mesh->mNormals+Face->mIndices[i];
         aiVector3D*V=Mesh->mVertices+Face->mIndices[i];
-        ptr[actface*3*2*3+i*6+0]=V->x*.1*3;
-        ptr[actface*3*2*3+i*6+1]=V->y*.1*3-5*3;
-        ptr[actface*3*2*3+i*6+2]=V->z*.1*3;
-        RawTriangles[actface*3*3+i*3+0]=V->x*.1*3;
-        RawTriangles[actface*3*3+i*3+1]=V->y*.1*3-5*3;
-        RawTriangles[actface*3*3+i*3+2]=V->z*.1*3;
+        ptr[actface*3*2*3+i*6+0]=V->x;
+        ptr[actface*3*2*3+i*6+1]=V->y;
+        ptr[actface*3*2*3+i*6+2]=V->z;
+        RawTriangles[actface*3*3+i*3+0]=V->x;
+        RawTriangles[actface*3*3+i*3+1]=V->y;
+        RawTriangles[actface*3*3+i*3+2]=V->z;
         ptr[actface*3*2*3+i*6+3]=N->x;
         ptr[actface*3*2*3+i*6+4]=N->y;
         ptr[actface*3*2*3+i*6+5]=N->z;
-        sceneAABB->addPoint(glm::vec3(V->x*.1*3,V->y*.1*3-5*3,V->z*.1*3));
-        aabb->addPoint(glm::vec3(V->x*.1*3,V->y*.1*3-5*3,V->z*.1*3));
-        center+=glm::vec3(glm::vec3(V->x*.1*3,V->y*.1*3-5*3,V->z*.1*3));
+        sceneAABB->addPoint(glm::vec3(V->x,V->y,V->z));
+        aabb     ->addPoint(glm::vec3(V->x,V->y,V->z));
+        center+=glm::vec3(V->x,V->y,V->z);
       }
       actface++;
     }
@@ -1368,7 +1312,6 @@ void InitModel(const char* File){
 }
 
 void destroy(){
-  glDeleteQueries(1,&QueryTime);
   delete MergeQuery;
   delete MergeTextureQuery;
   delete RasterizeQuery;

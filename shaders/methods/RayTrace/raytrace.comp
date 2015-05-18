@@ -1,0 +1,90 @@
+#version 440
+
+#ifndef WORKGROUP_SIZE_X
+#define WORKGROUP_SIZE_X 8
+#endif//WORKGROUP_SIZE_X
+
+#ifndef WORKGROUP_SIZE_Y
+#define WORKGROUP_SIZE_Y 8
+#endif//WORKGROUP_SIZE_Y
+
+layout(local_size_x=WORKGROUP_SIZE_X,local_size_y=WORKGROUP_SIZE_Y)in;
+
+layout(std430,binding=0)buffer Triangles{float triangles[];};
+layout(r32f,binding=0)uniform image2D shadowMask;
+layout(rgba32f,binding=1)uniform image2D position;
+
+uniform uint nofTriangles=0;
+uniform uvec2 windowSize=uvec2(512u);
+uniform vec4 lightPosition=vec4(10.0);
+
+#define EPSILON 0.000001
+float rayTriangle(vec3 v1,vec3 v2,vec3 v3,vec3 o,vec3 d){
+  vec3 e1, e2;  //Edge1, Edge2
+  vec3 p, q, t;
+  float det, inv_det, u, v;
+  float tt;
+
+  //Find vectors for two edges sharing V1
+  e1=v2-v1;
+  e2=v3-v1;
+  //Begin calculating determinant - also used to calculate u parameter
+  p = cross(d,e2);
+  //if determinant is near zero, ray lies in plane of triangle
+  det = dot(e1,p);
+  //NOT CULLING
+  if(det > -EPSILON && det < EPSILON) return 2;
+  inv_det = 1.f / det;
+
+  //calculate distance from V1 to ray origin
+  t=o-v1;
+
+  //Calculate u parameter and test bound
+  u = dot(t, p) * inv_det;
+  //The intersection lies outside of the triangle
+  if(u < 0.f || u > 1.f) return 2;
+
+  //Prepare to test v parameter
+  q=cross(t,e1);
+
+  //Calculate V parameter and test bound
+  v = dot(d, q) * inv_det;
+  //The intersection lies outside of the triangle
+  if(v < 0.f || u + v  > 1.f) return 2;
+
+  tt = dot(e2,q) * inv_det;
+
+  if(tt > EPSILON) { //ray intersection
+    return tt;
+  }
+
+  // No hit, no win
+  return 2;
+}
+
+
+void main(){
+  if(any(greaterThanEqual(gl_GlobalInvocationID.xy,windowSize)))return;
+  vec3 o=imageLoad(position,ivec2(gl_GlobalInvocationID.xy)).xyz;
+  vec3 d=lightPosition.xyz-o;
+  for(uint t=0;t<nofTriangles;t+=50){
+    vec3 v1=vec3(
+        triangles[(t*3+0)*3+0],
+        triangles[(t*3+0)*3+1],
+        triangles[(t*3+0)*3+2]);
+    vec3 v2=vec3(
+        triangles[(t*3+1)*3+0],
+        triangles[(t*3+1)*3+1],
+        triangles[(t*3+1)*3+2]);
+    vec3 v3=vec3(
+        triangles[(t*3+2)*3+0],
+        triangles[(t*3+2)*3+1],
+        triangles[(t*3+2)*3+2]);
+    float ttt=rayTriangle(v1,v2,v3,o,d);
+    if(0<ttt&&ttt<1){
+      imageStore(shadowMask,ivec2(gl_GlobalInvocationID.xy),vec4(0));
+      return;
+    }
+  }
+  imageStore(shadowMask,ivec2(gl_GlobalInvocationID.xy),vec4(1));
+}

@@ -14,6 +14,8 @@ DEFVARSSTART
   "shadowMapMethods.fovy",
   "shadowMapMethods.near",
   "shadowMapMethods.far",
+  "shadowMapMethods.offset.factor",
+  "shadowMapMethods.offset.units",
   "window.size",
   "fastAdjacency",
   "light",
@@ -27,6 +29,7 @@ DEFVARSSTART
   "rtw.program.CSM.TESS_FACTOR",
   "rtw.importance_passes",
   "rtw.drawLinesToSM",
+  "rtw.maxDistance",
   "measure.rtw.createImportance",
   "measure.rtw.createShadowMap",
   "measure.rtw.createShadowMask",
@@ -45,6 +48,8 @@ DEFVARSIDSTART
   FOVY,
   NEAR,
   FAR,
+  FACTOR,
+  UNITS,
   WINDOWSIZE,
   FASTADJACENCY,
   LIGHT,
@@ -58,6 +63,7 @@ DEFVARSIDSTART
   TESS_FACTOR,
   PASSES,
   LINE_TO_SM,
+  MAX_DISTANCE,
   MEASURE_CREATEIMPORTANCE,
   MEASURE_CREATESHADOWMAP,
   MEASURE_CREATESHADOWMASK,
@@ -130,7 +136,6 @@ void RTWBack::update(){
 
 void RTWBack::_createRTWMask(){
   this->_createRTWMaskProgram->use();
-  //this->_createRTWMaskProgram->set("BPV",1,GL_FALSE,glm::value_ptr(this->_bpv));
   glm::mat4 mvp = this->_lightProjection*this->_lightView;
   this->_createRTWMaskProgram->set("mvp",1,GL_FALSE,(const float*)glm::value_ptr(mvp));
 
@@ -199,43 +204,39 @@ RTWBack::RTWBack(simulation::SimulationData*data):simulation::SimulationObject(d
   this->_createShadowMap   ();
   this->_createShadowMapFBO();
 
+  std::string dir=GETSTRING(SHADERDIRECTORY)+"methods/RTW/";
+
   this->_createRTWMaskProgram = new ge::gl::ProgramObject(
-      GETSTRING(SHADERDIRECTORY)+"methods/RTW/createRTWMask.vp",
-      GETSTRING(SHADERDIRECTORY)+"methods/RTW/createRTWMask.gp",
-      GETSTRING(SHADERDIRECTORY)+"methods/RTW/createRTWMask.fp",
-      ge::gl::ShaderObject::include(GETSTRING(SHADERDIRECTORY)+"methods/RTW/warpFunction.vp"));
+      dir+"createRTWMask.vp",
+      dir+"createRTWMask.gp",
+      dir+"createRTWMask.fp",
+      ge::gl::ShaderObject::include(dir+"warpFunction.vp"));
 
 
   this->_createImportanceMap = new ge::gl::ProgramObject(
-      GETSTRING(SHADERDIRECTORY)+"methods/RTW/createImportanceMap.comp",
+      dir+"createImportanceMap.comp",
       this->_simulationData->define("rtw.program.CIM"));
 
   this->_importanceMap = new ge::gl::TextureObject(GL_TEXTURE_2D,GL_RGBA32F,1,
       GETUINT(RESOLUTION),GETUINT(RESOLUTION));
 
   this->_create1DImportance = new ge::gl::ProgramObject(
-      GETSTRING(SHADERDIRECTORY)+"methods/RTW/create1DImportanceMap.comp",
+      dir+"create1DImportanceMap.comp",
       this->_simulationData->define("rtw.program.CIM1D"));
-  this->_importanceX = new ge::gl::TextureObject(GL_TEXTURE_1D,GL_RGBA32F,1,
-      GETUINT(RESOLUTION));
-  this->_importanceY = new ge::gl::TextureObject(GL_TEXTURE_1D,GL_RGBA32F,1,
-      GETUINT(RESOLUTION));
+  this->_importanceX = new ge::gl::TextureObject(GL_TEXTURE_1D,GL_RGBA32F,1,GETUINT(RESOLUTION));
+  this->_importanceY = new ge::gl::TextureObject(GL_TEXTURE_1D,GL_RGBA32F,1,GETUINT(RESOLUTION));
 
   this->_smoothProgram = new ge::gl::ProgramObject(
-      GETSTRING(SHADERDIRECTORY)+"methods/RTW/smooth.comp",
+      dir+"smooth.comp",
       this->_simulationData->define("rtw.program.CIM1D"));
-  this->_smoothX = new ge::gl::TextureObject(GL_TEXTURE_1D,GL_RGBA32F,1,
-      GETUINT(RESOLUTION));
-  this->_smoothY = new ge::gl::TextureObject(GL_TEXTURE_1D,GL_RGBA32F,1,
-      GETUINT(RESOLUTION));
+  this->_smoothX = new ge::gl::TextureObject(GL_TEXTURE_1D,GL_RGBA32F,1,GETUINT(RESOLUTION));
+  this->_smoothY = new ge::gl::TextureObject(GL_TEXTURE_1D,GL_RGBA32F,1,GETUINT(RESOLUTION));
 
   this->_sumProgram = new ge::gl::ProgramObject(
-      GETSTRING(SHADERDIRECTORY)+"methods/RTW/sum.comp",
+      dir+"sum.comp",
       this->_simulationData->define("rtw.program.CIM1D"));
-  this->_sumX = new ge::gl::TextureObject(GL_TEXTURE_1D,GL_R32F,1,
-      GETUINT(RESOLUTION));
-  this->_sumY = new ge::gl::TextureObject(GL_TEXTURE_1D,GL_R32F,1,
-      GETUINT(RESOLUTION));
+  this->_sumX = new ge::gl::TextureObject(GL_TEXTURE_1D,GL_R32F,1,GETUINT(RESOLUTION));
+  this->_sumY = new ge::gl::TextureObject(GL_TEXTURE_1D,GL_R32F,1,GETUINT(RESOLUTION));
 
   this->_sumX->texParameteri(GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
   this->_sumX->texParameteri(GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
@@ -248,20 +249,20 @@ RTWBack::RTWBack(simulation::SimulationData*data):simulation::SimulationObject(d
   this->_sumY->texParameteri(GL_TEXTURE_MAG_FILTER,GL_LINEAR);
 
   this->_createRTWProgram = new ge::gl::ProgramObject(
-      GETSTRING(SHADERDIRECTORY)+"methods/RTW/createRTWTS.vp",
-      GETSTRING(SHADERDIRECTORY)+"methods/RTW/createRTWTS.cp",
-      ge::gl::ShaderObject::include(GETSTRING(SHADERDIRECTORY)+"methods/RTW/warpFunction.vp"),
-      GETSTRING(SHADERDIRECTORY)+"methods/RTW/createRTWTS.ep",
-      ge::gl::ShaderObject::include(GETSTRING(SHADERDIRECTORY)+"methods/RTW/warpFunction.vp"),
-      GETSTRING(SHADERDIRECTORY)+"methods/RTW/createRTWTS.fp");
+      dir+"createRTWTS.vp",
+      dir+"createRTWTS.cp",
+      ge::gl::ShaderObject::include(dir+"warpFunction.vp"),
+      dir+"createRTWTS.ep",
+      ge::gl::ShaderObject::include(dir+"warpFunction.vp"),
+      dir+"createRTWTS.fp");
 
   this->_drawGridProgram = new ge::gl::ProgramObject(
-      GETSTRING(SHADERDIRECTORY)+"methods/RTW/drawgrid.vp",
-      GETSTRING(SHADERDIRECTORY)+"methods/RTW/drawgrid.cp",
-      ge::gl::ShaderObject::include(GETSTRING(SHADERDIRECTORY)+"methods/RTW/warpFunction.vp"),
-      GETSTRING(SHADERDIRECTORY)+"methods/RTW/drawgrid.ep",
-      ge::gl::ShaderObject::include(GETSTRING(SHADERDIRECTORY)+"methods/RTW/warpFunction.vp"),
-      GETSTRING(SHADERDIRECTORY)+"methods/RTW/drawgrid.fp");
+      dir+"drawgrid.vp",
+      dir+"drawgrid.cp",
+      ge::gl::ShaderObject::include(dir+"warpFunction.vp"),
+      dir+"drawgrid.ep",
+      ge::gl::ShaderObject::include(dir+"warpFunction.vp"),
+      dir+"drawgrid.fp");
 }
 
 void RTWBack::_createShadowMap(){
@@ -318,9 +319,7 @@ RTWBack::~RTWBack(){
 void RTWBack::_createImportance(){
   glm::uvec2 winSize=GETUVEC2(WINDOWSIZE);
 
-  glClearTexImage(
-      this->_importanceMap->getId(),
-      0,GL_RGBA,GL_FLOAT,NULL);
+  glClearTexImage(this->_importanceMap->getId(),0,GL_RGBA,GL_FLOAT,NULL);
 
   glm::vec3 camPos = glm::vec3(glm::inverse(GETCAMERA->getView())*glm::vec4(0,0,0,1));
 
@@ -329,7 +328,7 @@ void RTWBack::_createImportance(){
   this->_createImportanceMap->set("shadowMapSize",GETUINT(RESOLUTION));
   this->_createImportanceMap->set("windowSize",winSize.x,winSize.y);
   this->_createImportanceMap->set("cameraPosition",1,glm::value_ptr(camPos));
-  this->_createImportanceMap->set("maxDistance",GETFLOAT(FAR));
+  this->_createImportanceMap->set("maxDistance",GETFLOAT(MAX_DISTANCE));
   unsigned workSizex=winSize.x/GETUINT(CIM_SIZE_X)+1;
   unsigned workSizey=winSize.y/GETUINT(CIM_SIZE_Y)+1;
 
@@ -340,14 +339,6 @@ void RTWBack::_createImportance(){
     glDispatchCompute(workSizex,workSizey,1);
     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
   }
-
-  /*
-     glDispatchCompute(workSizex,workSizey,1);
-     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-     glDispatchCompute(workSizex,workSizey,1);
-     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-     glDispatchCompute(workSizex,workSizey,1);
-     */
 }
 
 ge::gl::TextureObject*RTWBack::getImportanceMap(){
@@ -451,15 +442,13 @@ void RTWBack::_createRTWMap(){
   glClear(GL_DEPTH_BUFFER_BIT);
 
   glEnable(GL_POLYGON_OFFSET_FILL);
-  glPolygonOffset(2.5,10);
+  glPolygonOffset(GETFLOAT(FACTOR),GETFLOAT(UNITS));
 
   GETVAO(SCENEVAO)->bind();
-  //glDrawArrays(GL_TRIANGLES,0,this->_adjacency->NumTriangles*3);
   glPatchParameteri(GL_PATCH_VERTICES,3);
   if(GETBOOL(LINE_TO_SM))glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
   glDrawArrays(GL_PATCHES,0,GETFASTADJACENCY->getNofTriangles()*3);
   if(GETBOOL(LINE_TO_SM))glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
-
   GETVAO(SCENEVAO)->unbind();
 
   glViewport(0,0,GETUVEC2(WINDOWSIZE).x,GETUVEC2(WINDOWSIZE).y);

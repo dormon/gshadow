@@ -39,7 +39,9 @@ DEFVARSSTART
   "nv.use_fast_smooth",
   "nv.program.warpFactor",
   "nv.program.NVMAP.TESS_FACTOR",
+  "nv.useWarping",
   "nv.drawLinesToSM",
+  "nv.cullTriangles",
   "measure.shadowMap.createShadowMap",
   "measure.shadowMap.createShadowMask",
   "measure.nv.computeViewSamples",
@@ -90,7 +92,9 @@ DEFVARSIDSTART
   USE_FAST_SMOOTH,
   WARP_FACTOR,
   TESS_FACTOR,
+  USE_WARPING,
   LINE_TO_SM,
+  CULL_TRIANGLES,
   MEASURE_CREATESHADOWMAP,
   MEASURE_CREATESHADOWMASK,
   MEASURE_CVS,
@@ -314,6 +318,7 @@ NavyMapping::NavyMapping(simulation::SimulationData*data):simulation::Simulation
 
 void NavyMapping::_setNVParam(ge::gl::ProgramObject*prog){
   prog->set("useWarping",GETFLOAT(WARP_FACTOR)>0.f);
+  //prog->set("useWarping",GETBOOL(USE_WARPING));
   this->_dvsTex[this->_dvsTex.size()-1]->bindImage(2,0);
   this->_smoothX->bind(GL_TEXTURE3);
   this->_smoothY->bind(GL_TEXTURE4);
@@ -612,7 +617,8 @@ void NavyMapping::_createNVMap(){
   this->_createNVMapProgram->use();
   this->_createNVMapProgram->set("mvp",1,GL_FALSE,glm::value_ptr(mvp));
   this->_createNVMapProgram->set("shadowMapSize",GETUINT(RESOLUTION));
-  this->_createNVMapProgram->set("tessFactor",GETUINT(TESS_FACTOR));
+  this->_createNVMapProgram->set("tessFactor",(unsigned)GETUINT(TESS_FACTOR));
+ this->_createNVMapProgram->set("cullTriangles",GETBOOL(CULL_TRIANGLES));
 
   this->_setNVParam(this->_createNVMapProgram);
 
