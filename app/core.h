@@ -31,3 +31,15 @@ void _argsToVector(std::vector<T>&vec,T v,Args... args){
   _argsToVector(vec,args...);
 }
 
+template<typename TPtr>
+void deleteSetNull(TPtr&b){
+  if(b)delete b;b=NULL;
+}
+
+template<typename TPtr,typename...Args>
+void deleteSetNull(TPtr&b,Args... args){
+  if(b)delete b;b=NULL;
+  deleteSetNull(args...);
+}
+
+unsigned getDispatchSize(unsigned workSize,unsigned workGroupSize);

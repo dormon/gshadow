@@ -1,5 +1,7 @@
 #include"RTW.h"
 
+#include"../../app/core.h"
+
 #include<geUtil/CameraObject.h>
 #include"../ShadowMapping/createsm.h"
 
@@ -76,63 +78,33 @@ DEFVARSIDEND
 
 DEFGETNOFDEP
 DEFGETDEP
-/*
+
+
 DEFUPDATEROUTINESSTART
   GETPOINTER(_computeMatrices),
-  GETPOINTER(_setWindowSize),
   GETPOINTER(_createShadowMap),
   GETPOINTER(_createShadowMapFBO),
-  GETPOINTER(_setMeasureCreateShadowMask)
+  GETPOINTER(_allocTextures),
 DEFUPDATEROUTINESEND
 
 DEFUPDATEROUTINEIDSTART
-  COMPUTEMATRICES=0,
-  SETWINDOWSIZE,
-  CREATESHADOWMAP,
+  COMPUTEMATRICES   ,
+  CREATESHADOWMAP   ,
   CREATESHADOWMAPFBO,
-  SETMEASURECREATESHADOWMASK
+  ALLOCTEXTURES     ,
 DEFUPDATEROUTINEIDEND
 
 DEFVAR2UPDATESTART
-  FOCUSPOINT,SETBIT(COMPUTEMATRICES),
-  LIGHT,SETBIT(COMPUTEMATRICES),
-  FOVY,SETBIT(COMPUTEMATRICES),
-  NEAR,SETBIT(COMPUTEMATRICES),
-  FAR,SETBIT(COMPUTEMATRICES),
-  WINDOWSIZE,SETBIT(SETWINDOWSIZE),
-
-  WORKGROUPSIZE,SETBIT(PROGRAM),
-  CULL_SIDE,SETBIT(PROGRAM)
+  FOCUSPOINT,getMask(COMPUTEMATRICES),
+  LIGHT     ,getMask(COMPUTEMATRICES),
+  FOVY      ,getMask(COMPUTEMATRICES),
+  NEAR      ,getMask(COMPUTEMATRICES),
+  FAR       ,getMask(COMPUTEMATRICES),
+  RESOLUTION,getMask(CREATESHADOWMAP,ALLOCTEXTURES),
+  SHADOWMASK,getMask(CREATESHADOWMAPFBO),
 DEFVAR2UPDATEEND
 
-
 DEFUPDATE
-*/
-
-
-void RTWBack::update(){
-  if(
-      this->_changed[VARS[FOCUSPOINT]]||
-      this->_changed[VARS[LIGHT     ]]||
-      this->_changed[VARS[FOVY      ]]||
-      this->_changed[VARS[NEAR      ]]||
-      this->_changed[VARS[FAR       ]]){
-    this->_computeMatrices();
-    this->_changed[VARS[FOCUSPOINT]]=false;
-    this->_changed[VARS[LIGHT     ]]=false;
-    this->_changed[VARS[FOVY      ]]=false;
-    this->_changed[VARS[NEAR      ]]=false;
-    this->_changed[VARS[FAR       ]]=false;
-  }
-  if(this->_changed[VARS[RESOLUTION]]){
-    this->_createShadowMap();
-    this->_changed[VARS[RESOLUTION]]=false;
-  }
-  if(this->_changed[VARS[SHADOWMASK]]){
-    this->_createShadowMapFBO();
-    this->_changed[VARS[SHADOWMASK]]=false;
-  }
-}
 
 void RTWBack::_createRTWMask(){
   this->_createRTWMaskProgram->use();
@@ -188,16 +160,40 @@ void RTWBack::createShadowMask(){
   GETGPUGAUGE(MEASURE_WHOLE)->end();
 }
 
+void RTWBack::_deleteTextures(){
+  deleteSetNull(
+      this->_importanceMap,
+      this->_importanceX  ,
+      this->_importanceY  ,
+      this->_smoothX      ,
+      this->_smoothY      ,
+      this->_sumX         ,
+      this->_sumY         );
+}
+
+void RTWBack::_allocTextures(){
+  this->_deleteTextures();
+  this->_importanceMap = new ge::gl::TextureObject(GL_TEXTURE_2D,GL_RGBA32F,1,GETUINT(RESOLUTION),GETUINT(RESOLUTION));
+  this->_importanceX = new ge::gl::TextureObject(GL_TEXTURE_1D,GL_RGBA32F,1,GETUINT(RESOLUTION));
+  this->_importanceY = new ge::gl::TextureObject(GL_TEXTURE_1D,GL_RGBA32F,1,GETUINT(RESOLUTION));
+  this->_smoothX     = new ge::gl::TextureObject(GL_TEXTURE_1D,GL_RGBA32F,1,GETUINT(RESOLUTION));
+  this->_smoothY     = new ge::gl::TextureObject(GL_TEXTURE_1D,GL_RGBA32F,1,GETUINT(RESOLUTION));
+  this->_sumX        = new ge::gl::TextureObject(GL_TEXTURE_1D,GL_R32F   ,1,GETUINT(RESOLUTION));
+  this->_sumY        = new ge::gl::TextureObject(GL_TEXTURE_1D,GL_R32F   ,1,GETUINT(RESOLUTION));
+
+  this->_sumX->texParameteri(GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
+  this->_sumX->texParameteri(GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
+  this->_sumX->texParameteri(GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+  this->_sumX->texParameteri(GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+
+  this->_sumY->texParameteri(GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
+  this->_sumY->texParameteri(GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
+  this->_sumY->texParameteri(GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+  this->_sumY->texParameteri(GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+}
+
 RTWBack::RTWBack(simulation::SimulationData*data):simulation::SimulationObject(data){
   this->_simulationData->registerUser(this);
-  this->_shadowMap = NULL;
-  this->_fbo       = NULL;
-  this->_shadowMap = NULL;
-  this->_fbo       = NULL;
-  this->_shadowMap = NULL;
-  this->_shadowMask    = NULL;
-  this->_shadowMaskFBO = NULL;
-
   this->_emptyVAO  = new ge::gl::VertexArrayObject();
 
   this->_computeMatrices   ();
@@ -212,41 +208,21 @@ RTWBack::RTWBack(simulation::SimulationData*data):simulation::SimulationObject(d
       dir+"createRTWMask.fp",
       ge::gl::ShaderObject::include(dir+"warpFunction.vp"));
 
-
   this->_createImportanceMap = new ge::gl::ProgramObject(
       dir+"createImportanceMap.comp",
       this->_simulationData->define("rtw.program.CIM"));
 
-  this->_importanceMap = new ge::gl::TextureObject(GL_TEXTURE_2D,GL_RGBA32F,1,
-      GETUINT(RESOLUTION),GETUINT(RESOLUTION));
-
   this->_create1DImportance = new ge::gl::ProgramObject(
       dir+"create1DImportanceMap.comp",
       this->_simulationData->define("rtw.program.CIM1D"));
-  this->_importanceX = new ge::gl::TextureObject(GL_TEXTURE_1D,GL_RGBA32F,1,GETUINT(RESOLUTION));
-  this->_importanceY = new ge::gl::TextureObject(GL_TEXTURE_1D,GL_RGBA32F,1,GETUINT(RESOLUTION));
 
   this->_smoothProgram = new ge::gl::ProgramObject(
       dir+"smooth.comp",
       this->_simulationData->define("rtw.program.CIM1D"));
-  this->_smoothX = new ge::gl::TextureObject(GL_TEXTURE_1D,GL_RGBA32F,1,GETUINT(RESOLUTION));
-  this->_smoothY = new ge::gl::TextureObject(GL_TEXTURE_1D,GL_RGBA32F,1,GETUINT(RESOLUTION));
 
   this->_sumProgram = new ge::gl::ProgramObject(
       dir+"sum.comp",
       this->_simulationData->define("rtw.program.CIM1D"));
-  this->_sumX = new ge::gl::TextureObject(GL_TEXTURE_1D,GL_R32F,1,GETUINT(RESOLUTION));
-  this->_sumY = new ge::gl::TextureObject(GL_TEXTURE_1D,GL_R32F,1,GETUINT(RESOLUTION));
-
-  this->_sumX->texParameteri(GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
-  this->_sumX->texParameteri(GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
-  this->_sumX->texParameteri(GL_TEXTURE_MIN_FILTER,GL_LINEAR);
-  this->_sumX->texParameteri(GL_TEXTURE_MAG_FILTER,GL_LINEAR);
-
-  this->_sumY->texParameteri(GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
-  this->_sumY->texParameteri(GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
-  this->_sumY->texParameteri(GL_TEXTURE_MIN_FILTER,GL_LINEAR);
-  this->_sumY->texParameteri(GL_TEXTURE_MAG_FILTER,GL_LINEAR);
 
   this->_createRTWProgram = new ge::gl::ProgramObject(
       dir+"createRTWTS.vp",
@@ -263,6 +239,9 @@ RTWBack::RTWBack(simulation::SimulationData*data):simulation::SimulationObject(d
       dir+"drawgrid.ep",
       ge::gl::ShaderObject::include(dir+"warpFunction.vp"),
       dir+"drawgrid.fp");
+
+  this->_allocTextures();
+
 }
 
 void RTWBack::_createShadowMap(){
@@ -300,20 +279,15 @@ RTWBack::~RTWBack(){
   delete this->_fbo;
   delete this->_shadowMaskFBO;
   delete this->_emptyVAO;
-  delete this->_createRTWMaskProgram;
-  delete this->_createImportanceMap;
-  delete this->_importanceMap;
-  delete this->_create1DImportance;
-  delete this->_importanceX;
-  delete this->_importanceY;
-  delete this->_smoothProgram;
-  delete this->_smoothX;
-  delete this->_smoothY;
-  delete this->_sumProgram;
-  delete this->_sumX;
-  delete this->_sumY;
-  delete this->_createRTWProgram;
-  delete this->_drawGridProgram;
+  deleteSetNull(
+      this->_createRTWMaskProgram,
+      this->_createImportanceMap ,
+      this->_create1DImportance  ,
+      this->_smoothProgram       ,
+      this->_sumProgram          ,
+      this->_createRTWProgram    ,
+      this->_drawGridProgram     );
+  this->_deleteTextures();
 }
 
 void RTWBack::_createImportance(){
@@ -341,30 +315,14 @@ void RTWBack::_createImportance(){
   }
 }
 
-ge::gl::TextureObject*RTWBack::getImportanceMap(){
-  return this->_importanceMap;
-}
-ge::gl::TextureObject*RTWBack::getImportanceX(){
-  return this->_importanceX;
-}
-ge::gl::TextureObject*RTWBack::getImportanceY(){
-  return this->_importanceY;
-}
-ge::gl::TextureObject*RTWBack::getSmoothX(){
-  return this->_smoothX;
-}
-ge::gl::TextureObject*RTWBack::getSmoothY(){
-  return this->_smoothY;
-}
-ge::gl::TextureObject*RTWBack::getSumX(){
-  return this->_sumX;
-}
-ge::gl::TextureObject*RTWBack::getSumY(){
-  return this->_sumY;
-}
-ge::gl::TextureObject*RTWBack::getShadowMap(){
-  return this->_shadowMap;
-}
+ge::gl::TextureObject*RTWBack::getImportanceMap(){return this->_importanceMap;}
+ge::gl::TextureObject*RTWBack::getImportanceX  (){return this->_importanceX  ;}
+ge::gl::TextureObject*RTWBack::getImportanceY  (){return this->_importanceY  ;}
+ge::gl::TextureObject*RTWBack::getSmoothX      (){return this->_smoothX      ;}
+ge::gl::TextureObject*RTWBack::getSmoothY      (){return this->_smoothY      ;}
+ge::gl::TextureObject*RTWBack::getSumX         (){return this->_sumX         ;}
+ge::gl::TextureObject*RTWBack::getSumY         (){return this->_sumY         ;}
+ge::gl::TextureObject*RTWBack::getShadowMap    (){return this->_shadowMap    ;}
 
 void RTWBack::_createImportance1D(){
   glClearTexImage(this->_importanceX->getId(),0,GL_RGBA,GL_FLOAT,NULL);

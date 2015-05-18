@@ -6,13 +6,13 @@
 class CShadowMapping: public simulation::SimulationObject, public ShadowMethod
 {
   private:
-    ge::gl::TextureObject*     _shadowMask;
-    ge::gl::FramebufferObject* _shadowMaskFBO;
-    ge::gl::ProgramObject*     _createShadowMask;
-    ge::gl::ProgramObject*     _csm;
-    ge::gl::TextureObject*     _shadowMap;
-    ge::gl::FramebufferObject* _fbo;
-    ge::gl::VertexArrayObject* _emptyVAO;
+    ge::gl::TextureObject*     _shadowMask       = NULL;
+    ge::gl::FramebufferObject* _shadowMaskFBO    = NULL;
+    ge::gl::ProgramObject*     _createShadowMask = NULL;
+    ge::gl::ProgramObject*     _csm              = NULL;
+    ge::gl::TextureObject*     _shadowMap        = NULL;
+    ge::gl::FramebufferObject* _fbo              = NULL;
+    ge::gl::VertexArrayObject* _emptyVAO         = NULL;
     glm::mat4                  _lightProjection;
     glm::mat4                  _lightView;
     glm::mat4                  _bpv;

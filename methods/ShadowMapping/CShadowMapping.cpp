@@ -67,36 +67,6 @@ DEFVAR2UPDATEEND
 
 DEFUPDATE
 
-
-
-
-/*
-void CShadowMapping::update(){
-  //std::cerr<<"CShadowMapping::update()"<<std::endl;
-  //std::cerr<<"FOCUS CHANGED: "<<this->_changed[VARS[FOCUSPOINT]]<<std::endl;
-  if(
-      this->_changed[VARS[FOCUSPOINT]]||
-      this->_changed[VARS[LIGHT     ]]||
-      this->_changed[VARS[FOVY      ]]||
-      this->_changed[VARS[NEAR      ]]||
-      this->_changed[VARS[FAR       ]]){
-    this->_computeMatrices();
-    this->_changed[VARS[FOCUSPOINT]]=false;
-    this->_changed[VARS[LIGHT     ]]=false;
-    this->_changed[VARS[FOVY      ]]=false;
-    this->_changed[VARS[NEAR      ]]=false;
-    this->_changed[VARS[FAR       ]]=false;
-  }
-  if(this->_changed[VARS[RESOLUTION]]){
-    this->_createShadowMap();
-    this->_changed[VARS[RESOLUTION]]=false;
-  }
-  if(this->_changed[VARS[SHADOWMASK]]){
-    this->_createShadowMapFBO();
-    this->_changed[VARS[SHADOWMASK]]=false;
-  }
-}
-// */
 void CShadowMapping::createShadowMask(){
   GETGPUGAUGE(MEASURE_CREATESHADOWMAP)->begin();
   this->CreateShadowMap();
@@ -123,10 +93,6 @@ void CShadowMapping::createShadowMask(GLuint mask){
 
 CShadowMapping::CShadowMapping(simulation::SimulationData*data):simulation::SimulationObject(data){
   this->_simulationData->registerUser(this);
-  this->_shadowMap = NULL;
-  this->_fbo       = NULL;
-  this->_csm       = NULL;
-  this->_shadowMaskFBO = NULL;
   this->_emptyVAO  = new ge::gl::VertexArrayObject();
   this->_computeMatrices   ();
   this->_createShadowMap   ();

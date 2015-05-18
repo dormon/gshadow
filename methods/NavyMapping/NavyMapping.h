@@ -6,67 +6,66 @@
 class NavyMapping: public simulation::SimulationObject, public ShadowMethod
 {
   private:
-    ge::gl::TextureObject*     _shadowMask;
-    ge::gl::FramebufferObject* _shadowMaskFBO;
-
-    ge::gl::TextureObject*     _shadowMap;
-    ge::gl::FramebufferObject* _fbo;
-    ge::gl::VertexArrayObject* _emptyVAO;
-    glm::mat4                  _lightProjection;
-    glm::mat4                  _lightView;
-    glm::mat4                  _bpv;
+    ge::gl::TextureObject*     _shadowMask    = NULL;
+    ge::gl::FramebufferObject* _shadowMaskFBO = NULL;
+    ge::gl::TextureObject*     _shadowMap     = NULL;
+    ge::gl::FramebufferObject* _fbo           = NULL;
+    ge::gl::VertexArrayObject* _emptyVAO      = NULL;
 
 
     //1. viewMap
-    ge::gl::TextureObject* _viewSamples;
-    ge::gl::ProgramObject* _viewSamplesProgram;
+    ge::gl::TextureObject* _viewSamples        = NULL;
+    ge::gl::ProgramObject* _viewSamplesProgram = NULL;
 
     //2. desired view
-    ge::gl::ProgramObject* _fastdv0Program;
-    ge::gl::ProgramObject* _fastdvProgram;
+    ge::gl::ProgramObject* _fastdv0Program = NULL;
+    ge::gl::ProgramObject* _fastdvProgram  = NULL;
     std::vector<ge::gl::TextureObject*>_dvsTex;
     std::vector<glm::uvec2>_dvsWorkSize;
 
     //3. countMap
-    ge::gl::TextureObject* _countMapX;
-    ge::gl::TextureObject* _countMapY;
-    ge::gl::ProgramObject* _fastCreateCountMapProgram;
+    ge::gl::TextureObject* _countMapX = NULL;
+    ge::gl::TextureObject* _countMapY = NULL;
+    ge::gl::ProgramObject* _fastCreateCountMapProgram = NULL;
 
     //4. integratedCountMap
-    ge::gl::TextureObject* _integratedX;
-    ge::gl::TextureObject* _integratedY;
-    ge::gl::TextureObject* _integratedXCount;
-    ge::gl::TextureObject* _integratedYCount;
-    ge::gl::ProgramObject* _integrateProgram;
+    ge::gl::TextureObject* _integratedX = NULL;
+    ge::gl::TextureObject* _integratedY = NULL;
+    ge::gl::TextureObject* _integratedXCount = NULL;
+    ge::gl::TextureObject* _integratedYCount = NULL;
+    ge::gl::ProgramObject* _integrateProgram = NULL;
 
     //5. offsetX
-    ge::gl::TextureObject* _offsetX;
-    ge::gl::TextureObject* _offsetY;
-    ge::gl::ProgramObject* _offsetProgram;
+    ge::gl::TextureObject* _offsetX = NULL;
+    ge::gl::TextureObject* _offsetY = NULL;
+    ge::gl::ProgramObject* _offsetProgram = NULL;
 
     //6. smoothX
-    ge::gl::TextureObject* _smoothX;
-    ge::gl::TextureObject* _smoothY;
-    ge::gl::ProgramObject* _smoothProgram;
+    ge::gl::TextureObject* _smoothX = NULL;
+    ge::gl::TextureObject* _smoothY = NULL;
+    ge::gl::ProgramObject* _smoothProgram = NULL;
 
     //6.b smooth
-    ge::gl::TextureObject* _integratedOffsetX;
-    ge::gl::TextureObject* _integratedOffsetY;
-    ge::gl::ProgramObject* _integrateOffsetProgram;
-    ge::gl::ProgramObject* _smoothUsingIntegratedOffsetProgram;
+    ge::gl::TextureObject* _integratedOffsetX = NULL;
+    ge::gl::TextureObject* _integratedOffsetY = NULL;
+    ge::gl::ProgramObject* _integrateOffsetProgram = NULL;
+    ge::gl::ProgramObject* _smoothUsingIntegratedOffsetProgram = NULL;
 
     //7. unwarpX
-    ge::gl::ProgramObject* _unwarpProgram;
+    ge::gl::ProgramObject* _unwarpProgram = NULL;
 
     //8. tests
-    ge::gl::ProgramObject* _drawGridProgram;
+    ge::gl::ProgramObject* _drawGridProgram = NULL;
 
-    ge::gl::TextureObject* _uall;
-    ge::gl::ProgramObject* _uallProgram;
+    ge::gl::TextureObject* _uall = NULL;
+    ge::gl::ProgramObject* _uallProgram = NULL;
 
-    ge::gl::ProgramObject* _createNVMapProgram;
-    ge::gl::ProgramObject* _createNVMaskProgram;
+    ge::gl::ProgramObject* _createNVMapProgram = NULL;
+    ge::gl::ProgramObject* _createNVMaskProgram = NULL;
 
+    glm::mat4                  _lightProjection;
+    glm::mat4                  _lightView;
+    glm::mat4                  _bpv;
 
     void _computeViewSamples();
     void _fastCreateDV();
@@ -99,11 +98,15 @@ class NavyMapping: public simulation::SimulationObject, public ShadowMethod
 
     void _setNVParam(ge::gl::ProgramObject*prog);
 
+    unsigned _getDiv(unsigned a,unsigned b){return a%b?a/b+1:a/b;}
+    void _deleteDVTextures();
+    void _deleteWarpingTextures();
+  public:
     void _createShadowMap();
     void _computeMatrices();
     void _createShadowMapFBO();
-    unsigned _getDiv(unsigned a,unsigned b){return a%b?a/b+1:a/b;}
-  public:
+    void _allocDVTextures();
+    void _allocWarpingTextures();
     void setMatrices(glm::mat4 lp,glm::mat4 lv);
     void createShadowMask();
     void createShadowMask(GLuint mask);

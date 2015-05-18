@@ -1,5 +1,7 @@
 #include"NavyMapping.h"
 
+#include"../../app/core.h"
+
 #include"../../GPUPerfApi/GpuPerfApi.h"
 #include"../ShadowMapping/createsm.h"
 
@@ -116,34 +118,37 @@ DEFVARSIDEND
 DEFGETNOFDEP
 DEFGETDEP
 
-void NavyMapping::update(){
-  if(
-      this->_changed[VARS[FOCUSPOINT]]||
-      this->_changed[VARS[LIGHT     ]]||
-      this->_changed[VARS[FOVY      ]]||
-      this->_changed[VARS[NEAR      ]]||
-      this->_changed[VARS[FAR       ]]){
-    this->_computeMatrices();
-    this->_changed[VARS[FOCUSPOINT]]=false;
-    this->_changed[VARS[LIGHT     ]]=false;
-    this->_changed[VARS[FOVY      ]]=false;
-    this->_changed[VARS[NEAR      ]]=false;
-    this->_changed[VARS[FAR       ]]=false;
-  }
-  if(this->_changed[VARS[RESOLUTION]]){
-    this->_createShadowMap();
-    this->_changed[VARS[RESOLUTION]]=false;
-  }
-  if(this->_changed[VARS[SHADOWMASK]]){
-    this->_createShadowMapFBO();
-    this->_changed[VARS[SHADOWMASK]]=false;
-  }
-}
+DEFUPDATEROUTINESSTART
+  GETPOINTER(_computeMatrices),
+  GETPOINTER(_createShadowMap),
+  GETPOINTER(_createShadowMapFBO),
+  GETPOINTER(_allocDVTextures),
+  GETPOINTER(_allocWarpingTextures),
+DEFUPDATEROUTINESEND
+
+DEFUPDATEROUTINEIDSTART
+  COMPUTEMATRICES   ,
+  CREATESHADOWMAP   ,
+  CREATESHADOWMAPFBO,
+  ALLOCDVTEXTURES     ,
+  ALLOCWARPINGTEXTURES,
+DEFUPDATEROUTINEIDEND
+
+DEFVAR2UPDATESTART
+  FOCUSPOINT,getMask(COMPUTEMATRICES),
+  LIGHT     ,getMask(COMPUTEMATRICES),
+  FOVY      ,getMask(COMPUTEMATRICES),
+  NEAR      ,getMask(COMPUTEMATRICES),
+  FAR       ,getMask(COMPUTEMATRICES),
+  RESOLUTION,getMask(CREATESHADOWMAP,ALLOCWARPINGTEXTURES),
+  SHADOWMASK,getMask(CREATESHADOWMAPFBO),
+DEFVAR2UPDATEEND
+
+DEFUPDATE
 
 void NavyMapping::createShadowMask(){
   GETGPUGAUGE(MEASURE_WHOLE)->begin();
   {
-
     GETGPUGAUGE(MEASURE_CVS)->begin();
     this->_computeViewSamples();
     GETGPUGAUGE(MEASURE_CVS)->end();
@@ -225,39 +230,50 @@ void NavyMapping::createShadowMask(GLuint mask){
   this->createShadowMask();
 }
 
+void NavyMapping::_deleteDVTextures(){
+  deleteSetNull(this->_viewSamples);
+  for(unsigned i=0;i<this->_dvsTex.size();++i)delete this->_dvsTex[i];
+  this->_dvsTex.clear();
+  this->_dvsWorkSize.clear();
+}
+void NavyMapping::_deleteWarpingTextures(){
+  deleteSetNull(
+      this->_countMapX        ,
+      this->_countMapY        ,
+      this->_integratedX      ,
+      this->_integratedY      ,
+      this->_integratedXCount ,
+      this->_integratedYCount ,
+      this->_offsetX          ,
+      this->_offsetY          ,
+      this->_smoothX          ,
+      this->_smoothY          ,
+      this->_integratedOffsetX,
+      this->_integratedOffsetY,
+      this->_uall             );
+}
 
-NavyMapping::NavyMapping(simulation::SimulationData*data):simulation::SimulationObject(data){
-  this->_simulationData->registerUser(this);
-  this->_shadowMap     = NULL;
-  this->_fbo           = NULL;
-  this->_shadowMaskFBO = NULL;
-  this->_emptyVAO      = new ge::gl::VertexArrayObject();
-  this->_computeMatrices   ();
-  this->_createShadowMap   ();
-  this->_createShadowMapFBO();
+void NavyMapping::_allocDVTextures(){
+  this->_deleteDVTextures();
 
-  std::string dir=GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/";
-  std::string dvnv=ge::gl::ShaderObject::include(dir+"dv.vp")+ge::gl::ShaderObject::include(dir+"nv.vp");
-
-  //NAVY MAP
   this->_viewSamples = new ge::gl::TextureObject(GL_TEXTURE_2D,GL_RG32F,1,GETUVEC2(WINDOWSIZE).x,GETUVEC2(WINDOWSIZE).y);
-  this->_viewSamplesProgram = new ge::gl::ProgramObject(dir+"viewSamples.comp",this->_simulationData->define("nv.program.VS"));
-
-  this->_fastdv0Program = new ge::gl::ProgramObject(dir+"fastdv0.comp",this->_simulationData->define("nv.program.FDV"));
-  this->_fastdvProgram  = new ge::gl::ProgramObject(dir+"fastdv.comp" ,this->_simulationData->define("nv.program.FDV"));
 
   unsigned size[2]={
-    this->_getDiv(GETUVEC2(WINDOWSIZE).x,GETUINT(FDV_SIZE_X)),
-    this->_getDiv(GETUVEC2(WINDOWSIZE).y,GETUINT(FDV_SIZE_Y))
+    getDispatchSize(GETUVEC2(WINDOWSIZE).x,GETUINT(FDV_SIZE_X)),
+    getDispatchSize(GETUVEC2(WINDOWSIZE).y,GETUINT(FDV_SIZE_Y)),
   };
   while(size[0]!=1||size[1]!=1){
     this->_dvsWorkSize.push_back(glm::uvec2(size[0],size[1]));
     this->_dvsTex.push_back(new ge::gl::TextureObject(GL_TEXTURE_2D,GL_RGBA32F,1,size[0],size[1]));
-    size[0]=this->_getDiv(size[0],GETUINT(FDV_SIZE_X));
-    size[1]=this->_getDiv(size[1],GETUINT(FDV_SIZE_Y));
+    size[0]=getDispatchSize(size[0],GETUINT(FDV_SIZE_X));
+    size[1]=getDispatchSize(size[1],GETUINT(FDV_SIZE_Y));
   }
   this->_dvsWorkSize.push_back(glm::uvec2(1u,1u));
   this->_dvsTex.push_back(new ge::gl::TextureObject(GL_TEXTURE_2D,GL_RGBA32F,1,1,1));
+}
+
+void NavyMapping::_allocWarpingTextures(){
+  this->_deleteWarpingTextures();
 
   auto create2DSquareTex=[](GLenum format,unsigned size){
     return new ge::gl::TextureObject(GL_TEXTURE_2D,format,1,size,size);
@@ -272,48 +288,93 @@ NavyMapping::NavyMapping(simulation::SimulationData*data):simulation::Simulation
   this->_countMapX = create2DSquareTex(GL_R32UI,GETUINT(RESOLUTION));
   this->_countMapY = create2DSquareTex(GL_R32UI,GETUINT(RESOLUTION));
 
-  this->_fastCreateCountMapProgram = new ge::gl::ProgramObject(dir+"countMap.comp",this->_simulationData->define("nv.program.COUNTMAP")+dvnv);
-
   this->_integratedX = create2DSquareTex(GL_R32UI,GETUINT(RESOLUTION));
   this->_integratedY = create2DSquareTex(GL_R32UI,GETUINT(RESOLUTION));
   this->_integratedXCount = new ge::gl::TextureObject(GL_TEXTURE_1D,GL_R32UI,1,GETUINT(RESOLUTION));
   this->_integratedYCount = new ge::gl::TextureObject(GL_TEXTURE_1D,GL_R32UI,1,GETUINT(RESOLUTION));
-  this->_integrateProgram = new ge::gl::ProgramObject(dir+"integrate.comp",this->_simulationData->define("nv.program.INTEGRATE"));
-
 
   this->_offsetX = create2DSquareTex(GL_R32F,GETUINT(RESOLUTION));
   this->_offsetY = create2DSquareTex(GL_R32F,GETUINT(RESOLUTION));
   setTexParam(this->_offsetX);
   setTexParam(this->_offsetY);
-  this->_offsetProgram = new ge::gl::ProgramObject(dir+"offset.comp",this->_simulationData->define("nv.program.OFFSET"));
 
   this->_smoothX = create2DSquareTex(GL_R32F,GETUINT(RESOLUTION));
   this->_smoothY = create2DSquareTex(GL_R32F,GETUINT(RESOLUTION));
   setTexParam(this->_smoothX);
   setTexParam(this->_smoothY);
-  this->_smoothProgram = new ge::gl::ProgramObject(dir+"smooth.comp",this->_simulationData->define("nv.program.SMOOTH"));
-
 
   this->_integratedOffsetX = create2DSquareTex(GL_R32F,GETUINT(RESOLUTION));
   this->_integratedOffsetY = create2DSquareTex(GL_R32F,GETUINT(RESOLUTION));
   setTexParam(this->_integratedOffsetX);
   setTexParam(this->_integratedOffsetY);
-  this->_integrateOffsetProgram = new ge::gl::ProgramObject(dir+"integrateoffset.comp",this->_simulationData->define("nv.program.INTEGRATEOFFSET"));
+
+  this->_uall = new ge::gl::TextureObject(GL_TEXTURE_2D,GL_R32UI,1,GETUINT(RESOLUTION),GETUINT(RESOLUTION));
+}
+
+NavyMapping::NavyMapping(simulation::SimulationData*data):simulation::SimulationObject(data){
+  this->_simulationData->registerUser(this);
+  this->_emptyVAO      = new ge::gl::VertexArrayObject();
+  this->_computeMatrices   ();
+  this->_createShadowMap   ();
+  this->_createShadowMapFBO();
+
+
+  std::string dir=GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/";
+  std::string dvnv=ge::gl::ShaderObject::include(dir+"dv.vp")+ge::gl::ShaderObject::include(dir+"nv.vp");
+
+  //NAVY MAP
+  this->_viewSamplesProgram = new ge::gl::ProgramObject(
+      dir+"viewSamples.comp",this->_simulationData->define("nv.program.VS"));
+
+  this->_fastdv0Program = new ge::gl::ProgramObject(
+      dir+"fastdv0.comp",this->_simulationData->define("nv.program.FDV"));
+
+  this->_fastdvProgram  = new ge::gl::ProgramObject(
+      dir+"fastdv.comp" ,this->_simulationData->define("nv.program.FDV"));
+
+  this->_fastCreateCountMapProgram = new ge::gl::ProgramObject(
+      dir+"countMap.comp",this->_simulationData->define("nv.program.COUNTMAP")+dvnv);
+
+  this->_integrateProgram = new ge::gl::ProgramObject(
+      dir+"integrate.comp",this->_simulationData->define("nv.program.INTEGRATE"));
+
+  this->_offsetProgram = new ge::gl::ProgramObject(
+      dir+"offset.comp",this->_simulationData->define("nv.program.OFFSET"));
+
+  this->_smoothProgram = new ge::gl::ProgramObject(
+      dir+"smooth.comp",this->_simulationData->define("nv.program.SMOOTH"));
+
+  this->_integrateOffsetProgram = new ge::gl::ProgramObject(
+      dir+"integrateoffset.comp",this->_simulationData->define("nv.program.INTEGRATEOFFSET"));
+
   this->_smoothUsingIntegratedOffsetProgram = new ge::gl::ProgramObject(
       dir+"smoothUsingIntegratedOffset.comp",this->_simulationData->define("nv.program.SMOOTH"));
 
+  this->_unwarpProgram   = new ge::gl::ProgramObject(
+      dir+"unwarp.comp",this->_simulationData->define("nv.program.COUNTMAP")+dvnv);
 
+  this->_drawGridProgram = new ge::gl::ProgramObject(
+      dir+"drawgrid.vp",dir+"drawgrid.cp",dir+"drawgrid.ep",dvnv,dir+"drawgrid.fp");
 
-  this->_unwarpProgram   = new ge::gl::ProgramObject(dir+"unwarp.comp",this->_simulationData->define("nv.program.COUNTMAP")+dvnv);
-  this->_drawGridProgram = new ge::gl::ProgramObject(dir+"drawgrid.vp",dir+"drawgrid.cp",dir+"drawgrid.ep",dvnv,dir+"drawgrid.fp");
+  this->_uallProgram = new ge::gl::ProgramObject(
+      dir+"uall.comp",this->_simulationData->define("nv.program.COUNTMAP")+dvnv);
 
-  this->_uall = new ge::gl::TextureObject(GL_TEXTURE_2D,GL_R32UI,1,GETUINT(RESOLUTION),GETUINT(RESOLUTION));
-  this->_uallProgram = new ge::gl::ProgramObject(dir+"uall.comp",this->_simulationData->define("nv.program.COUNTMAP")+dvnv);
+  this->_createNVMapProgram  = new ge::gl::ProgramObject(
+      dir+"createNVTS.vp",
+      dir+"createNVTS.cp",
+      dvnv,
+      dir+"createNVTS.ep",
+      dvnv,
+      dir+"createNVTS.fp");
 
-  std::string shader=dir+"createNVTS";
-  this->_createNVMapProgram  = new ge::gl::ProgramObject(shader+".vp",shader+".cp",dvnv,shader+".ep",dvnv,shader+".fp");
-  shader=dir+"createNVMask";
-  this->_createNVMaskProgram = new ge::gl::ProgramObject(shader+".vp",shader+".gp",shader+".fp",dvnv);
+  this->_createNVMaskProgram = new ge::gl::ProgramObject(
+      dir+"createNVMask.vp",
+      dir+"createNVMask.gp",
+      dir+"createNVMask.fp",
+      dvnv);
+
+  this->_allocDVTextures();
+  this->_allocWarpingTextures();
 }
 
 void NavyMapping::_setNVParam(ge::gl::ProgramObject*prog){
@@ -331,35 +392,20 @@ NavyMapping::~NavyMapping(){
   delete this->_shadowMaskFBO;
   delete this->_emptyVAO;
 
-  delete this->_viewSamples;
   delete this->_viewSamplesProgram;
-
   delete this->_fastdv0Program;
   delete this->_fastdvProgram;
-
-  for(unsigned i=0;i<this->_dvsTex.size();++i)
-    delete this->_dvsTex[i];
-
-  delete this->_countMapX;
-  delete this->_countMapY;
   delete this->_fastCreateCountMapProgram;
-
-  delete this->_integratedX;
-  delete this->_integratedY;
-  delete this->_integratedXCount;
-  delete this->_integratedYCount;
   delete this->_integrateProgram;
-
-  delete this->_offsetX;
-  delete this->_offsetY;
-
   delete this->_smoothProgram;
   delete this->_unwarpProgram;
   delete this->_drawGridProgram;
-  delete this->_uall;
   delete this->_uallProgram;
   delete this->_createNVMapProgram;
   delete this->_createNVMaskProgram;
+
+  this->_deleteDVTextures();
+  this->_deleteWarpingTextures();
 }
 
 void NavyMapping::_createShadowMap(){
@@ -402,8 +448,8 @@ void NavyMapping::_computeViewSamples(){
   this->_viewSamplesProgram->use();
   this->_viewSamplesProgram->set("windowSize",winSize.x,winSize.y);
   this->_viewSamplesProgram->set("mvp",1,GL_FALSE,(const float*)glm::value_ptr(mvp));
-  unsigned workSizex=winSize.x/GETUINT(VS_SIZE_X)+1;
-  unsigned workSizey=winSize.y/GETUINT(VS_SIZE_Y)+1;
+  unsigned workSizex=getDispatchSize(winSize.x,GETUINT(VS_SIZE_X));
+  unsigned workSizey=getDispatchSize(winSize.y,GETUINT(VS_SIZE_Y));
   glDispatchCompute(workSizex,workSizey,1);
   glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 }
@@ -417,15 +463,6 @@ void NavyMapping::_fastCreateDV(){
   glDispatchCompute(this->_dvsWorkSize[0].x,this->_dvsWorkSize[0].y,1);
   glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
-  /*
-     NDormon::GpuPerfApi*gpa=(NDormon::GpuPerfApi*)GETOBJECT(GPA);
-     std::cerr<<gpa->getResults([](void*A){
-     NavyMapping*_this= ((NavyMapping*)A);
-     glDispatchCompute(_this->_dvsWorkSize[0].x,_this->_dvsWorkSize[0].y,1);
-     },this)<<std::endl;
-     */
-  //return;
-
   this->_fastdvProgram->use();
   for(unsigned i=0;i<this->_dvsTex.size()-1;++i){
     this->_dvsTex[i+0]->bindImage(0,0);
@@ -434,30 +471,6 @@ void NavyMapping::_fastCreateDV(){
     glDispatchCompute(this->_dvsWorkSize[i+1].x,this->_dvsWorkSize[i+1].y,1);
     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
   }
-
-  /*
-     NDormon::GpuPerfApi*gpa=(NDormon::GpuPerfApi*)GETOBJECT(GPA);
-     std::cerr<<gpa->getResults([](void*A){
-     NavyMapping*_this=(NavyMapping*)A;
-     _this->_fastdvProgram->use();
-     for(unsigned i=0;i<_this->_dvsTex.size()-1;++i){
-     _this->_dvsTex[i+0]->bindImage(0,0);
-     _this->_dvsTex[i+1]->bindImage(1,0);
-     _this->_fastdvProgram->set("windowSize",_this->_dvsWorkSize[i].x,_this->_dvsWorkSize[i].y);
-     glDispatchCompute(_this->_dvsWorkSize[i+1].x,_this->_dvsWorkSize[i+1].y,1);
-     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-     }
-     },this)<<std::endl;
-     */
-
-  /*float data[4]={0,0,0,0};
-    glBindTexture(GL_TEXTURE_2D,this->_dvsTex[this->_dvsTex.size()-1]->getId());
-    glGetTexImage(GL_TEXTURE_2D,0,GL_RGBA,GL_FLOAT,data);
-    std::cerr<<"data0: "<<data[0]<<std::endl;
-    std::cerr<<"data1: "<<data[1]<<std::endl;
-    std::cerr<<"data2: "<<data[2]<<std::endl;
-    std::cerr<<"data3: "<<data[3]<<std::endl;
-    */
 }
 
 void NavyMapping::_fastCreateCountMap(){
@@ -474,8 +487,8 @@ void NavyMapping::_fastCreateCountMap(){
   this->_fastCreateCountMapProgram->set("shadowMapSize",GETUINT(RESOLUTION));
   this->_fastCreateCountMapProgram->set("windowSize",winSize.x,winSize.y);
 
-  unsigned workSizex=winSize.x/GETUINT(FDV_SIZE_X)+1;
-  unsigned workSizey=winSize.y/GETUINT(FDV_SIZE_Y)+1;
+  unsigned workSizex=getDispatchSize(winSize.x,GETUINT(FDV_SIZE_X));
+  unsigned workSizey=getDispatchSize(winSize.y,GETUINT(FDV_SIZE_Y));
   glDispatchCompute(workSizex,workSizey,1);
 }
 
@@ -488,7 +501,7 @@ void NavyMapping::_integrate(
   integralCount->bindImage(2,0);
   this->_integrateProgram->use();
   this->_integrateProgram->set("shadowMapSize",GETUINT(RESOLUTION));
-  unsigned workSizex=GETUINT(RESOLUTION)/GETUINT(INTEGRATE_SIZE_X)+1;
+  unsigned workSizex=getDispatchSize(GETUINT(RESOLUTION),GETUINT(INTEGRATE_SIZE_X));
   glDispatchCompute(workSizex,1,1);
 }
 
@@ -502,8 +515,8 @@ void NavyMapping::_createOffset(
   integralCount->bindImage(2,0);
   this->_offsetProgram->use();
   this->_offsetProgram->set("shadowMapSize",GETUINT(RESOLUTION));
-  unsigned workSizex=GETUINT(RESOLUTION)/GETUINT(OFFSET_SIZE_X)+1;
-  unsigned workSizey=GETUINT(RESOLUTION)/GETUINT(OFFSET_SIZE_Y)+1;
+  unsigned workSizex=getDispatchSize(GETUINT(RESOLUTION),GETUINT(OFFSET_SIZE_X));
+  unsigned workSizey=getDispatchSize(GETUINT(RESOLUTION),GETUINT(OFFSET_SIZE_Y));
   glDispatchCompute(workSizex,workSizey,1);
 }
 
@@ -518,8 +531,8 @@ void NavyMapping::_smooth(
   this->_smoothProgram->set("shadowMapSize",GETUINT(RESOLUTION));
   this->_smoothProgram->set("smoothWindowSize",GETUINT(SMOOTH_WINDOW));
   this->_smoothProgram->set("warpFactor",GETFLOAT(WARP_FACTOR));
-  unsigned workSizex=GETUINT(RESOLUTION)/GETUINT(SMOOTH_SIZE_X)+1;
-  unsigned workSizey=GETUINT(RESOLUTION)/GETUINT(SMOOTH_SIZE_Y)+1;
+  unsigned workSizex=getDispatchSize(GETUINT(RESOLUTION),GETUINT(SMOOTH_SIZE_X));
+  unsigned workSizey=getDispatchSize(GETUINT(RESOLUTION),GETUINT(SMOOTH_SIZE_Y));
   glDispatchCompute(workSizex,workSizey,1);
 }
 
@@ -530,7 +543,7 @@ void NavyMapping::_integrateOffset(
   offset          ->bindImage(1,0);
   this->_integrateOffsetProgram->use();
   this->_integrateOffsetProgram->set("shadowMapSize",GETUINT(RESOLUTION));
-  unsigned workSizex=GETUINT(RESOLUTION)/GETUINT(INTEGRATE_SIZE_X)+1;
+  unsigned workSizex=getDispatchSize(GETUINT(RESOLUTION),GETUINT(INTEGRATE_SIZE_X));
   glDispatchCompute(workSizex,1,1);
 }
 void NavyMapping::_smoothUsingIntegratedOffset(
@@ -542,8 +555,8 @@ void NavyMapping::_smoothUsingIntegratedOffset(
   this->_smoothUsingIntegratedOffsetProgram->set("shadowMapSize",GETUINT(RESOLUTION));
   this->_smoothUsingIntegratedOffsetProgram->set("smoothWindowSize",GETUINT(SMOOTH_WINDOW));
   this->_smoothUsingIntegratedOffsetProgram->set("warpFactor",GETFLOAT(WARP_FACTOR));
-  unsigned workSizex=GETUINT(RESOLUTION)/GETUINT(SMOOTH_SIZE_X)+1;
-  unsigned workSizey=GETUINT(RESOLUTION)/GETUINT(SMOOTH_SIZE_Y)+1;
+  unsigned workSizex=getDispatchSize(GETUINT(RESOLUTION),GETUINT(SMOOTH_SIZE_X));
+  unsigned workSizey=getDispatchSize(GETUINT(RESOLUTION),GETUINT(SMOOTH_SIZE_Y));
   glDispatchCompute(workSizex,workSizey,1);
 }
 
@@ -563,8 +576,8 @@ void NavyMapping::_unwarp(){
 
   this->_setNVParam(this->_unwarpProgram);
 
-  unsigned workSizex=winSize.x/GETUINT(FDV_SIZE_X)+1;
-  unsigned workSizey=winSize.y/GETUINT(FDV_SIZE_Y)+1;
+  unsigned workSizex=getDispatchSize(winSize.x,GETUINT(FDV_SIZE_X));
+  unsigned workSizey=getDispatchSize(winSize.y,GETUINT(FDV_SIZE_Y));
   glDispatchCompute(workSizex,workSizey,1);
 }
 
@@ -584,8 +597,8 @@ void NavyMapping::_unwarpAll(){
 
   this->_setNVParam(this->_uallProgram);
 
-  unsigned workSizex=winSize.x/GETUINT(FDV_SIZE_X)+1;
-  unsigned workSizey=winSize.y/GETUINT(FDV_SIZE_Y)+1;
+  unsigned workSizex=getDispatchSize(winSize.x,GETUINT(FDV_SIZE_X));
+  unsigned workSizey=getDispatchSize(winSize.y,GETUINT(FDV_SIZE_Y));
   glDispatchCompute(workSizex,workSizey,1);
 
 }
@@ -618,7 +631,7 @@ void NavyMapping::_createNVMap(){
   this->_createNVMapProgram->set("mvp",1,GL_FALSE,glm::value_ptr(mvp));
   this->_createNVMapProgram->set("shadowMapSize",GETUINT(RESOLUTION));
   this->_createNVMapProgram->set("tessFactor",(unsigned)GETUINT(TESS_FACTOR));
- this->_createNVMapProgram->set("cullTriangles",GETBOOL(CULL_TRIANGLES));
+  this->_createNVMapProgram->set("cullTriangles",GETBOOL(CULL_TRIANGLES));
 
   this->_setNVParam(this->_createNVMapProgram);
 
