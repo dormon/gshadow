@@ -2,6 +2,22 @@
 
 using namespace lang2;
 
+TypeManager::TypeDescriptor::TypeDescriptor(
+    std::vector<unsigned>*data   ,
+    Type                  type   ,
+    unsigned              start  ,
+    TypeManager*          manager){
+  this->data    = data   ;
+  this->type    = type   ;
+  this->start   = start  ;
+  this->manager = manager;
+}
+
+bool TypeManager::TypeDescriptor::operator==(TypeManager::TypeDescriptor&b){
+  if(this->type != b.type)return false;//TypeID
+  
+}
+
 TypeManager::TypeManager(){
   
 }

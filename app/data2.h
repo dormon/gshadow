@@ -16,6 +16,16 @@ namespace lang2{
       std::vector<std::string>_typeNames;
       std::map<std::string,unsigned>_name2Id;
     public:
+      class TypeDescriptor{
+        public:
+          std::vector<unsigned>*data;
+          Type type;
+          unsigned start;
+          TypeManager*manager;
+          TypeDescriptor(std::vector<unsigned>*data,Type type,unsigned start,TypeManager*manager);
+          bool operator==(TypeDescriptor&b);
+      };
+
       TypeManager();
       ~TypeManager();
       unsigned getTypeDescriptionLength(unsigned typeId);
@@ -34,11 +44,11 @@ namespace lang2{
 
 
       template<typename... Args>
-      unsigned addType(Args... args,std::string name=""){
-        std::vector<unsigned>typeConfig;
-        _argsToVector(typeConfig,args...);
-        return this->addType(typeConfig,name);
-      }
+        unsigned addType(Args... args,std::string name=""){
+          std::vector<unsigned>typeConfig;
+          _argsToVector(typeConfig,args...);
+          return this->addType(typeConfig,name);
+        }
       unsigned addType(std::vector<unsigned>&type,std::string name="");
       //unsigned getType(std::string name);
   };
