@@ -565,14 +565,24 @@ void idle(){
   glColorMask(GL_TRUE,GL_TRUE,GL_TRUE,GL_TRUE);
   glDisable(GL_BLEND);
 
-  /*
-     if(SSMethod==SS_NAVYMAPPING){
-  //simpleDraw->drawHeatMap(navyMapping->getOffsetX()->getId(),.75,0,.25,.25,0u,40u);
+  //*
+  if(SSMethod==SS_NAVYMAPPING){
+    //simpleDraw->drawHeatMap(navyMapping->getOffsetX()->getId(),.75,0,.25,.25,0u,40u);
 
-  simpleDraw->drawHeatMap(navyMapping->getOffsetX()->getId(),.0,0,.5,.5,-1.f,1.f);
-  simpleDraw->drawHeatMap(navyMapping->getSmoothX()->getId(),.5,0,.5,.5,-1.f,1.f);
-
+    //simpleDraw->drawHeatMap(navyMapping->getOffsetX()->getId(),.0,0,.5,.5,-1.f,1.f);
+    //simpleDraw->drawHeatMap(navyMapping->getSmoothX()->getId(),.5,0,.5,.5,-1.f,1.f);
+    simpleDraw->drawDepth(navyMapping->getShadowMap()->getId(),.5f,.0f,.5f,.5f,1.f,1000.f);
   }
+  if(SSMethod==SS_RTW){
+    simpleDraw->drawDepth(rtw->getShadowMap()->getId(),.5f,.0f,.5f,.5f,1.f,1000.f);
+  }
+  if(SSMethod==SS_SHADOWMAP){
+    simpleDraw->drawDepth(Shadowmapping->getShadowMap()->getId(),.5f,.0f,.5f,.5f,1.f,1000.f);
+  }
+
+
+
+
   //*/
 
   if(cameraPathConfiguration->isDraw())

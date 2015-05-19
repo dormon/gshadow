@@ -226,7 +226,11 @@ void DrawPrimitive::drawDepth  (GLuint id,float x,float y,float sx,float sy,
   this->_drawDepth->set("far",far);
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D,id);
-
+  GLint last;
+  glGetTexParameteriv(GL_TEXTURE_2D,GL_TEXTURE_COMPARE_MODE,&last);
+  glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_COMPARE_MODE,GL_NONE);
   this->_resetViewPort();
+  glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_COMPARE_MODE,last);
+
 }
 
