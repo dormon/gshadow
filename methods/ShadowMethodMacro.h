@@ -103,4 +103,22 @@ unsigned getMask(T t,Args... args){return (1<<t)|getMask(args...);}
       if(toUpdate[u])(this->*UPDATEROUTINES[u])();\
   }
 
+template<typename T>
+void insertType(std::map<std::string,std::vector<T>>&data,std::string n,T t){
+  if(!data.count(n))data.insert(std::pair<std::string,std::vector<T>>(n,std::vector<T>()));
+  data[n].push_back(t);
+}
 
+template<typename T,typename... Args>
+void insertType(std::map<std::string,std::vector<T>>&data,std::string n,T t,Args... args);
+
+template<typename T,typename... Args>
+void insertType(std::map<std::string,std::vector<T>>&data,std::string n,std::string n2,T t,Args... args){
+  insertType(data,n2,t,args...);
+}
+
+template<typename T,typename... Args>
+void insertType(std::map<std::string,std::vector<T>>&data,std::string n,T t,Args... args){
+  insertType(data,n,t);
+  insertType(data,n,args...);
+} 
