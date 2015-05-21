@@ -121,9 +121,9 @@ const std::vector<void(Shadow::*)()>Shadow::_updateRoutines = createStaticVector
    &Shadow::baseb,
    &Shadow::basec);
 
-/*const std::map<const char*,std::vector<unsigned>>Shadow::_vars2RoutineIndex = createStaticMapOfVectors<const char*,unsigned>(
-    "baseva",0,1,
-    "basevb",1,2);*/
+const std::map<const char*,std::vector<unsigned>>Shadow::_vars2RoutineIndex = createStaticMapOfVectors<const char*,unsigned>(
+    "baseva",0u,1u,
+    "basevb",1u,2u);
 
 const std::vector<const char*>Shadow::_vars = createStaticVector<const char*>("baseva","basevb");
 
@@ -134,6 +134,8 @@ const std::map<const char*,std::vector<void(Shadow::*)()>> Shadow::_vars2UpdateR
 Shadow::Shadow(){
   for(unsigned i=0;i<this->_vars.size();++i)
     this->_changed.insert(std::pair<const char*,bool>(this->_vars[i],false));
+  for(unsigned i=0;i<this->_updateRoutines.size();++i)
+    this->_routines2Call.push_back(false);
 }
 
 unsigned Shadow::getNofVars(){
@@ -147,6 +149,24 @@ std::string Shadow::getVar(unsigned var){
 //TODO vector of update routines
 
 void Shadow::update(){
+  //*
+  for(unsigned i=0;i<this->_vars.size();++i){
+    if(!this->_changed.count(this->_vars[i]))continue;
+    if(!this->_changed[this->_vars[i]])continue;
+    if(!this->_vars2RoutineIndex.count(this->_vars[i]))continue;
+    for(unsigned j=0;j<this->_vars2RoutineIndex.find(this->_vars[i])->second.size();++j){
+      this->_routines2Call[this->_vars2RoutineIndex.find(this->_vars[i])->second[j]]=true;
+    }
+    this->_changed[this->_vars[i]]=false;
+  }
+  for(unsigned i=0;i<this->_routines2Call.size();++i){
+    if(!this->_routines2Call[i])continue;
+    (this->*_updateRoutines[i])();
+    this->_routines2Call[i]=false;
+  }
+  // */
+
+  /*
   std::vector<void(Shadow::*)()>methods2Call;
   for(unsigned i=0;i<this->_vars.size();++i){
     if(!this->_changed.count(this->_vars[i]))continue;
@@ -165,6 +185,7 @@ void Shadow::update(){
   }
   for(unsigned i=0;i<methods2Call.size();++i)
     (this->*methods2Call[i])();
+  // */
 }
 
 class ShadowMapping: public Shadow{
@@ -177,6 +198,9 @@ class ShadowMapping: public Shadow{
     void mf(){a+=6;/*std::cerr<<"mf\n";*/}
     static const std::vector<const char*>_vars;
     static const std::map<const char*,std::vector<void(ShadowMapping::*)()>>_vars2UpdateRoutines;
+    static const std::vector<void(ShadowMapping::*)()>_updateRoutines;
+    std::vector<bool>_routines2Call;
+    static const std::map<const char*,std::vector<unsigned>>_vars2RoutineIndex;
   public:
     ShadowMapping();
     virtual void update();
@@ -191,12 +215,47 @@ const std::map<const char*,std::vector<void(ShadowMapping::*)()>> ShadowMapping:
     "vb",&ShadowMapping::mc,&ShadowMapping::md,
     "vc",&ShadowMapping::me,&ShadowMapping::mf);
 
+const std::vector<void(ShadowMapping::*)()>ShadowMapping::_updateRoutines = createStaticVector<void(ShadowMapping::*)()>(
+   &ShadowMapping::ma,
+   &ShadowMapping::mb,
+   &ShadowMapping::mc,
+   &ShadowMapping::md,
+   &ShadowMapping::me,
+   &ShadowMapping::mf);
+
+const std::map<const char*,std::vector<unsigned>>ShadowMapping::_vars2RoutineIndex = createStaticMapOfVectors<const char*,unsigned>(
+    "va",0u,1u,
+    "vb",2u,3u,
+    "vc",4u,5u);
+
+
+
 ShadowMapping::ShadowMapping():Shadow(){
   for(unsigned i=0;i<this->ShadowMapping::_vars.size();++i)
     this->ShadowMapping::_changed.insert(std::pair<const char*,bool>(this->ShadowMapping::_vars[i],false));
+  for(unsigned i=0;i<this->_updateRoutines.size();++i)
+    this->_routines2Call.push_back(false);
 }
 
 void ShadowMapping::update(){
+  //*
+  for(unsigned i=0;i<this->_vars.size();++i){
+    if(!this->_changed.count(this->_vars[i]))continue;
+    if(!this->_changed[this->_vars[i]])continue;
+    if(!this->_vars2RoutineIndex.count(this->_vars[i]))continue;
+    for(unsigned j=0;j<this->_vars2RoutineIndex.find(this->_vars[i])->second.size();++j){
+      this->_routines2Call[this->_vars2RoutineIndex.find(this->_vars[i])->second[j]]=true;
+    }
+    this->_changed[this->_vars[i]]=false;
+  }
+  for(unsigned i=0;i<this->_routines2Call.size();++i){
+    if(!this->_routines2Call[i])continue;
+    (this->*_updateRoutines[i])();
+    this->_routines2Call[i]=false;
+  }
+  this->Shadow::update();
+  // */
+  /*
   std::vector<void(ShadowMapping::*)()>methods2Call;
   for(unsigned i=0;i<this->_vars.size();++i){
     if(!this->_changed.count(this->_vars[i]))continue;
@@ -215,6 +274,7 @@ void ShadowMapping::update(){
   for(unsigned i=0;i<methods2Call.size();++i)
     (this->*methods2Call[i])();
   this->Shadow::update();
+  // */
 }
 
 unsigned ShadowMapping::getNofVars(){
