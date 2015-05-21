@@ -6,6 +6,7 @@
 #include<map>
 #include<set>
 
+#include <chrono>
 
 #define ENUM_CLASS(name,...)\
   enum class name {\
@@ -19,7 +20,7 @@ std::ostream& operator<<(std::ostream& os, name val){\
   return os << ret;\
 }
 
-ENUM_CLASS(VertexSemantic,POSION,NORMAL,COORD);
+ENUM_CLASS(VertexSemantic,POSION,NORMAL,COORD)
 
 template<typename TPtr>
 void deleteSetNull(TPtr&b){
@@ -36,21 +37,21 @@ void deleteSetNull(TPtr&b,Args... args){
 template<typename KEY,typename VAL>
 void insertVectorToMap(std::map<KEY,std::vector<VAL>>&data,KEY n,VAL t){
   if(!data.count(n))data.insert(std::pair<KEY,std::vector<VAL>>(n,std::vector<VAL>()));
-    data[n].push_back(t);
+  data[n].push_back(t);
 }
 
 template<typename KEY,typename VAL,typename... Args>
 void insertVectorToMap(std::map<KEY,std::vector<VAL>>&data,KEY n,VAL t,Args... args);
 
 template<typename KEY,typename VAL,typename... Args>
-void insertVectorToMap(std::map<KEY,std::vector<VAL>>&data,KEY n,KEY n2,VAL t,Args... args){
-    insertVectorToMap(data,n2,t,args...);
+void insertVectorToMap(std::map<KEY,std::vector<VAL>>&data,KEY,KEY n2,VAL t,Args... args){
+  insertVectorToMap(data,n2,t,args...);
 }
 
 template<typename KEY,typename VAL,typename... Args>
 void insertVectorToMap(std::map<KEY,std::vector<VAL>>&data,KEY n,VAL t,Args... args){
-    insertVectorToMap(data,n,t);
-      insertVectorToMap(data,n,args...);
+  insertVectorToMap(data,n,t);
+  insertVectorToMap(data,n,args...);
 }
 
 template<typename KEY,typename VAL,typename... Args>
@@ -97,17 +98,32 @@ SimulationObject::SimulationObject(){}
 
 class Shadow: public SimulationObject{
   protected:
-    void basea(){std::cerr<<"basea\n";}
-    void baseb(){std::cerr<<"baseb\n";}
-    void basec(){std::cerr<<"basec\n";}
+    int a;
+    void basea(){a+=10;/*std::cerr<<"basea\n";*/}
+    void baseb(){a+=20;/*std::cerr<<"baseb\n";*/}
+    void basec(){a+=30;/*std::cerr<<"basec\n";*/}
     static const std::vector<const char*>_vars;
     static const std::map<const char*,std::vector<void(Shadow::*)()>>_vars2UpdateRoutines;
+    static const std::vector<void(Shadow::*)()>_updateRoutines;
+    std::vector<bool>_routines2Call;
+    static const std::map<const char*,std::vector<unsigned>>_vars2RoutineIndex;
   public:
+    int get(){return this->a;}
     Shadow();
     virtual void update();
     virtual unsigned getNofVars();
     virtual std::string getVar(unsigned var);
 };
+
+
+const std::vector<void(Shadow::*)()>Shadow::_updateRoutines = createStaticVector<void(Shadow::*)()>(
+   &Shadow::basea,
+   &Shadow::baseb,
+   &Shadow::basec);
+
+/*const std::map<const char*,std::vector<unsigned>>Shadow::_vars2RoutineIndex = createStaticMapOfVectors<const char*,unsigned>(
+    "baseva",0,1,
+    "basevb",1,2);*/
 
 const std::vector<const char*>Shadow::_vars = createStaticVector<const char*>("baseva","basevb");
 
@@ -116,13 +132,8 @@ const std::map<const char*,std::vector<void(Shadow::*)()>> Shadow::_vars2UpdateR
     "basevb",&Shadow::baseb,&Shadow::basec);
 
 Shadow::Shadow(){
-  std::cerr<<"constructor Shadow\n";
-  for(unsigned i=0;i<this->_vars.size();++i){
-    std::cerr<<this->_vars[i]<<std::endl;
+  for(unsigned i=0;i<this->_vars.size();++i)
     this->_changed.insert(std::pair<const char*,bool>(this->_vars[i],false));
-  }
-  std::cerr<<"this->_changed: "<<this->_changed.size()<<std::endl;
-  std::cerr<<"constructor Shadow end\n";
 }
 
 unsigned Shadow::getNofVars(){
@@ -136,11 +147,9 @@ std::string Shadow::getVar(unsigned var){
 //TODO vector of update routines
 
 void Shadow::update(){
-  std::cerr<<"Shadow::update()\n";
-  std::cerr<<"this->_changed: "<<this->_changed.size()<<std::endl;
   std::vector<void(Shadow::*)()>methods2Call;
-  for(unsigned i=0;i<this->_changed.size();++i){
-    std::cerr<<"i: "<<i<<" "<<this->_vars[i]<<std::endl;
+  for(unsigned i=0;i<this->_vars.size();++i){
+    if(!this->_changed.count(this->_vars[i]))continue;
     if(!this->_changed[this->_vars[i]])continue;
     if(!this->_vars2UpdateRoutines.count(this->_vars[i]))continue;
     this->_vars2UpdateRoutines.find(this->_vars[i])->second.size();
@@ -152,6 +161,7 @@ void Shadow::update(){
       if(!alreadInserted)
         methods2Call.push_back(ptr);
     }
+    this->_changed[this->_vars[i]]=false;
   }
   for(unsigned i=0;i<methods2Call.size();++i)
     (this->*methods2Call[i])();
@@ -159,12 +169,12 @@ void Shadow::update(){
 
 class ShadowMapping: public Shadow{
   private:
-    void ma(){std::cerr<<"ma\n";}
-    void mb(){std::cerr<<"mb\n";}
-    void mc(){std::cerr<<"mc\n";}
-    void md(){std::cerr<<"md\n";}
-    void me(){std::cerr<<"me\n";}
-    void mf(){std::cerr<<"mf\n";}
+    void ma(){a+=1;/*std::cerr<<"ma\n";*/}
+    void mb(){a+=2;/*std::cerr<<"mb\n";*/}
+    void mc(){a+=3;/*std::cerr<<"mc\n";*/}
+    void md(){a+=4;/*std::cerr<<"md\n";*/}
+    void me(){a+=5;/*std::cerr<<"me\n";*/}
+    void mf(){a+=6;/*std::cerr<<"mf\n";*/}
     static const std::vector<const char*>_vars;
     static const std::map<const char*,std::vector<void(ShadowMapping::*)()>>_vars2UpdateRoutines;
   public:
@@ -182,27 +192,16 @@ const std::map<const char*,std::vector<void(ShadowMapping::*)()>> ShadowMapping:
     "vc",&ShadowMapping::me,&ShadowMapping::mf);
 
 ShadowMapping::ShadowMapping():Shadow(){
-  std::cerr<<"ShadowMapping::_vars.size(): "<<this->ShadowMapping::_vars.size()<<std::endl;
-  std::cerr<<"Shadow::_vars.size(): "<<this->Shadow::_vars.size()<<std::endl;
-  std::cerr<<"this->ShadowMapping::_changed.size(): "<<this->ShadowMapping::_changed.size()<<std::endl;
-  std::cerr<<"this->Shadow::_changed.size(): "<<this->Shadow::_changed.size()<<std::endl;
-
   for(unsigned i=0;i<this->ShadowMapping::_vars.size();++i)
     this->ShadowMapping::_changed.insert(std::pair<const char*,bool>(this->ShadowMapping::_vars[i],false));
-  std::cerr<<"this->ShadowMapping::_changed.size(): "<<this->ShadowMapping::_changed.size()<<std::endl;
-  std::cerr<<"this->Shadow::_changed.size(): "<<this->Shadow::_changed.size()<<std::endl;
-
 }
 
 void ShadowMapping::update(){
-  std::cerr<<"ShadowMapping::update()\n";
   std::vector<void(ShadowMapping::*)()>methods2Call;
-  std::cerr<<"this->ShadowMapping::_changed.size(): "<<this->ShadowMapping::_changed.size()<<std::endl;
-  std::cerr<<"this->Shadow::_changed.size(): "<<this->Shadow::_changed.size()<<std::endl;
-  for(unsigned i=0;i<this->_changed.size();++i){
+  for(unsigned i=0;i<this->_vars.size();++i){
+    if(!this->_changed.count(this->_vars[i]))continue;
     if(!this->_changed[this->_vars[i]])continue;
     if(!this->_vars2UpdateRoutines.count(this->_vars[i]))continue;
-    this->_vars2UpdateRoutines.find(this->_vars[i])->second.size();
     for(unsigned j=0;j<this->_vars2UpdateRoutines.find(this->_vars[i])->second.size();++j){
       void (ShadowMapping::*ptr)()=this->_vars2UpdateRoutines.find(this->_vars[i])->second[j];
       bool alreadInserted=false;
@@ -211,6 +210,7 @@ void ShadowMapping::update(){
       if(!alreadInserted)
         methods2Call.push_back(ptr);
     }
+    this->_changed[this->_vars[i]]=false;
   }
   for(unsigned i=0;i<methods2Call.size();++i)
     (this->*methods2Call[i])();
@@ -258,7 +258,22 @@ DEF_UPDATE("va",ma,mb,"vb",mc,md,"vc",me,mf,"vd",ma,md,mf,mc)
 
 int main(){
   ShadowMapping*shadowMapping=new ShadowMapping();
+  shadowMapping->setVariableAsChanged("va");
+  shadowMapping->setVariableAsChanged("basevb");
   shadowMapping->update();
+  std::cerr<<shadowMapping->get()<<std::endl;
+  std::chrono::duration<double, std::nano> duration;
+  std::chrono::high_resolution_clock::time_point timea,timeb;
+  timea=std::chrono::high_resolution_clock::now();
+  for(unsigned i=0;i<1000000;++i){
+    shadowMapping->setVariableAsChanged("va");
+    shadowMapping->setVariableAsChanged("basevb");
+    shadowMapping->update();
+  }
+  timeb=std::chrono::high_resolution_clock::now();
+  duration = timeb-timea;
+  std::cerr<<shadowMapping->get()<<std::endl;
+  std::cerr<<duration.count()/1000000000.<<std::endl;
   return 0;
   std::vector<float>data;
   insertToVector(data,3.f,1.f,.0f);
