@@ -5,6 +5,7 @@
 #include<vector>
 #include<map>
 #include<set>
+#include<algorithm>
 
 #include <chrono>
 
@@ -34,6 +35,31 @@ void deleteSetNull(TPtr&b,Args... args){
 }
 
 
+template<typename T>
+void filterArgsToVector(std::vector<T>&data,T t){
+  data.push_back(t);
+}
+
+template<typename T,typename T2>
+void filterArgsToVector(std::vector<T>&,T2){}
+
+template<typename T,typename T2,typename... Args>
+void filterArgsToVector(std::vector<T>&data,T2,Args... args);
+
+template<typename T,typename... Args>
+void filterArgsToVector(std::vector<T>&data,T t,Args... args){
+  filterArgsToVector(data,t);
+  filterArgsToVector(data,args...);
+}
+
+template<typename T,typename T2,typename... Args>
+void filterArgsToVector(std::vector<T>&data,T2,Args... args){
+  filterArgsToVector(data,args...);
+}
+
+
+
+
 template<typename KEY,typename VAL>
 void insertVectorToMap(std::map<KEY,std::vector<VAL>>&data,KEY n,VAL t){
   if(!data.count(n))data.insert(std::pair<KEY,std::vector<VAL>>(n,std::vector<VAL>()));
@@ -54,13 +80,6 @@ void insertVectorToMap(std::map<KEY,std::vector<VAL>>&data,KEY n,VAL t,Args... a
   insertVectorToMap(data,n,args...);
 }
 
-template<typename KEY,typename VAL,typename... Args>
-static std::map<KEY,std::vector<VAL>>createStaticMapOfVectors(Args... args){
-  std::map<KEY,std::vector<VAL>>m;
-  insertVectorToMap(m,args...);
-  return m;
-}
-
 template<typename T>
 void insertToVector(std::vector<T>&data,T t){
   data.push_back(t);
@@ -72,21 +91,14 @@ void insertToVector(std::vector<T>&data,T t,Args... args){
   insertToVector(data,args...);
 }
 
-template<typename T,typename... Args>
-static std::vector<T>createStaticVector(Args... args){
-  std::vector<T>v;
-  insertToVector(v,args...);
-  return v;
-}
-
 class SimulationObject{
   protected:
     std::map<const char*,bool>_changed;
   public:
     SimulationObject();
-    virtual void update()=0;
-    virtual unsigned getNofVars()=0;
-    virtual std::string getVar(unsigned var)=0;
+    virtual void update();
+    virtual unsigned getNofVars();
+    virtual std::string getVar(unsigned var);
     void setVariableAsChanged(const char*name);
 };
 
@@ -95,6 +107,100 @@ void SimulationObject::setVariableAsChanged(const char*name){
 }
 
 SimulationObject::SimulationObject(){}
+void SimulationObject::update(){}
+unsigned SimulationObject::getNofVars(){return 0;}
+std::string SimulationObject::getVar(unsigned){return"";}
+
+template<typename RET,typename ROUTINE,typename... Args>
+static RET createStaticUpdateData(Args... args){
+  std::map<const char*,std::vector<ROUTINE>>varsToRoutines;
+  insertVectorToMap(varsToRoutines,args...);
+
+  std::vector<ROUTINE>routines;
+  filterArgsToVector(routines,args...);
+
+  std::vector<const char*>vars;
+  filterArgsToVector(vars,args...);
+
+  std::vector<unsigned>routineIndices;
+  std::vector<ROUTINE>uniqueRoutines;
+  unsigned routineCounter=0;
+  for(unsigned i=0;i<routines.size();++i){
+    bool alreadyInserted=false;
+    for(unsigned j=0;j<uniqueRoutines.size();++j)
+      if(uniqueRoutines[j]==routines[i]){
+        alreadyInserted=true;
+        routineIndices.push_back(j);
+        break;
+      }
+    if(alreadyInserted)continue;
+    uniqueRoutines.push_back(routines[i]);
+    routineIndices.push_back(routineCounter++);
+  }
+
+  std::map<const char*,std::vector<unsigned>>varsToRoutineIndices;
+  unsigned indexToRoutineIndices=0;
+  for(unsigned v=0;v<vars.size();++v){
+    std::vector<unsigned>indices;
+    for(unsigned r=0;r<varsToRoutines[vars[v]].size();++r){
+      indices.push_back(routineIndices[indexToRoutineIndices++]);
+    }
+    varsToRoutineIndices[vars[v]]=indices;
+  }
+
+  RET ud;
+  ud.vars = vars;
+  ud.vars2RoutineIndex = varsToRoutineIndices;
+  ud.updateRoutines = uniqueRoutines;
+  return ud;
+}
+
+#define DEF_UPDATEDATA\
+  struct UpdateData{\
+    std::vector<const char*>vars;\
+    std::vector<void(CLASS_NAME::*)()>updateRoutines;\
+    std::map<const char*,std::vector<unsigned>>vars2RoutineIndex;\
+  }static const _updateData;\
+  std::vector<bool>_routines2Call
+
+#define DEF_VARSANDROUTINES(...)\
+void CLASS_NAME::update(){\
+  for(unsigned i=0;i<this->_updateData.vars.size();++i){\
+    if(!this->_changed.count(this->_updateData.vars[i]))continue;\
+    if(!this->_changed[this->_updateData.vars[i]])continue;\
+    if(!this->_updateData.vars2RoutineIndex.count(this->_updateData.vars[i]))continue;\
+    for(unsigned j=0;j<this->_updateData.vars2RoutineIndex.find(this->_updateData.vars[i])->second.size();++j)\
+      this->_routines2Call[this->_updateData.vars2RoutineIndex.find(this->_updateData.vars[i])->second[j]]=true;\
+    this->_changed[this->_updateData.vars[i]]=false;\
+  }\
+  for(unsigned i=0;i<this->_routines2Call.size();++i){\
+    if(!this->_routines2Call[i])continue;\
+    (this->*_updateData.updateRoutines[i])();\
+    this->_routines2Call[i]=false;\
+  }\
+  this->BASECLASS_NAME::update();\
+}\
+\
+unsigned CLASS_NAME::getNofVars(){\
+  return this->_updateData.vars.size()+((BASECLASS_NAME*)this)->getNofVars();\
+}\
+\
+std::string CLASS_NAME::getVar(unsigned var){\
+  if(var>=this->_updateData.vars.size())return((BASECLASS_NAME*)this)->getVar(var-this->_updateData.vars.size());\
+  return this->_updateData.vars[var];\
+}\
+\
+const CLASS_NAME::UpdateData CLASS_NAME::_updateData = createStaticUpdateData<CLASS_NAME::UpdateData,void(CLASS_NAME::*)()>(__VA_ARGS__)
+
+#define DEF_CONSTRUCTOR \
+  for(unsigned i=0;i<this->_updateData.vars.size();++i)\
+    this->_changed[this->_updateData.vars[i]]=false;\
+  for(unsigned i=0;i<this->_updateData.updateRoutines.size();++i)\
+    this->_routines2Call.push_back(false)
+
+
+#define CLASS_NAME Shadow
+#define BASECLASS_NAME SimulationObject
 
 class Shadow: public SimulationObject{
   protected:
@@ -102,11 +208,7 @@ class Shadow: public SimulationObject{
     void basea(){a+=10;/*std::cerr<<"basea\n";*/}
     void baseb(){a+=20;/*std::cerr<<"baseb\n";*/}
     void basec(){a+=30;/*std::cerr<<"basec\n";*/}
-    static const std::vector<const char*>_vars;
-    static const std::map<const char*,std::vector<void(Shadow::*)()>>_vars2UpdateRoutines;
-    static const std::vector<void(Shadow::*)()>_updateRoutines;
-    std::vector<bool>_routines2Call;
-    static const std::map<const char*,std::vector<unsigned>>_vars2RoutineIndex;
+    DEF_UPDATEDATA;
   public:
     int get(){return this->a;}
     Shadow();
@@ -115,78 +217,18 @@ class Shadow: public SimulationObject{
     virtual std::string getVar(unsigned var);
 };
 
-
-const std::vector<void(Shadow::*)()>Shadow::_updateRoutines = createStaticVector<void(Shadow::*)()>(
-   &Shadow::basea,
-   &Shadow::baseb,
-   &Shadow::basec);
-
-const std::map<const char*,std::vector<unsigned>>Shadow::_vars2RoutineIndex = createStaticMapOfVectors<const char*,unsigned>(
-    "baseva",0u,1u,
-    "basevb",1u,2u);
-
-const std::vector<const char*>Shadow::_vars = createStaticVector<const char*>("baseva","basevb");
-
-const std::map<const char*,std::vector<void(Shadow::*)()>> Shadow::_vars2UpdateRoutines = createStaticMapOfVectors<const char*,void(Shadow::*)()>(
+DEF_VARSANDROUTINES(
     "baseva",&Shadow::basea,&Shadow::baseb,
     "basevb",&Shadow::baseb,&Shadow::basec);
 
 Shadow::Shadow(){
-  for(unsigned i=0;i<this->_vars.size();++i)
-    this->_changed.insert(std::pair<const char*,bool>(this->_vars[i],false));
-  for(unsigned i=0;i<this->_updateRoutines.size();++i)
-    this->_routines2Call.push_back(false);
+  DEF_CONSTRUCTOR;
 }
 
-unsigned Shadow::getNofVars(){
-  return this->_vars.size();
-}
-
-std::string Shadow::getVar(unsigned var){
-  return this->_vars[var];
-}
-
-//TODO vector of update routines
-
-void Shadow::update(){
-  //*
-  for(unsigned i=0;i<this->_vars.size();++i){
-    if(!this->_changed.count(this->_vars[i]))continue;
-    if(!this->_changed[this->_vars[i]])continue;
-    if(!this->_vars2RoutineIndex.count(this->_vars[i]))continue;
-    for(unsigned j=0;j<this->_vars2RoutineIndex.find(this->_vars[i])->second.size();++j){
-      this->_routines2Call[this->_vars2RoutineIndex.find(this->_vars[i])->second[j]]=true;
-    }
-    this->_changed[this->_vars[i]]=false;
-  }
-  for(unsigned i=0;i<this->_routines2Call.size();++i){
-    if(!this->_routines2Call[i])continue;
-    (this->*_updateRoutines[i])();
-    this->_routines2Call[i]=false;
-  }
-  // */
-
-  /*
-  std::vector<void(Shadow::*)()>methods2Call;
-  for(unsigned i=0;i<this->_vars.size();++i){
-    if(!this->_changed.count(this->_vars[i]))continue;
-    if(!this->_changed[this->_vars[i]])continue;
-    if(!this->_vars2UpdateRoutines.count(this->_vars[i]))continue;
-    this->_vars2UpdateRoutines.find(this->_vars[i])->second.size();
-    for(unsigned j=0;j<this->_vars2UpdateRoutines.find(this->_vars[i])->second.size();++j){
-      void (Shadow::*ptr)()=this->_vars2UpdateRoutines.find(this->_vars[i])->second[j];
-      bool alreadInserted=false;
-      for(unsigned i=0;i<methods2Call.size();++i)
-        if(methods2Call[i]==ptr){alreadInserted=true;break;}
-      if(!alreadInserted)
-        methods2Call.push_back(ptr);
-    }
-    this->_changed[this->_vars[i]]=false;
-  }
-  for(unsigned i=0;i<methods2Call.size();++i)
-    (this->*methods2Call[i])();
-  // */
-}
+#undef CLASS_NAME
+#undef BASECLASS_NAME
+#define CLASS_NAME ShadowMapping
+#define BASECLASS_NAME Shadow
 
 class ShadowMapping: public Shadow{
   private:
@@ -196,11 +238,7 @@ class ShadowMapping: public Shadow{
     void md(){a+=4;/*std::cerr<<"md\n";*/}
     void me(){a+=5;/*std::cerr<<"me\n";*/}
     void mf(){a+=6;/*std::cerr<<"mf\n";*/}
-    static const std::vector<const char*>_vars;
-    static const std::map<const char*,std::vector<void(ShadowMapping::*)()>>_vars2UpdateRoutines;
-    static const std::vector<void(ShadowMapping::*)()>_updateRoutines;
-    std::vector<bool>_routines2Call;
-    static const std::map<const char*,std::vector<unsigned>>_vars2RoutineIndex;
+    DEF_UPDATEDATA;
   public:
     ShadowMapping();
     virtual void update();
@@ -208,115 +246,27 @@ class ShadowMapping: public Shadow{
     virtual std::string getVar(unsigned var);
 };
 
-const std::vector<const char*>ShadowMapping::_vars = createStaticVector<const char*>("va","vb","vc");
-
-const std::map<const char*,std::vector<void(ShadowMapping::*)()>> ShadowMapping::_vars2UpdateRoutines = createStaticMapOfVectors<const char*,void(ShadowMapping::*)()>(
+DEF_VARSANDROUTINES(
     "va",&ShadowMapping::ma,&ShadowMapping::mb,
     "vb",&ShadowMapping::mc,&ShadowMapping::md,
     "vc",&ShadowMapping::me,&ShadowMapping::mf);
 
-const std::vector<void(ShadowMapping::*)()>ShadowMapping::_updateRoutines = createStaticVector<void(ShadowMapping::*)()>(
-   &ShadowMapping::ma,
-   &ShadowMapping::mb,
-   &ShadowMapping::mc,
-   &ShadowMapping::md,
-   &ShadowMapping::me,
-   &ShadowMapping::mf);
-
-const std::map<const char*,std::vector<unsigned>>ShadowMapping::_vars2RoutineIndex = createStaticMapOfVectors<const char*,unsigned>(
-    "va",0u,1u,
-    "vb",2u,3u,
-    "vc",4u,5u);
-
-
-
 ShadowMapping::ShadowMapping():Shadow(){
-  for(unsigned i=0;i<this->ShadowMapping::_vars.size();++i)
-    this->ShadowMapping::_changed.insert(std::pair<const char*,bool>(this->ShadowMapping::_vars[i],false));
-  for(unsigned i=0;i<this->_updateRoutines.size();++i)
-    this->_routines2Call.push_back(false);
+  DEF_CONSTRUCTOR;
 }
 
-void ShadowMapping::update(){
-  //*
-  for(unsigned i=0;i<this->_vars.size();++i){
-    if(!this->_changed.count(this->_vars[i]))continue;
-    if(!this->_changed[this->_vars[i]])continue;
-    if(!this->_vars2RoutineIndex.count(this->_vars[i]))continue;
-    for(unsigned j=0;j<this->_vars2RoutineIndex.find(this->_vars[i])->second.size();++j){
-      this->_routines2Call[this->_vars2RoutineIndex.find(this->_vars[i])->second[j]]=true;
-    }
-    this->_changed[this->_vars[i]]=false;
-  }
-  for(unsigned i=0;i<this->_routines2Call.size();++i){
-    if(!this->_routines2Call[i])continue;
-    (this->*_updateRoutines[i])();
-    this->_routines2Call[i]=false;
-  }
-  this->Shadow::update();
-  // */
-  /*
-  std::vector<void(ShadowMapping::*)()>methods2Call;
-  for(unsigned i=0;i<this->_vars.size();++i){
-    if(!this->_changed.count(this->_vars[i]))continue;
-    if(!this->_changed[this->_vars[i]])continue;
-    if(!this->_vars2UpdateRoutines.count(this->_vars[i]))continue;
-    for(unsigned j=0;j<this->_vars2UpdateRoutines.find(this->_vars[i])->second.size();++j){
-      void (ShadowMapping::*ptr)()=this->_vars2UpdateRoutines.find(this->_vars[i])->second[j];
-      bool alreadInserted=false;
-      for(unsigned i=0;i<methods2Call.size();++i)
-        if(methods2Call[i]==ptr){alreadInserted=true;break;}
-      if(!alreadInserted)
-        methods2Call.push_back(ptr);
-    }
-    this->_changed[this->_vars[i]]=false;
-  }
-  for(unsigned i=0;i<methods2Call.size();++i)
-    (this->*methods2Call[i])();
-  this->Shadow::update();
-  // */
+template<typename T>
+void printv(std::vector<T>&data){
+  for(unsigned i=0;i<data.size();++i)
+    std::cerr<<data[i]<<" ";
+  std::cerr<<std::endl;
 }
-
-unsigned ShadowMapping::getNofVars(){
-  return this->_vars.size()+((Shadow*)this)->getNofVars();
-}
-
-std::string ShadowMapping::getVar(unsigned var){
-  if(var>=this->_vars.size())return((Shadow*)this)->getVar(var-this->_vars.size());
-  return _vars[var];
-}
-
-void ma(){std::cerr<<"ma\n";}
-void mb(){std::cerr<<"mb\n";}
-void mc(){std::cerr<<"mc\n";}
-void md(){std::cerr<<"md\n";}
-void me(){std::cerr<<"me\n";}
-void mf(){std::cerr<<"mf\n";}
-
-typedef void(*METHOD)();
-
-#define DEF_UPDATE(...)\
-  void update(){\
-    std::map<const char*,std::vector<METHOD>>var2Method;\
-    insertVectorToMap(var2Method,__VA_ARGS__);\
-    std::set<METHOD>methods2Call;\
-    std::vector<const char*>updatedVars;\
-    updatedVars.push_back("va");\
-    updatedVars.push_back("vd");\
-    for(unsigned i=0;i<updatedVars.size();++i){\
-      if(!var2Method.count(updatedVars[i]))continue;\
-      for(unsigned j=0;j<var2Method[updatedVars[i]].size();++j)\
-      methods2Call.insert(var2Method[updatedVars[i]][j]);\
-    }\
-    std::set<METHOD>::iterator ii;\
-    for(ii=methods2Call.begin();ii!=methods2Call.end();++ii)\
-    (*ii)();\
-  }
-
-DEF_UPDATE("va",ma,mb,"vb",mc,md,"vc",me,mf,"vd",ma,md,mf,mc)
-
 
 int main(){
+  /*std::vector<float>dd;
+  filterArgsToVector(dd,"asd",1.f,.23f,"asda",32.f,"asssd",12.2f,32u,5.5f);
+  printv(dd);
+  return 0;*/
   ShadowMapping*shadowMapping=new ShadowMapping();
   shadowMapping->setVariableAsChanged("va");
   shadowMapping->setVariableAsChanged("basevb");
@@ -334,16 +284,6 @@ int main(){
   duration = timeb-timea;
   std::cerr<<shadowMapping->get()<<std::endl;
   std::cerr<<duration.count()/1000000000.<<std::endl;
-  return 0;
-  std::vector<float>data;
-  insertToVector(data,3.f,1.f,.0f);
-  static const std::vector<float>data2 = createStaticVector<float>(3.f,.2f,1.f,6.f);
-  std::cerr<<data[0]<<" "<<data[1]<<" "<<data[2]<<std::endl;
-  std::cerr<<data2[0]<<" "<<data2[1]<<" "<<data2[2]<<std::endl;
-  return 0;
-  update();
-  VertexSemantic e=VertexSemantic::POSION;
-  std::cerr<<e<<std::endl;
   return 0;
 }
 

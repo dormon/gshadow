@@ -9,37 +9,27 @@
 namespace lang2{
   class TypeManager{
     public:
-      DEF_ENUM(Type,VOID,PTR,INT,UINT,FLOAT,STRING,ARRAY,STRUCT,TYPEID);
+      DEF_ENUM(Type,VOID,INT,UINT,FLOAT,STRING,ARRAY,STRUCT,PTR,FCE,TYPEID);
+      typedef unsigned TypeID;
     protected:
       std::vector<unsigned   >_typeStart;
       std::vector<unsigned   >_types    ;
       std::vector<std::string>_typeNames;
-      std::map<std::string,unsigned>_name2Id;
+      std::map<std::string,TypeID>_name2Id;
     public:
-      class TypeDescriptor{
-        public:
-          std::vector<unsigned>*data;
-          Type type;
-          unsigned start;
-          TypeManager*manager;
-          TypeDescriptor(std::vector<unsigned>*data,Type type,unsigned start,TypeManager*manager);
-          bool operator==(TypeDescriptor&b);
-      };
-
       TypeManager();
       ~TypeManager();
-      unsigned getTypeDescriptionLength(unsigned typeId);
-      unsigned getTypeDescriptionElem  (unsigned typeId,unsigned i);
-      Type     getType                 (unsigned typeId);
-      unsigned getTypeId               (unsigned typeId);
-      bool     isTypeId                (unsigned typeId);
-      unsigned getNofStructElements    (unsigned typeId);
-      unsigned getArraySize            (unsigned typeId);
-      unsigned getArrayInnerTypeId     (unsigned typeId);
-      unsigned getStructElementTypeId  (unsigned typeId,unsigned element);
-
-      Type     getArrayInnerType       (unsigned typeId);
-      Type     getStructElementType    (unsigned typeId,unsigned element);
+      unsigned getTypeDescriptionLength(TypeID id);
+      unsigned getTypeDescriptionElem  (TypeID id,unsigned i);
+      Type     getType                 (TypeID id);
+      unsigned getNofStructElements    (TypeID id);
+      TypeID   getStructElementTypeId  (TypeID id,unsigned element);
+      unsigned getArraySize            (TypeID id);
+      TypeID   getArrayInnerTypeId     (TypeID id);
+      TypeID   getPtrInnerTypeId       (TypeID id);
+      TypeID   getFceReturnTypeId      (TypeID id);
+      unsigned getNofFceArgs           (TypeID id);
+      TypeID   getFceArgTypeId         (TypeID id,unsigned element);
 
 
 
