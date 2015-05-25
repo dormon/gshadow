@@ -87,10 +87,10 @@ namespace simulation{
       void initChanged(std::string name);
       SimulationObject(SimulationData*data);
       virtual ~SimulationObject();
-      virtual unsigned    getNofDependentVariables()=0;
-      virtual std::string getDependentVariable(unsigned dependentVariableId)=0;
+      virtual unsigned    getNofDependentVariables();
+      virtual std::string getDependentVariable(unsigned dependentVariableId);
       void                variableChanged(std::string name);
-      virtual void        update()=0;
+      virtual void        update();
   };
 
 }

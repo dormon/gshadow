@@ -4,6 +4,7 @@
 #include<cstring>
 #include<sstream>
 #include<vector>
+#include<map>
 
 #define DEF_ENUM(name,...)\
   enum name{\
@@ -42,4 +43,50 @@ void deleteSetNull(TPtr&b,Args... args){
   deleteSetNull(args...);
 }
 
+template<typename T>
+void filterArgsToVector(std::vector<T>&data,T t){
+  data.push_back(t);
+}
+
+template<typename T,typename T2>
+void filterArgsToVector(std::vector<T>&,T2){}
+
+template<typename T,typename T2,typename... Args>
+void filterArgsToVector(std::vector<T>&data,T2,Args... args);
+
+template<typename T,typename... Args>
+void filterArgsToVector(std::vector<T>&data,T t,Args... args){
+  filterArgsToVector(data,t);
+  filterArgsToVector(data,args...);
+}
+
+template<typename T,typename T2,typename... Args>
+void filterArgsToVector(std::vector<T>&data,T2,Args... args){
+  filterArgsToVector(data,args...);
+}
+
+template<typename KEY,typename VAL>
+void argsToMapOfVectors(std::map<KEY,std::vector<VAL>>&data,KEY n,VAL t){
+  if(!data.count(n))data.insert(std::pair<KEY,std::vector<VAL>>(n,std::vector<VAL>()));
+  data[n].push_back(t);
+}
+
+template<typename KEY,typename VAL,typename... Args>
+void argsToMapOfVectors(std::map<KEY,std::vector<VAL>>&data,KEY n,VAL t,Args... args);
+
+template<typename KEY,typename VAL,typename... Args>
+void argsToMapOfVectors(std::map<KEY,std::vector<VAL>>&data,KEY,KEY n2,VAL t,Args... args){
+  argsToMapOfVectors(data,n2,t,args...);
+}
+
+template<typename KEY,typename VAL,typename... Args>
+void argsToMapOfVectors(std::map<KEY,std::vector<VAL>>&data,KEY n,VAL t,Args... args){
+  argsToMapOfVectors(data,n,t);
+  argsToMapOfVectors(data,n,args...);
+}
+
+
+
 unsigned getDispatchSize(unsigned workSize,unsigned workGroupSize);
+
+

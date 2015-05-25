@@ -2,6 +2,7 @@
 #define _SHADOWMAPPING_HPP_
 
 #include"../ShadowMethod.h"
+#include"../ShadowMethodMacro.h"
 
 class CShadowMapping: public simulation::SimulationObject, public ShadowMethod
 {
@@ -34,7 +35,7 @@ class CShadowMapping: public simulation::SimulationObject, public ShadowMethod
       }
       this->_update<Args...>();
     }*/
-
+    DEF_UPDATEDATA(CShadowMapping);
   public:
     void _createShadowMap();
     void _computeMatrices();

@@ -167,6 +167,17 @@ SimulationData::SimulationData(){
 SimulationObject::~SimulationObject(){
 }
 
+unsigned SimulationObject::getNofDependentVariables(){
+  return 0;
+}
+
+std::string SimulationObject::getDependentVariable(unsigned){
+  return"";
+}
+
+void SimulationObject::update(){
+}
+
 void SimulationData::insertVariable(std::string name,Data*data){
   this->_variable.insert(std::pair<std::string,Data*>(name,data));
   this->_rootNamespace->insert(name,data);

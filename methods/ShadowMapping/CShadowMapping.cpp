@@ -2,6 +2,7 @@
 
 #include"../ShadowMapping/createsm.h"
 
+#undef CLASSNAME
 #define CLASSNAME CShadowMapping
 #include"../ShadowMethodMacro.h"
 
@@ -40,8 +41,8 @@ DEFVARSIDSTART
   MEASURE_CREATESHADOWMASK
 DEFVARSIDEND
 
-DEFGETNOFDEP
-DEFGETDEP
+//DEFGETNOFDEP
+//DEFGETDEP
 
 DEFUPDATEROUTINESSTART
   GETPOINTER(_computeMatrices   ),
@@ -65,7 +66,21 @@ DEFVAR2UPDATESTART
   SHADOWMASK,getMask(CREATESHADOWMAPFBO),
 DEFVAR2UPDATEEND
 
-DEFUPDATE
+//DEFUPDATE
+
+//*
+#define CLASS_NAME CShadowMapping
+#define BASECLASS_NAME SimulationObject
+DEF_VARSANDROUTINES(
+    "shadowMapMethods.focusPoint",&CShadowMapping::_computeMatrices,
+    "light"                      ,&CShadowMapping::_computeMatrices,
+    "shadowMapMethods.fovy"      ,&CShadowMapping::_computeMatrices,
+    "shadowMapMethods.near"      ,&CShadowMapping::_computeMatrices,
+    "shadowMapMethods.far"       ,&CShadowMapping::_computeMatrices,
+    "shadowMapMethods.resolution",&CShadowMapping::_createShadowMap,
+    "shadowMask"                 ,&CShadowMapping::_createShadowMapFBO);
+// */
+
 
 void CShadowMapping::createShadowMask(){
   GETGPUGAUGE(MEASURE_CREATESHADOWMAP)->begin();
@@ -93,6 +108,7 @@ void CShadowMapping::createShadowMask(GLuint mask){
 
 CShadowMapping::CShadowMapping(simulation::SimulationData*data):simulation::SimulationObject(data){
   this->_simulationData->registerUser(this);
+  DEF_CONSTRUCTOR;
   this->_emptyVAO  = new ge::gl::VertexArrayObject();
   this->_computeMatrices   ();
   this->_createShadowMap   ();

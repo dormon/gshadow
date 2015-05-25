@@ -1,5 +1,7 @@
 #pragma once
 
+#include"../app/core.h"
+
 #define JOIN___(x,y) x##y
 #define JOIN__(x,y) JOIN___(x,y)
 #define JOIN_(x,y) JOIN__(x,y)
@@ -122,3 +124,97 @@ void insertType(std::map<std::string,std::vector<T>>&data,std::string n,T t,Args
   insertType(data,n,t);
   insertType(data,n,args...);
 } 
+
+
+
+template<typename RET,typename ROUTINE,typename... Args>
+static RET createStaticUpdateData(Args... args){
+  std::cerr<<"createStaticUpdateData\n";
+  std::map<const char*,std::vector<ROUTINE>>varsToRoutines;
+  argsToMapOfVectors(varsToRoutines,args...);
+
+  std::vector<ROUTINE>routines;
+  filterArgsToVector(routines,args...);
+
+  std::vector<const char*>vars;
+  filterArgsToVector(vars,args...);
+
+  std::vector<unsigned>routineIndices;
+  std::vector<ROUTINE>uniqueRoutines;
+  unsigned routineCounter=0;
+  for(unsigned i=0;i<routines.size();++i){
+    bool alreadyInserted=false;
+    for(unsigned j=0;j<uniqueRoutines.size();++j)
+      if(uniqueRoutines[j]==routines[i]){
+        alreadyInserted=true;
+        routineIndices.push_back(j);
+        break;
+      }
+    if(alreadyInserted)continue;
+    uniqueRoutines.push_back(routines[i]);
+    routineIndices.push_back(routineCounter++);
+  }
+
+  std::map<const char*,std::vector<unsigned>>varsToRoutineIndices;
+  unsigned indexToRoutineIndices=0;
+  for(unsigned v=0;v<vars.size();++v){
+    std::vector<unsigned>indices;
+    for(unsigned r=0;r<varsToRoutines[vars[v]].size();++r){
+      indices.push_back(routineIndices[indexToRoutineIndices++]);
+    }
+    varsToRoutineIndices[vars[v]]=indices;
+  }
+
+  RET ud;
+  ud.vars = vars;
+  ud.vars2RoutineIndex = varsToRoutineIndices;
+  ud.updateRoutines = uniqueRoutines;
+  return ud;
+}
+
+#define DEF_UPDATEDATA(CLASS_NAME)\
+  struct UpdateData{\
+    std::vector<const char*>vars;\
+    std::vector<void(CLASS_NAME::*)()>updateRoutines;\
+    std::map<const char*,std::vector<unsigned>>vars2RoutineIndex;\
+  }static const _updateData;\
+  std::vector<bool>_routines2Call
+
+#define DEF_VARSANDROUTINES(...)\
+void CLASS_NAME::update(){\
+  std::cerr<<"update\n";\
+  for(unsigned i=0;i<this->_updateData.vars.size();++i){\
+    if(!this->_changed.count(this->_updateData.vars[i]))continue;\
+    if(!this->_changed[this->_updateData.vars[i]])continue;\
+    if(!this->_updateData.vars2RoutineIndex.count(this->_updateData.vars[i]))continue;\
+    for(unsigned j=0;j<this->_updateData.vars2RoutineIndex.find(this->_updateData.vars[i])->second.size();++j)\
+      this->_routines2Call[this->_updateData.vars2RoutineIndex.find(this->_updateData.vars[i])->second[j]]=true;\
+    this->_changed[this->_updateData.vars[i]]=false;\
+  }\
+  for(unsigned i=0;i<this->_routines2Call.size();++i){\
+    if(!this->_routines2Call[i])continue;\
+    (this->*_updateData.updateRoutines[i])();\
+    this->_routines2Call[i]=false;\
+  }\
+  this->BASECLASS_NAME::update();\
+}\
+\
+unsigned CLASS_NAME::getNofDependentVariables(){\
+  std::cerr<<"getNofDependentVariables\n";\
+  return this->_updateData.vars.size()+this->BASECLASS_NAME::getNofDependentVariables();\
+}\
+\
+std::string CLASS_NAME::getDependentVariable(unsigned var){\
+  std::cerr<<"getDependentVariable\n";\
+  if(var>=this->_updateData.vars.size())return this->BASECLASS_NAME::getDependentVariable(var-this->_updateData.vars.size());\
+  return this->_updateData.vars[var];\
+}\
+\
+const CLASS_NAME::UpdateData CLASS_NAME::_updateData = createStaticUpdateData<CLASS_NAME::UpdateData,void(CLASS_NAME::*)()>(__VA_ARGS__)
+
+#define DEF_CONSTRUCTOR \
+  for(unsigned i=0;i<this->_updateData.vars.size();++i)\
+    this->_changed[this->_updateData.vars[i]]=false;\
+  for(unsigned i=0;i<this->_updateData.updateRoutines.size();++i)\
+    this->_routines2Call.push_back(false)
+

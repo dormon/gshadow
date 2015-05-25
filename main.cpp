@@ -59,36 +59,36 @@ void filterArgsToVector(std::vector<T>&data,T2,Args... args){
 
 
 
+template<typename KEY,typename VAL>
+void argsToMapOfVectors(std::map<KEY,std::vector<VAL>>&data,KEY n){
+  if(!data.count(n))data[n]=std::vector<VAL>();
+}
 
 template<typename KEY,typename VAL>
-void insertVectorToMap(std::map<KEY,std::vector<VAL>>&data,KEY n,VAL t){
-  if(!data.count(n))data.insert(std::pair<KEY,std::vector<VAL>>(n,std::vector<VAL>()));
+void argsToMapOfVectors(std::map<KEY,std::vector<VAL>>&data,KEY n,VAL t){
+  if(!data.count(n))data[n]=std::vector<VAL>();
   data[n].push_back(t);
 }
 
 template<typename KEY,typename VAL,typename... Args>
-void insertVectorToMap(std::map<KEY,std::vector<VAL>>&data,KEY n,VAL t,Args... args);
+void argsToMapOfVectors(std::map<KEY,std::vector<VAL>>&data,KEY n,VAL t,Args... args);
 
 template<typename KEY,typename VAL,typename... Args>
-void insertVectorToMap(std::map<KEY,std::vector<VAL>>&data,KEY,KEY n2,VAL t,Args... args){
-  insertVectorToMap(data,n2,t,args...);
+void argsToMapOfVectors(std::map<KEY,std::vector<VAL>>&data,KEY n1,KEY n2,VAL t,Args... args){
+  if(!data.count(n1))data[n1]=std::vector<VAL>();
+  argsToMapOfVectors(data,n2,t,args...);
 }
 
 template<typename KEY,typename VAL,typename... Args>
-void insertVectorToMap(std::map<KEY,std::vector<VAL>>&data,KEY n,VAL t,Args... args){
-  insertVectorToMap(data,n,t);
-  insertVectorToMap(data,n,args...);
+void argsToMapOfVectors(std::map<KEY,std::vector<VAL>>&data,KEY n,Args... args){
+  argsToMapOfVectors(data,n);
+  argsToMapOfVectors(data,args...);
 }
 
-template<typename T>
-void insertToVector(std::vector<T>&data,T t){
-  data.push_back(t);
-}
-
-template<typename T,typename... Args>
-void insertToVector(std::vector<T>&data,T t,Args... args){
-  insertToVector(data,t);
-  insertToVector(data,args...);
+template<typename KEY,typename VAL,typename... Args>
+void argsToMapOfVectors(std::map<KEY,std::vector<VAL>>&data,KEY n,VAL t,Args... args){
+  argsToMapOfVectors(data,n,t);
+  argsToMapOfVectors(data,n,args...);
 }
 
 class SimulationObject{
@@ -114,7 +114,7 @@ std::string SimulationObject::getVar(unsigned){return"";}
 template<typename RET,typename ROUTINE,typename... Args>
 static RET createStaticUpdateData(Args... args){
   std::map<const char*,std::vector<ROUTINE>>varsToRoutines;
-  insertVectorToMap(varsToRoutines,args...);
+  argsToMapOfVectors(varsToRoutines,args...);
 
   std::vector<ROUTINE>routines;
   filterArgsToVector(routines,args...);
@@ -155,7 +155,7 @@ static RET createStaticUpdateData(Args... args){
   return ud;
 }
 
-#define DEF_UPDATEDATA\
+#define DEF_UPDATEDATA(CLASS_NAME)\
   struct UpdateData{\
     std::vector<const char*>vars;\
     std::vector<void(CLASS_NAME::*)()>updateRoutines;\
@@ -182,11 +182,11 @@ void CLASS_NAME::update(){\
 }\
 \
 unsigned CLASS_NAME::getNofVars(){\
-  return this->_updateData.vars.size()+((BASECLASS_NAME*)this)->getNofVars();\
+  return this->_updateData.vars.size()+this->BASECLASS_NAME::getNofVars();\
 }\
 \
 std::string CLASS_NAME::getVar(unsigned var){\
-  if(var>=this->_updateData.vars.size())return((BASECLASS_NAME*)this)->getVar(var-this->_updateData.vars.size());\
+  if(var>=this->_updateData.vars.size())return this->BASECLASS_NAME::getVar(var-this->_updateData.vars.size());\
   return this->_updateData.vars[var];\
 }\
 \
@@ -208,7 +208,7 @@ class Shadow: public SimulationObject{
     void basea(){a+=10;/*std::cerr<<"basea\n";*/}
     void baseb(){a+=20;/*std::cerr<<"baseb\n";*/}
     void basec(){a+=30;/*std::cerr<<"basec\n";*/}
-    DEF_UPDATEDATA;
+    DEF_UPDATEDATA(Shadow);
   public:
     int get(){return this->a;}
     Shadow();
@@ -238,7 +238,7 @@ class ShadowMapping: public Shadow{
     void md(){a+=4;/*std::cerr<<"md\n";*/}
     void me(){a+=5;/*std::cerr<<"me\n";*/}
     void mf(){a+=6;/*std::cerr<<"mf\n";*/}
-    DEF_UPDATEDATA;
+    DEF_UPDATEDATA(ShadowMapping);
   public:
     ShadowMapping();
     virtual void update();
@@ -249,7 +249,10 @@ class ShadowMapping: public Shadow{
 DEF_VARSANDROUTINES(
     "va",&ShadowMapping::ma,&ShadowMapping::mb,
     "vb",&ShadowMapping::mc,&ShadowMapping::md,
-    "vc",&ShadowMapping::me,&ShadowMapping::mf);
+    "vc",&ShadowMapping::me,&ShadowMapping::mf,
+    "emplty",
+    "asdasd",
+    "asd","asdassd","dsds","qwe","efase","asdsadas","asdasdasd");
 
 ShadowMapping::ShadowMapping():Shadow(){
   DEF_CONSTRUCTOR;
@@ -262,7 +265,53 @@ void printv(std::vector<T>&data){
   std::cerr<<std::endl;
 }
 
+
+
+template<typename KEY,typename VAL>
+void a2m(std::map<KEY,std::vector<VAL>>&data,KEY n){
+  if(!data.count(n))data[n]=std::vector<VAL>();
+}
+
+template<typename KEY,typename VAL>
+void a2m(std::map<KEY,std::vector<VAL>>&data,KEY n,VAL t){
+  if(!data.count(n))data.insert(std::pair<KEY,std::vector<VAL>>(n,std::vector<VAL>()));
+  data[n].push_back(t);
+}
+
+template<typename KEY,typename VAL,typename... Args>
+void a2m(std::map<KEY,std::vector<VAL>>&data,KEY n,VAL t,Args... args);
+
+template<typename KEY,typename VAL,typename... Args>
+void a2m(std::map<KEY,std::vector<VAL>>&data,KEY n1,KEY n2,VAL t,Args... args){
+  if(!data.count(n1))data[n1]=std::vector<VAL>();
+  a2m(data,n2,t,args...);
+}
+
+template<typename KEY,typename VAL,typename... Args>
+void a2m(std::map<KEY,std::vector<VAL>>&data,KEY n,Args... args){
+  a2m(data,n);
+  a2m(data,args...);
+}
+
+template<typename KEY,typename VAL,typename... Args>
+void a2m(std::map<KEY,std::vector<VAL>>&data,KEY n,VAL t,Args... args){
+  a2m(data,n,t);
+  a2m(data,n,args...);
+}
+
+
+
 int main(){
+  /*
+  std::map<const char*,std::vector<int>>ddd;
+  a2m(ddd,"a",1,2,"asd","b",1,3,"v","d","s");
+  std::map<const char*,std::vector<int>>::iterator ii;
+  for(ii=ddd.begin();ii!=ddd.end();++ii){
+    std::cerr<<ii->first<<std::endl;
+    printv(ii->second);
+  }
+  return 0;
+  */
   /*std::vector<float>dd;
   filterArgsToVector(dd,"asd",1.f,.23f,"asda",32.f,"asssd",12.2f,32u,5.5f);
   printv(dd);
@@ -271,6 +320,8 @@ int main(){
   shadowMapping->setVariableAsChanged("va");
   shadowMapping->setVariableAsChanged("basevb");
   shadowMapping->update();
+  for(unsigned i=0;i<shadowMapping->getNofVars();++i)
+    std::cerr<<shadowMapping->getVar(i)<<std::endl;
   std::cerr<<shadowMapping->get()<<std::endl;
   std::chrono::duration<double, std::nano> duration;
   std::chrono::high_resolution_clock::time_point timea,timeb;
