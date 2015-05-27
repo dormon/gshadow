@@ -46,9 +46,9 @@ using namespace std;
 #include<geUtil/FPSPrinter.h>
 #include"../GPUPerfApi/GpuPerfApi.h"
 
-#include"CGenerateGeometryShaderSilhouette.hpp"
-#include"CGenerateVertexShaderSilhouette.hpp"
-#include"CGenerateTessellationShaderSilhouette.hpp"
+//#include"CGenerateGeometryShaderSilhouette.hpp"
+//#include"CGenerateVertexShaderSilhouette.hpp"
+//#include"CGenerateTessellationShaderSilhouette.hpp"
 
 #include"methodsparam.hpp"
 #include"../methods/TessellationSides/CTessellationSides.hpp"

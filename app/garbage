@@ -1133,3 +1133,42 @@ void Idle(){
   Window->swap();
   framecount++;
 }
+
+          /*
+          template<unsigned... Is, typename std::enable_if<1 == dim, unsigned>::type = 0>
+            void apl(detail::seq<Is...>){
+              if( typeid(T) == typeid(float  ) ||
+                  typeid(T) == typeid(GLfloat)){
+
+                if(dim==1)glUniform1f(this->_location,this->data[Is]...);
+                if(dim==2)glUniform2f(this->_location,this->data[Is]...);
+                if(dim==3)glUniform3f(this->_location,this->data[Is]...);
+                if(dim==4)glUniform4f(this->_location,this->data[Is]...);
+              }
+              if( typeid(T) == typeid(int  ) ||
+                  typeid(T) == typeid(GLint)){
+                if(dim==1)glUniform1i(this->_location,this->data[Is]...);
+                if(dim==2)glUniform2i(this->_location,this->data[Is]...);
+                if(dim==3)glUniform3i(this->_location,this->data[Is]...);
+                if(dim==4)glUniform4i(this->_location,this->data[Is]...);
+              }
+              if( typeid(T) == typeid(unsigned) ||
+                  typeid(T) == typeid(GLuint  )){
+                if(dim==1)glUniform1ui(this->_location,this->data[Is]...);
+                if(dim==2)glUniform2ui(this->_location,this->data[Is]...);
+                if(dim==3)glUniform3ui(this->_location,this->data[Is]...);
+                if(dim==4)glUniform4ui(this->_location,this->data[Is]...);
+              }
+              if( typeid(T) == typeid(double  ) ||
+                  typeid(T) == typeid(GLdouble)){
+                if(dim==1)glUniform1d(this->_location,this->data[Is]...);
+                if(dim==2)glUniform2d(this->_location,this->data[Is]...);
+                if(dim==3)glUniform3d(this->_location,this->data[Is]...);
+                if(dim==4)glUniform4d(this->_location,this->data[Is]...);
+              }
+            }
+          void apply(){
+            this->apl(detail::gen_seq<dim>());
+          }
+          // */
+

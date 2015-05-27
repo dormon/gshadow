@@ -97,11 +97,11 @@ void main(){
     EndPrimitive();
 //*
     if(LightPosition.w>0){
-      gl_Position=mvp*vec4(gl_in[BCLF0].gl_Position.xyz-LightPosition.xyz,0);
+      gl_Position=(mvp*vec4(gl_in[BCLF0].gl_Position.xyz-LightPosition.xyz,0));
       EmitVertex();
-      gl_Position=mvp*vec4(gl_in[BCLF1].gl_Position.xyz-LightPosition.xyz,0);
+      gl_Position=(mvp*vec4(gl_in[BCLF1].gl_Position.xyz-LightPosition.xyz,0));
       EmitVertex();
-      gl_Position=mvp*vec4(gl_in[BCLF2].gl_Position.xyz-LightPosition.xyz,0);
+      gl_Position=(mvp*vec4(gl_in[BCLF2].gl_Position.xyz-LightPosition.xyz,0));
       EmitVertex();
       EndPrimitive();
     }// */
@@ -112,11 +112,11 @@ void main(){
     EndPrimitive();
 //*
     if(LightPosition.w>0){
-      gl_Position=mvp*vec4(gl_in[BCLB0].gl_Position.xyz-LightPosition.xyz,0);
+      gl_Position=(mvp*vec4(gl_in[BCLB0].gl_Position.xyz-LightPosition.xyz,0));
       EmitVertex();
-      gl_Position=mvp*vec4(gl_in[BCLB1].gl_Position.xyz-LightPosition.xyz,0);
+      gl_Position=(mvp*vec4(gl_in[BCLB1].gl_Position.xyz-LightPosition.xyz,0));
       EmitVertex();
-      gl_Position=mvp*vec4(gl_in[BCLB2].gl_Position.xyz-LightPosition.xyz,0);
+      gl_Position=(mvp*vec4(gl_in[BCLB2].gl_Position.xyz-LightPosition.xyz,0));
       EmitVertex();
       EndPrimitive();
     }// */

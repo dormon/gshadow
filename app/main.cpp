@@ -284,9 +284,9 @@ int main(int Argc,char*Argv[]){
 
   Args=new ge::util::ArgumentObject(Argc,Argv);
 
-  //ModelFile          = Args->getArg("-m","models/o/o.3ds");
+  ModelFile          = Args->getArg("-m","models/o/o.3ds");
   //ModelFile          = Args->getArg("-m","/home/dormon/Desktop/lost_empire/lost_empire.obj");
-  ModelFile          = Args->getArg("-m","/home/dormon/Desktop/san-miguel/san-miguel.obj");
+  //ModelFile          = Args->getArg("-m","/home/dormon/Desktop/san-miguel/san-miguel.obj");
   //ModelFile          = Args->getArg("-m","/home/dormon/Desktop/conference/conference.obj");
   //ModelFile          = Args->getArg("-m","/media/data/models/Sponza/sponza.obj");
   //ModelFile          = Args->getArg("-m","/media/data/models/sibenik/sibenik.obj");
@@ -734,8 +734,8 @@ void init(){
   navyMapping     = new NavyMapping(simData);
   Shadowmapping   = new CShadowMapping(simData);
   rtw             = new RTWBack(simData);
-  /*
   computeGeometry = new ComputeGeometry(simData);
+
   TessellationSides=new CTessellationSides(
       fastAdjacency,
       simData->getBool("tessellation.use_reference_edge"),
@@ -744,7 +744,6 @@ void init(){
   GeometryCapsAlt=new CGeometryCapsAlt(fastAdjacency);
 
   raytrace = new RayTrace(simData);
-  */
   simpleDraw = new DrawPrimitive(ShaderDir+"app/");
   simpleDraw->setWindowSize(simData->getUVec2("window.size"));
 

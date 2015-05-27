@@ -41,8 +41,8 @@ DEFVARSIDSTART
   MEASURE_CREATESHADOWMASK
 DEFVARSIDEND
 
-//DEFGETNOFDEP
-//DEFGETDEP
+DEFGETNOFDEP
+DEFGETDEP
 
 DEFUPDATEROUTINESSTART
   GETPOINTER(_computeMatrices   ),
@@ -66,9 +66,9 @@ DEFVAR2UPDATESTART
   SHADOWMASK,getMask(CREATESHADOWMAPFBO),
 DEFVAR2UPDATEEND
 
-//DEFUPDATE
+DEFUPDATE
 
-//*
+/*
 #define CLASS_NAME CShadowMapping
 #define BASECLASS_NAME SimulationObject
 DEF_VARSANDROUTINES(
@@ -108,7 +108,7 @@ void CShadowMapping::createShadowMask(GLuint mask){
 
 CShadowMapping::CShadowMapping(simulation::SimulationData*data):simulation::SimulationObject(data){
   this->_simulationData->registerUser(this);
-  DEF_CONSTRUCTOR;
+  //DEF_CONSTRUCTOR;
   this->_emptyVAO  = new ge::gl::VertexArrayObject();
   this->_computeMatrices   ();
   this->_createShadowMap   ();

@@ -8,6 +8,9 @@
 #include"../../app/fastAdjacency.h"
 #include"../../simulationData/SimulationData.h"
 
+#include<geGL/UniformCommands.h>
+#include<geGL/ProgramCommands.h>
+
 #include"shaderdir.hpp"
 
 #include"../ShadowMethod.h"
@@ -26,6 +29,7 @@ class CComputeSides
     unsigned                   _maxMult;
     unsigned                   _nofEdges;
     ge::gl::CommandList*       _computeList;
+    std::shared_ptr<ge::gl::UniformV<4,GLfloat>>_lightUniformCommand;
   public:
     CComputeSides(Adjacency*adjacency,unsigned WorkGroupSize,bool CullSides);
     virtual ~CComputeSides();

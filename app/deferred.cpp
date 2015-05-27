@@ -8,11 +8,14 @@ void deferred_Init(
 		unsigned Widht,
 		unsigned Height){
 
+  std::cerr<<"nene\n";
   D->Create=new ge::gl::ProgramObject(
       ShaderDir+"app/cgb.vp",
       ShaderDir+"app/cgb.fp");
   D->Size[0]=Widht;
   D->Size[1]=Height;
+
+  std::cerr<<"jojo\n";
 
   D->color    = new ge::gl::TextureObject(GL_TEXTURE_2D       ,GL_RGBA16UI        ,1,Widht,Height);
   D->position = new ge::gl::TextureObject(GL_TEXTURE_2D       ,GL_RGBA32F         ,1,Widht,Height);
