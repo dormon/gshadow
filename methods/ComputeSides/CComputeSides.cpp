@@ -70,10 +70,13 @@ CComputeSides::CComputeSides(Adjacency*ad,
   std::string dir=ShaderDir+"methods/ComputeSidesSOE/draw.";
   this->_drawProgram=new ge::gl::ProgramObject(dir+"vp",dir+"cp",dir+"ep",dir+"fp");
 
-  this->_computeList = new ge::gl::CommandList(false);
+
+  this->_computeList = new ge::gl::CommandList();
   this->_computeList->add(new ge::gl::UseProgram(this->_computeProgram->getId()));
   this->_computeList->add(new ge::gl::Uniform<1,GLuint>(this->_computeProgram,"NumEdge",this->_nofEdges));
-  this->_lightUniformCommand = std::dynamic_pointer_cast<ge::gl::UniformV<4,GLfloat>,ge::gl::Command>(*this->_computeList->add(new ge::gl::UniformV<4,GLfloat>(this->_computeProgram,"LightPosition",NULL)));
+  this->_lightUniformCommand = this->_computeList->add(new ge::gl::UniformV     <  4,GLfloat>(this->_computeProgram,"LightPosition",NULL));
+  this->_mvpUniformCommand   = this->_computeList->add(new ge::gl::UniformMatrix<4,4,GLfloat>(this->_computeProgram,"mvp"          ,NULL));
+  /*
   //this->_computeList->add(new ge::gl::UniformV<4,GLfloat>(this->_computeProgram,"LightPosition",glm::value_ptr(Light->position)));
   //
  // ge::gl::UniformData<3,GLfloat>*dada=new ge::gl::UniformData<3,GLfloat>();
@@ -83,7 +86,7 @@ CComputeSides::CComputeSides(Adjacency*ad,
       (float*)&add,
       (float*)&add);
   dadaref->data[0]=NULL;
-
+*/
 }
 
 CComputeSides::~CComputeSides(){
@@ -101,12 +104,13 @@ void CComputeSides::ComputeSides(float*mvp,simulation::Light*Light){
   glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
 
-  this->_lightUniformCommand->set(glm::value_ptr(Light->position));
+  ((ge::gl::UniformV     <  4,GLfloat>*)this->_computeList->getCommand(this->_lightUniformCommand))->set(glm::value_ptr(Light->position));
+  ((ge::gl::UniformMatrix<4,4,GLfloat>*)this->_computeList->getCommand(this->_mvpUniformCommand  ))->set(mvp                            );
   this->_computeList->apply();
   //this->_computeProgram->use();
   //this->_computeProgram->set("NumEdge",this->_nofEdges);
   //this->_computeProgram->set("LightPosition",1,glm::value_ptr(Light->position));
-  this->_computeProgram->set("mvp",1,GL_FALSE,(const float*)mvp);
+  //this->_computeProgram->set("mvp",1,GL_FALSE,(const float*)mvp);
   this->_computeProgram->bindSSBO("IBuffer",this->_input  );
   this->_computeProgram->bindSSBO("OBuffer",this->_output );
   this->_computeProgram->bindSSBO("Counter",this->_counter);

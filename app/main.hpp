@@ -38,6 +38,7 @@ using namespace std;
 //#include"CLight.hpp"
 
 #include<geGL/geGL.h>
+#include<geCore/geCore.h>
 #include<geGL/UniformCommands.h>
 #include<geGL/ProgramCommands.h>
 

@@ -135,7 +135,7 @@ AntOpenDialog::AntOpenDialog(TwBar*bar,std::string dir,std::string group){
   this->_saveCallBackData = NULL;
   
   char buf[PATH_MAX+1];
-  realpath(dir.c_str(),buf);
+  //realpath(dir.c_str(),buf);
   this->_currentDir = std::string(buf)+"/";
   TwAddVarRW(this->_bar,"hidden",TW_TYPE_BOOLCPP,&this->_skipHidden,this->_getWithGroup("label='hide hidden'").c_str());
   TwAddButton(this->_bar,"open",this->_open,this,this->_getWithGroup("label='open'").c_str());

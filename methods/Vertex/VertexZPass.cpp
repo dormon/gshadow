@@ -130,8 +130,8 @@ void VertexZPass::update(){
   for(unsigned v=0;v<vertexZPassNumVariables;++v)
     vertexZPassUpdate[v]=0;
 
-  for(unsigned vs=0;vs<sizeof(var2Method)/sizeof(unsigned);vs+=2)
-    vertexZPassUpdate[var2Method[vs*2+0]]=var2Method[vs*2+1];
+  for(unsigned vs=0u;vs<sizeof(var2Method)/sizeof(unsigned);vs+=2u)
+    vertexZPassUpdate[var2Method[vs*2u+0u]]=var2Method[vs*2u+1u];
 
 #define UPDATE_METHODS (sizeof(updateRoutines)/sizeof(UPDATEFCE))
 

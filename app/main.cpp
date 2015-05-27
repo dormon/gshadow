@@ -350,7 +350,6 @@ int main(int Argc,char*Argv[]){
   else if(MethodString=="ra"               )TestParam.Method = SS_RAYTRACE;
   else TestParam.Method=SS_NO;
 
-
   //computesoe args
   ComputeSOEParam.WorkGroupSize = Args->getArgi  ("--computesoe-start","--computesoe-end","-w","64");
   ComputeSOEParam.CullSides     = Args->isPresent("--computesoe-start","--computesoe-end","-c");
@@ -402,7 +401,6 @@ int main(int Argc,char*Argv[]){
   }
 
   ge::gl::setHighDebugMessage();
-
   EmptyVAO=new ge::gl::VertexArrayObject();
 
   glEnable(GL_DEPTH_TEST);
@@ -729,7 +727,7 @@ void init(){
 
 
 
-  std::cerr<<simData->toStr()<<std::endl;
+  //std::cerr<<simData->toStr()<<std::endl;
 
   navyMapping     = new NavyMapping(simData);
   Shadowmapping   = new CShadowMapping(simData);
@@ -747,8 +745,11 @@ void init(){
   simpleDraw = new DrawPrimitive(ShaderDir+"app/");
   simpleDraw->setWindowSize(simData->getUVec2("window.size"));
 
+  //std::cerr<<"konec initu\n";
+
   fpsPrinter = new ge::util::FPSPrinter(200);
   fpsPrinter->start();
+
 }
 
 

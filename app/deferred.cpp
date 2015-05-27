@@ -12,6 +12,13 @@ void deferred_Init(
   D->Create=new ge::gl::ProgramObject(
       ShaderDir+"app/cgb.vp",
       ShaderDir+"app/cgb.fp");
+
+  GLint bufferActive=0;
+  GLint blockActive=0;
+  glGetProgramInterfaceiv(D->Create->getId(),GL_BUFFER_VARIABLE,GL_ACTIVE_RESOURCES,&bufferActive);
+  glGetProgramInterfaceiv(D->Create->getId(),GL_SHADER_STORAGE_BLOCK,GL_ACTIVE_RESOURCES,&blockActive);
+  std::cerr<<"bufferActive: "<<bufferActive<<std::endl;
+  std::cerr<<"blockActive: "<<blockActive<<std::endl;
   D->Size[0]=Widht;
   D->Size[1]=Height;
 

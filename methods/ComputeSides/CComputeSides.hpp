@@ -29,7 +29,8 @@ class CComputeSides
     unsigned                   _maxMult;
     unsigned                   _nofEdges;
     ge::gl::CommandList*       _computeList;
-    std::shared_ptr<ge::gl::UniformV<4,GLfloat>>_lightUniformCommand;
+    unsigned                   _lightUniformCommand;
+    unsigned                   _mvpUniformCommand  ;
   public:
     CComputeSides(Adjacency*adjacency,unsigned WorkGroupSize,bool CullSides);
     virtual ~CComputeSides();
