@@ -3,6 +3,7 @@
 
 #include<geGL/UniformCommands.h>
 #include<geGL/ProgramCommands.h>
+#include<geGL/BufferCommands.h>
 
 CComputeSides::CComputeSides(Adjacency*ad,
     unsigned WorkGroupSize,bool CullSides){
@@ -76,6 +77,10 @@ CComputeSides::CComputeSides(Adjacency*ad,
   this->_computeList->add(new ge::gl::Uniform<1,GLuint>(this->_computeProgram,"NumEdge",this->_nofEdges));
   this->_lightUniformCommand = this->_computeList->add(new ge::gl::UniformV     <  4,GLfloat>(this->_computeProgram,"LightPosition",NULL));
   this->_mvpUniformCommand   = this->_computeList->add(new ge::gl::UniformMatrix<4,4,GLfloat>(this->_computeProgram,"mvp"          ,NULL));
+  this->_computeList->add(new ge::gl::BindBufferBase(this->_computeProgram,"IBuffer",this->_input  ));
+  this->_computeList->add(new ge::gl::BindBufferBase(this->_computeProgram,"OBuffer",this->_output ));
+  this->_computeList->add(new ge::gl::BindBufferBase(this->_computeProgram,"Counter",this->_counter));
+
   /*
   //this->_computeList->add(new ge::gl::UniformV<4,GLfloat>(this->_computeProgram,"LightPosition",glm::value_ptr(Light->position)));
   //
@@ -111,15 +116,13 @@ void CComputeSides::ComputeSides(float*mvp,simulation::Light*Light){
   //this->_computeProgram->set("NumEdge",this->_nofEdges);
   //this->_computeProgram->set("LightPosition",1,glm::value_ptr(Light->position));
   //this->_computeProgram->set("mvp",1,GL_FALSE,(const float*)mvp);
+  /*
   this->_computeProgram->bindSSBO("IBuffer",this->_input  );
   this->_computeProgram->bindSSBO("OBuffer",this->_output );
   this->_computeProgram->bindSSBO("Counter",this->_counter);
+  */
 
-  unsigned WorkSize=
-    (this->_nofEdges/this->_workGroupSize)+
-    ((this->_nofEdges%this->_workGroupSize)?1:0);
-
-  glDispatchCompute(WorkSize,1,1);
+  glDispatchCompute(ge::core::getDispatchSize(this->_nofEdges,this->_workGroupSize),1,1);
 
   glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 }
