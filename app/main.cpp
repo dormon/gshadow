@@ -2,6 +2,9 @@
 
 #include <string>
 
+#undef ___
+#define ___
+
 #define QUERY_COMPUTE
 #define QUERY_STENCIL
 //#define QUERY_MULTIPLICITY
@@ -194,7 +197,7 @@ bool SSMeasureSidesDraw       = true;
 bool SSMeasureCapsDraw        = true;
 
 bool     SSWithoutGBuffer      = false;
-bool     SSEnable              = false;
+bool     SSEnable              = true;
 bool     SSAOEnable            = false;
 bool     SSDeterministic       = true;
 bool     SSZFail               = true;
@@ -222,14 +225,14 @@ enum ESSMethod{
   SS_COMPUTE,
   SS_VS,
   SS_SHADOWMAP,
+  SS_CUBESHADOWMAP,
   SS_RTW,
   SS_NAVYMAPPING,
-  SS_CUBESHADOWMAP,
   SS_RAYTRACE,
   SS_TS,
   SS_SINTORN,
   SS_NO
-}SSMethod=SS_NO,LastSSMethod=SS_NO;
+}SSMethod=SS_CUBESHADOWMAP,LastSSMethod=SS_CUBESHADOWMAP;
 
 bool DSDrawLightSilhouette = false;
 bool DSDrawViewSilhouette  = false;
@@ -251,7 +254,6 @@ struct STestParam{
 //SGeometryParam                   GeometryParam,         GeometryParamLast;
 SComputeSOEParam          ComputeSOEParam       ,ComputeSOEParamLast       ;
 SSintornParam             SintornParam          ,SintornParamLast          ;
-CubeShadowMappingTemplate cubeShadowMappingParam,cubeShadowMappingParamLast;
 
 simulation::SimulationData*simData=NULL;
 
@@ -286,6 +288,7 @@ int main(int Argc,char*Argv[]){
 
   ModelFile          = Args->getArg("-m","models/o/o.3ds");
   //ModelFile          = Args->getArg("-m","/home/dormon/Desktop/lost_empire/lost_empire.obj");
+  //ModelFile          = Args->getArg("-m","/home/dormon/Desktop/sponza/sponza.obj");
   //ModelFile          = Args->getArg("-m","/home/dormon/Desktop/san-miguel/san-miguel.obj");
   //ModelFile          = Args->getArg("-m","/home/dormon/Desktop/conference/conference.obj");
   //ModelFile          = Args->getArg("-m","/media/data/models/Sponza/sponza.obj");
@@ -355,15 +358,6 @@ int main(int Argc,char*Argv[]){
   ComputeSOEParam.CullSides     = Args->isPresent("--computesoe-start","--computesoe-end","-c");
   ComputeSOEParamLast=ComputeSOEParam;
   ComputeSOEParamLast.CullSides=!ComputeSOEParam.CullSides;
-
-  //cubeShadowMapping args
-  cubeShadowMappingParam.resolution    = Args->getArgi("--shadowmap-start","--shadowmap-end","-r","1024");
-  cubeShadowMappingParam.screenSize[0] = simData->getUVec2("window.size").x;
-  cubeShadowMappingParam.screenSize[1] = simData->getUVec2("window.size").y;
-  cubeShadowMappingParam.near          = Args->getArgf("--shadowmap-start","--shadowmap-end","-near","1"   );
-  cubeShadowMappingParam.far           = Args->getArgf("--shadowmap-start","--shadowmap-end","-far" ,"1000");
-  cubeShadowMappingParamLast=cubeShadowMappingParam;
-  cubeShadowMappingParamLast.resolution+=1;
 
   //sintorn args
   SintornParam.WavefrontSize            = Args->getArgi("--sintorn-start","--sintorn-end","-wf"   ,"64");
@@ -477,7 +471,7 @@ void setConfig(objconf::ShadowMethodConfig**config,simulation::SimulationObject*
 }
 
 void idle(){
-
+  ___;
   cameraConfiguration->getCamera()->right  ((Window->isKeyDown('d')-Window->isKeyDown('a'))*Speed);
   cameraConfiguration->getCamera()->up     ((Window->isKeyDown(' ')-Window->isKeyDown('c'))*Speed);
   cameraConfiguration->getCamera()->forward((Window->isKeyDown('w')-Window->isKeyDown('s'))*Speed);
@@ -488,7 +482,7 @@ void idle(){
   mvp=Projection*View;
 
 
-
+  ___;
   setConfig(&navyConfig,navyMapping,"navyconfig");
   setConfig(&rtwConfig ,rtw        ,"rtwconfig" );
 
@@ -496,9 +490,9 @@ void idle(){
 
   if(Window->isKeyDown('g')){lightConfiguration->getLight()->position[1]-=0.4;simData->setAsChanged("light");}
   if(Window->isKeyDown('t')){lightConfiguration->getLight()->position[1]+=0.4;simData->setAsChanged("light");}
-
+  ___;
   simData->sendUpdate();
-
+  ___;
   if(SSEnable){
     if(SSMeasureGbuffer)gbufferQuery->begin();
     DrawGBuffer();
@@ -526,6 +520,13 @@ void idle(){
         mm->createShadowMask();
         drawDiffuseSpecular(true,lightConfiguration->getLight());
         break;
+      case SS_CUBESHADOWMAP:
+        mm=cubeShadowMapping;
+        mm->createShadowMask();
+        ___;
+        drawDiffuseSpecular(true,lightConfiguration->getLight());
+        ___;
+        break;
       case SS_RTW:
         mm=rtw;
         mm->createShadowMask();
@@ -551,13 +552,14 @@ void idle(){
   }else{
     DrawShadowless();
   }
-
+  ___;
   glEnable(GL_DEPTH_TEST);
   glDepthMask(GL_TRUE);
   glBindFramebuffer(GL_FRAMEBUFFER,0);
   glDepthFunc(GL_LEQUAL);
   glEnable(GL_DEPTH_TEST);
   deferred_BlitDepthToDefault(&Deferred);
+  ___;
   glDepthFunc(GL_LESS);
   glBindFramebuffer(GL_FRAMEBUFFER,0);
   glColorMask(GL_TRUE,GL_TRUE,GL_TRUE,GL_TRUE);
@@ -588,9 +590,10 @@ void idle(){
       cameraPathConfiguration->getPath()->draw(glm::value_ptr(mvp));
 
 
-
+  ___;
   Window->swap();
   fpsPrinter->endOfFrame();
+  ___;
 }
 
 
@@ -648,13 +651,14 @@ void init(){
   TwAddVarRW(Bar,"Shadows",TW_TYPE_BOOLCPP,&SSEnable  ," help='Toggle shadows on.' "                    );
 
   TwEnumVal MethodDef[]={
-    {SS_COMPUTE    ,"compute"                            },
-    {SS_SHADOWMAP  ,"shadowmapping"                      },
-    {SS_RTW        ,"rtv"                                },
-    {SS_NAVYMAPPING,"ours"                               },
-    {SS_TS         ,"Tessellation Shader Silhouette Edge"},
-    {SS_RAYTRACE   ,"raytrace"                           },
-    {SS_NO         ,"No shadows"                         }
+    {SS_COMPUTE      ,"compute"                            },
+    {SS_SHADOWMAP    ,"shadowmapping"                      },
+    {SS_CUBESHADOWMAP,"cubeShadowMapping"                  },
+    {SS_RTW          ,"rtv"                                },
+    {SS_NAVYMAPPING  ,"ours"                               },
+    {SS_TS           ,"Tessellation Shader Silhouette Edge"},
+    {SS_RAYTRACE     ,"raytrace"                           },
+    {SS_NO           ,"No shadows"                         }
   };
   TwType MethodType=TwDefineEnum("SS mode",MethodDef,sizeof(MethodDef)/sizeof(TwEnumVal));
   TwAddVarRW(Bar,"Method",MethodType,&SSMethod,
@@ -729,10 +733,11 @@ void init(){
 
   //std::cerr<<simData->toStr()<<std::endl;
 
-  navyMapping     = new NavyMapping(simData);
-  Shadowmapping   = new CShadowMapping(simData);
-  rtw             = new RTWBack(simData);
-  computeGeometry = new ComputeGeometry(simData);
+  navyMapping       = new NavyMapping(simData);
+  Shadowmapping     = new CShadowMapping(simData);
+  cubeShadowMapping = new CubeShadowMapping(simData);
+  rtw               = new RTWBack(simData);
+  computeGeometry   = new ComputeGeometry(simData);
 
   TessellationSides=new CTessellationSides(
       fastAdjacency,
@@ -1154,11 +1159,6 @@ void DrawCompute(simulation::Light*Light){
   if(SSZFail)GeometryCapsAlt->DrawCaps(glm::value_ptr(mvp),Light);
   if(TestParam.MeasureStencil)stencilShadowsQuery->end();
   drawStencil(Light);
-}
-
-void drawCubeShadowmapShadow(simulation::Light*Light){
-  cubeShadowMapping->createShadowMap(glm::value_ptr(Model),Light);
-  cubeShadowMapping->drawShadowed(glm::value_ptr(Pos),Light);
 }
 
 void DrawShadowless(){

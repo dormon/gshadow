@@ -1,4 +1,10 @@
-#version 330
+#version 450 core
+
+#define USE_GL_DRAWIDARB
+
+#ifndef USE_GL_DRAWIDARB
+#define gl_DrawIDARB 0
+#endif//USE_GL_DRAWIDARB
 
 #extension GL_ARB_shader_draw_parameters: enable
 

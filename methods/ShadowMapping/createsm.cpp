@@ -1,5 +1,7 @@
 #include"createsm.h"
 
+#include<glm/gtc/matrix_transform.hpp>
+
 ge::gl::TextureObject*createSM(unsigned resolution){
   ge::gl::TextureObject*shadowMap=NULL;
   float ones[]={1,1,1,1};
@@ -12,4 +14,9 @@ ge::gl::TextureObject*createSM(unsigned resolution){
   shadowMap->texParameteri (GL_TEXTURE_COMPARE_MODE,GL_COMPARE_R_TO_TEXTURE);
   shadowMap->texParameterfv(GL_TEXTURE_BORDER_COLOR,ones                   );
   return shadowMap;
+}
+
+glm::mat4 biasMatrix(){
+  return glm::scale    (glm::mat4(1.f),glm::vec3(.5f))*
+    glm::translate(glm::mat4(1.f),glm::vec3(1.f));
 }

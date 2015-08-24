@@ -1,5 +1,7 @@
 #version 430
 
+#define USE_GL_DRAWIDARB
+
 layout(location=0)out uvec4 fColor;//output color
 layout(location=1)out vec3  fPosition;//output position
 layout(location=2)out vec4  fNormal;//output normal
@@ -28,8 +30,13 @@ void main(){
   vec3  lightmap       = vec3(1);
   float specularFactor = 1;
 
+#ifndef USE_GL_DRAWIDARB
+  diffuseColor   = vec3(.5f);
+  specularColor  = vec3(1.f);
+#else// USE_GL_DRAWIDARB
   diffuseColor  = materials[vDI].diffuse.xyz;
   specularColor = materials[vDI].specular.xyz;
+#endif//USE_GL_DRAWIDARB
 
   uvec4 color  = uvec4(0);
   color.xyz   += uvec3(diffuseColor *lightmap*0xff);

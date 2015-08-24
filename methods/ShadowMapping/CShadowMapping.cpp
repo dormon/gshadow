@@ -153,28 +153,29 @@ void CShadowMapping::_createShadowMapFBO(){
 }
 
 void CShadowMapping::CreateShadowMap(){
-  this->_csm->use();
-  this->_csm->set("v",1,GL_FALSE,(float*)glm::value_ptr(this->_lightView));
-  this->_csm->set("p",1,GL_FALSE,(float*)glm::value_ptr(this->_lightProjection));
-
-  this->_fbo->bind();
-  glColorMask(GL_FALSE,GL_FALSE,GL_FALSE,GL_FALSE);
-  glViewport(0,0,GETUINT(RESOLUTION),GETUINT(RESOLUTION));
   glEnable(GL_DEPTH_TEST);
   glDepthFunc(GL_LESS);
   glDepthMask(GL_TRUE);
+  glPolygonOffset(2.5,10);
+
+  this->_fbo->bind();
   glClear(GL_DEPTH_BUFFER_BIT);
 
+  glColorMask(GL_FALSE,GL_FALSE,GL_FALSE,GL_FALSE);
+  glViewport(0,0,GETUINT(RESOLUTION),GETUINT(RESOLUTION));
   glEnable(GL_POLYGON_OFFSET_FILL);
-  glPolygonOffset(2.5,10);
+
+  this->_csm->use();
+  this->_csm->set("v",1,GL_FALSE,(float*)glm::value_ptr(this->_lightView));
+  this->_csm->set("p",1,GL_FALSE,(float*)glm::value_ptr(this->_lightProjection));
 
   GETVAO(SCENEVAO)->bind();
   glDrawArrays(GL_TRIANGLES,0,GETFASTADJACENCY->getNofTriangles()*3);
   GETVAO(SCENEVAO)->unbind();
 
+  glDisable(GL_POLYGON_OFFSET_FILL);
   glViewport(0,0,GETUVEC2(WINDOWSIZE).x,GETUVEC2(WINDOWSIZE).y);
   glColorMask(GL_TRUE,GL_TRUE,GL_TRUE,GL_TRUE);
-  glDisable(GL_POLYGON_OFFSET_FILL);
   this->_fbo->unbind();
 }
 
@@ -182,8 +183,10 @@ void CShadowMapping::setMatrices(glm::mat4 lp,glm::mat4 lv){
   this->_lightView       = lv;
   this->_lightProjection = lp;
   this->_bpv=
+    /*
     glm::scale(glm::mat4(1.),glm::vec3(.5))*
-    glm::translate(glm::mat4(1.),glm::vec3(1.))*
+    glm::translate(glm::mat4(1.),glm::vec3(1.))**/
+    biasMatrix()*
     this->_lightProjection*
     this->_lightView;
 }

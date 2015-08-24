@@ -28,7 +28,7 @@ class CComputeSides
     unsigned                   _workGroupSize;
     unsigned                   _maxMult;
     unsigned                   _nofEdges;
-    ge::gl::CommandList*       _computeList;
+    ge::core::CommandList*       _computeList;
     unsigned                   _lightUniformCommand;
     unsigned                   _mvpUniformCommand  ;
   public:
