@@ -13,7 +13,6 @@ class CubeNavyMapping: public simulation::SimulationObject, public ShadowMethod
     ge::gl::FramebufferObject* _shadowMaskFBO    = NULL;
     ge::gl::ProgramObject*     _createShadowMask = NULL;
     ge::gl::TextureObject*     _shadowMap        = NULL;
-    ge::gl::FramebufferObject* _fbo[6]           ={NULL,NULL,NULL,NULL,NULL,NULL};
     ge::gl::VertexArrayObject* _emptyVAO         = NULL;
 
     ge::gl::TextureObject*_desiredView[6] = {NULL,NULL,NULL,NULL,NULL,NULL};
@@ -24,7 +23,6 @@ class CubeNavyMapping: public simulation::SimulationObject, public ShadowMethod
 
     glm::mat4                  _lightProjection;
     glm::mat4                  _lightView[6];
-    glm::mat4                  _bpv[6];
     DEF_UPDATEDATA(CubeNavyMapping);
   public:
     void createShadowMap();

@@ -8,8 +8,9 @@
 #include"../../app/fastAdjacency.h"
 #include"../../simulationData/SimulationData.h"
 
-#include<geGL/UniformCommands.h>
-#include<geGL/ProgramCommands.h>
+#include<geCore/Command.h>
+//#include<geGL/UniformCommands.h>
+//#include<geGL/ProgramCommands.h>
 
 #include"shaderdir.hpp"
 

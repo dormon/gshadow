@@ -39,8 +39,8 @@ using namespace std;
 
 #include<geGL/geGL.h>
 #include<geCore/geCore.h>
-#include<geGL/UniformCommands.h>
-#include<geGL/ProgramCommands.h>
+//#include<geGL/UniformCommands.h>
+//#include<geGL/ProgramCommands.h>
 
 #include<geUtil/WindowObject.h>
 #include<geUtil/ArgumentObject.h>

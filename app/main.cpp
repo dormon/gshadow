@@ -234,7 +234,7 @@ enum ESSMethod{
   SS_TS,
   SS_SINTORN,
   SS_NO
-}SSMethod=SS_NAVYMAPPING,LastSSMethod=SS_NAVYMAPPING;
+}SSMethod=SS_CUBENAVYMAPPING,LastSSMethod=SS_CUBENAVYMAPPING;
 
 bool DSDrawLightSilhouette = false;
 bool DSDrawViewSilhouette  = false;
@@ -295,7 +295,7 @@ int main(int Argc,char*Argv[]){
   //ModelFile          = Args->getArg("-m","/home/dormon/Desktop/conference/conference.obj");
   //ModelFile          = Args->getArg("-m","/media/data/models/Sponza/sponza.obj");
   //ModelFile          = Args->getArg("-m","/media/data/models/sibenik/sibenik.obj");
-  //ModelFile          = Args->getArg("-m","/media/data/models/conference_corrected/conference.obj");
+  //ModelFile          = Args->getArg("-m","/data/models/conference_corrected/conference.obj");
   //ModelFile          = Args->getArg("-m","/media/data/models/lost_empire/lost_empire.obj");
   //ModelFile          = Args->getArg("-m","/home/dormon/Desktop/hairball.obj");
 

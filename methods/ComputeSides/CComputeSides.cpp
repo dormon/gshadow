@@ -1,9 +1,9 @@
 #include"CComputeSides.hpp"
 #include"../../app/fastAdjacency.h"
 
-#include<geGL/UniformCommands.h>
-#include<geGL/ProgramCommands.h>
-#include<geGL/BufferCommands.h>
+//#include<geGL/UniformCommands.h>
+//#include<geGL/ProgramCommands.h>
+//#include<geGL/BufferCommands.h>
 
 CComputeSides::CComputeSides(Adjacency*ad,
     unsigned WorkGroupSize,bool CullSides){

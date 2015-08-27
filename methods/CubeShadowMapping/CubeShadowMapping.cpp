@@ -10,6 +10,7 @@
 #undef CLASSNAME
 #define CLASSNAME CubeShadowMapping
 #include"../ShadowMethodMacro.h"
+#include"createCubeShadowMapTexture.h"
 
 DEFVARSSTART
   "shaderDirectory",
@@ -80,25 +81,9 @@ void CubeShadowMapping::_createShadowMaskFBO(){
 
 
 void CubeShadowMapping::_computeMatrices(){
-  //table 8.19
-  //{x,y,z}
-  const float axes[]={
-    +0,+0,+1, +0,-1,+0, +1,+0,+0,
-    +0,+0,-1, +0,-1,+0, -1,+0,+0,
-    +1,+0,+0, +0,+0,+1, +0,-1,+0,
-    +1,+0,+0, +0,+0,-1, +0,+1,+0,
-    -1,+0,+0, +0,-1,+0, +0,+0,+1,
-    +1,+0,+0, +0,-1,+0, +0,+0,-1, 
-  };
-
-  this->_lightProjection=glm::perspective(glm::pi<float>()/2.f,1.f,GETFLOAT(NEAR),GETFLOAT(FAR));
-  for(unsigned side=0;side<6u;++side){
-    this->_lightView[side]=glm::mat4(1.f);
-    for(unsigned axis=0;axis<3;++axis)
-      for(unsigned k=0;k<3;++k)
-        this->_lightView[side][axis][k]=axes[(side*3+axis)*3+k];
+  computeCubeMapViewProjection(this->_lightProjection,this->_lightView,GETFLOAT(NEAR),GETFLOAT(FAR));
+  for(unsigned side=0;side<6u;++side)
     this->_bpv[side]=biasMatrix()*this->_lightProjection*this->_lightView[side];
-  }
 }
 
 
@@ -129,29 +114,8 @@ CubeShadowMapping::~CubeShadowMapping(){
 
 void CubeShadowMapping::_createShadowMap(){
   if(this->_shadowMap)delete this->_shadowMap;
-  this->_shadowMap = new ge::gl::TextureObject(
-      GL_TEXTURE_CUBE_MAP,
-      GL_DEPTH_COMPONENT24,
-      1,
-      GETUINT(RESOLUTION),
-      GETUINT(RESOLUTION));
-  float ones[]={1,1,1,1};
-  this->_shadowMap->texParameteri (GL_TEXTURE_MIN_FILTER  ,GL_NEAREST             );
-  this->_shadowMap->texParameteri (GL_TEXTURE_MAG_FILTER  ,GL_NEAREST             );
-  this->_shadowMap->texParameteri (GL_TEXTURE_WRAP_S      ,GL_CLAMP_TO_BORDER     );
-  this->_shadowMap->texParameteri (GL_TEXTURE_WRAP_T      ,GL_CLAMP_TO_BORDER     );
-  this->_shadowMap->texParameteri (GL_TEXTURE_COMPARE_FUNC,GL_LEQUAL              );
-  this->_shadowMap->texParameteri (GL_TEXTURE_COMPARE_MODE,GL_COMPARE_R_TO_TEXTURE);
-  this->_shadowMap->texParameterfv(GL_TEXTURE_BORDER_COLOR,ones                   );
+  this->_shadowMap = createCubeShadowMapTexture(GETUINT(RESOLUTION));
 
-  GLenum cubeMapSides[]={
-    GL_TEXTURE_CUBE_MAP_NEGATIVE_X,
-    GL_TEXTURE_CUBE_MAP_POSITIVE_X,
-    GL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
-    GL_TEXTURE_CUBE_MAP_POSITIVE_Y,
-    GL_TEXTURE_CUBE_MAP_NEGATIVE_Z,
-    GL_TEXTURE_CUBE_MAP_POSITIVE_Z
-  };
   for(unsigned side=0;side<6u;++side){
     if(!this->_fbo[side])this->_fbo[side]=new ge::gl::FramebufferObject();
     //TODO po oprave gpu engine predelat
@@ -159,7 +123,7 @@ void CubeShadowMapping::_createShadowMap(){
     glFramebufferTexture2D(
         GL_FRAMEBUFFER,
         GL_DEPTH_ATTACHMENT,
-        cubeMapSides[side],
+        id2CubeMapSide(side),
         this->_shadowMap->getId(),
         0);
     this->_fbo[side]->unbind();
