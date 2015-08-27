@@ -1,8 +1,12 @@
 #version 440 core
 
 layout(quads,equal_spacing)in;
+layout(binding=2)uniform sampler2D desiredView;
+layout(binding=3)uniform sampler2D smoothX;
+layout(binding=4)uniform sampler2D smoothY;
+
 
 void main(){
   vec4 clip=vec4(gl_TessCoord.xy*2-1,-1,1);
-  gl_Position=nv_getFinal(clip);
+  gl_Position=nv_getFinal(clip,desiredView,smoothX,smoothY);
 }

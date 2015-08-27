@@ -69,6 +69,7 @@ CVertexCaps       *VertexCaps        = NULL;
 CShadowMapping    *Shadowmapping     = NULL;
 NavyMapping       *navyMapping       = NULL;
 CubeShadowMapping *cubeShadowMapping = NULL;
+CubeNavyMapping   *cubeNavyMapping   = NULL;
 RayTrace          *raytrace          = NULL;
 
 ComputeGeometry   *computeGeometry   = NULL;
@@ -226,13 +227,14 @@ enum ESSMethod{
   SS_VS,
   SS_SHADOWMAP,
   SS_CUBESHADOWMAP,
+  SS_CUBENAVYMAPPING,
   SS_RTW,
   SS_NAVYMAPPING,
   SS_RAYTRACE,
   SS_TS,
   SS_SINTORN,
   SS_NO
-}SSMethod=SS_CUBESHADOWMAP,LastSSMethod=SS_CUBESHADOWMAP;
+}SSMethod=SS_NAVYMAPPING,LastSSMethod=SS_NAVYMAPPING;
 
 bool DSDrawLightSilhouette = false;
 bool DSDrawViewSilhouette  = false;
@@ -349,6 +351,7 @@ int main(int Argc,char*Argv[]){
   else if(MethodString=="rtw"              )TestParam.Method = SS_RTW;
   else if(MethodString=="nm"               )TestParam.Method = SS_NAVYMAPPING;
   else if(MethodString=="cm"               )TestParam.Method = SS_CUBESHADOWMAP;
+  else if(MethodString=="cn"               )TestParam.Method = SS_CUBENAVYMAPPING;
   else if(MethodString=="si"               )TestParam.Method = SS_SINTORN;
   else if(MethodString=="ra"               )TestParam.Method = SS_RAYTRACE;
   else TestParam.Method=SS_NO;
@@ -527,6 +530,11 @@ void idle(){
         drawDiffuseSpecular(true,lightConfiguration->getLight());
         ___;
         break;
+      case SS_CUBENAVYMAPPING:
+        mm=cubeNavyMapping;
+        mm->createShadowMask();
+        drawDiffuseSpecular(true,lightConfiguration->getLight());
+        break;
       case SS_RTW:
         mm=rtw;
         mm->createShadowMask();
@@ -651,14 +659,15 @@ void init(){
   TwAddVarRW(Bar,"Shadows",TW_TYPE_BOOLCPP,&SSEnable  ," help='Toggle shadows on.' "                    );
 
   TwEnumVal MethodDef[]={
-    {SS_COMPUTE      ,"compute"                            },
-    {SS_SHADOWMAP    ,"shadowmapping"                      },
-    {SS_CUBESHADOWMAP,"cubeShadowMapping"                  },
-    {SS_RTW          ,"rtv"                                },
-    {SS_NAVYMAPPING  ,"ours"                               },
-    {SS_TS           ,"Tessellation Shader Silhouette Edge"},
-    {SS_RAYTRACE     ,"raytrace"                           },
-    {SS_NO           ,"No shadows"                         }
+    {SS_COMPUTE        ,"compute"                            },
+    {SS_SHADOWMAP      ,"shadowmapping"                      },
+    {SS_CUBESHADOWMAP  ,"cubeShadowMapping"                  },
+    {SS_CUBENAVYMAPPING,"cubeNavyMapping"                    },
+    {SS_RTW            ,"rtv"                                },
+    {SS_NAVYMAPPING    ,"ours"                               },
+    {SS_TS             ,"Tessellation Shader Silhouette Edge"},
+    {SS_RAYTRACE       ,"raytrace"                           },
+    {SS_NO             ,"No shadows"                         }
   };
   TwType MethodType=TwDefineEnum("SS mode",MethodDef,sizeof(MethodDef)/sizeof(TwEnumVal));
   TwAddVarRW(Bar,"Method",MethodType,&SSMethod,
@@ -736,6 +745,7 @@ void init(){
   navyMapping       = new NavyMapping(simData);
   Shadowmapping     = new CShadowMapping(simData);
   cubeShadowMapping = new CubeShadowMapping(simData);
+  cubeNavyMapping   = new CubeNavyMapping(simData);
   rtw               = new RTWBack(simData);
   computeGeometry   = new ComputeGeometry(simData);
 

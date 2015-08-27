@@ -13,6 +13,11 @@ layout(local_size_x=WORKGROUP_SIZE_X,local_size_y=WORKGROUP_SIZE_Y)in;
 layout(rg32f  ,binding=0)uniform  image2D viewSamples;
 layout(r32ui  ,binding=1)uniform uimage2D countMap;
 
+layout(binding=2)uniform sampler2D desiredView;
+layout(binding=3)uniform sampler2D smoothX;
+layout(binding=4)uniform sampler2D smoothY;
+
+
 uniform uint  shadowMapSize=512u;
 uniform uvec2 windowSize=uvec2(1024u,1024u);
 
@@ -23,8 +28,8 @@ uniform uvec2 windowSize=uvec2(1024u,1024u);
 void main(){
   if(any(greaterThanEqual(COORD,windowSize)))return;
   vec2 normCoord=imageLoad(viewSamples,ivec2(COORD)).xy;
-  normCoord=nv_Dv(normCoord);
-  normCoord=unwarpX(normCoord);
+  normCoord=nv_Dv(normCoord,desiredView);
+  normCoord=unwarpX(normCoord,smoothX);
   uvec2 texelCoord=uvec2(normCoord*shadowMapSize);
   imageAtomicAdd(countMap,ivec2(texelCoord.yx),1);
 }

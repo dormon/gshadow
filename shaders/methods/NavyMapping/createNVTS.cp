@@ -2,6 +2,10 @@
 
 layout(vertices=3)out;
 
+layout(binding=2)uniform sampler2D desiredView;
+layout(binding=3)uniform sampler2D smoothX;
+layout(binding=4)uniform sampler2D smoothY;
+
 uniform uint tessFactor=32u;
 
 uniform bool cullTriangles=false;
@@ -30,9 +34,9 @@ void main(){
   gl_out[gl_InvocationID].gl_Position=gl_in[gl_InvocationID].gl_Position;
 
   if(gl_InvocationID==0){
-    vec4 clipA=nv_getFinal(gl_in[0].gl_Position);
-    vec4 clipB=nv_getFinal(gl_in[1].gl_Position);
-    vec4 clipC=nv_getFinal(gl_in[2].gl_Position);
+    vec4 clipA=nv_getFinal(gl_in[0].gl_Position,desiredView,smoothX,smoothY);
+    vec4 clipB=nv_getFinal(gl_in[1].gl_Position,desiredView,smoothX,smoothY);
+    vec4 clipC=nv_getFinal(gl_in[2].gl_Position,desiredView,smoothX,smoothY);
     /*
     clipA = gl_in[0].gl_Position;
     clipB = gl_in[1].gl_Position;
