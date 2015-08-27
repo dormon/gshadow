@@ -11,7 +11,7 @@ vec2 unwarpY(vec2 coord,sampler2D smoothYTexture){
 uniform bool useWarping=true;
 
 vec4 nv_getFinal(vec4 clip,sampler2D minmaxTexture,sampler2D smoothXTexture,sampler2D smoothYTexture){
-  return clip;
+  //return clip;
   vec2 coord=clip.xy/clip.w*.5+.5;
   coord=nv_Dv(coord,minmaxTexture);
   if(useWarping){

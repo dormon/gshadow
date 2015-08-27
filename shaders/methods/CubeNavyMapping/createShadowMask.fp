@@ -102,7 +102,7 @@ vec4 dir2WarpedShadowCoord(vec3 dir){
 
 void main(){
   vec3 dir=viewSamplePosition-lightPosition.xyz;
-  //fColor=texture(shadowMap,dir2WarpedShadowCoord(dir)).x;
-  fColor=texture(shadowMap,vec4(dir,computeDepth(dir))).x;
+  fColor=texture(shadowMap,dir2WarpedShadowCoord(dir)).x;
+  //fColor=texture(shadowMap,vec4(dir,computeDepth(dir))).x;
 }
 

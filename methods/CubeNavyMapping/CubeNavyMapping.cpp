@@ -165,7 +165,7 @@ void CubeNavyMapping::_createShadowMap(){
 
 void CubeNavyMapping::createShadowMap(){
   for(unsigned i=0;i<6;++i){
-    if(i!=3)continue;
+    //if(i!=3)continue;
     glm::mat4 mvp=this->_lightProjection*this->_lightView[i]*glm::translate(glm::mat4(1.0f),-glm::vec3(GETLIGHT->position));
     this->_createWarping->setPosition   (GETTEXTURE(GBUFFER_POSITION));
     this->_createWarping->setMvp        (glm::value_ptr(mvp)         );

@@ -1,5 +1,5 @@
 vec2 nv_Dv(vec2 coord,sampler2D minmaxTexture){
-  return coord;
+  //return coord;
   vec4 mm=texelFetch(minmaxTexture,ivec2(0),0);
   coord.x=(coord.x-mm.x)/(mm.y-mm.x);
   coord.y=(coord.y-mm.z)/(mm.w-mm.z);
