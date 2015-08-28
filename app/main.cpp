@@ -288,7 +288,9 @@ int main(int Argc,char*Argv[]){
 
   Args=new ge::util::ArgumentObject(Argc,Argv);
 
-  ModelFile          = Args->getArg("-m","models/o/o.3ds");
+  //ModelFile          = Args->getArg("-m","models/o/o.3ds");
+  //ModelFile          = Args->getArg("-m","models/bunny/bunny.obj");
+  ModelFile          = Args->getArg("-m","models/robots/robots.obj");
   //ModelFile          = Args->getArg("-m","/home/dormon/Desktop/lost_empire/lost_empire.obj");
   //ModelFile          = Args->getArg("-m","/home/dormon/Desktop/sponza/sponza.obj");
   //ModelFile          = Args->getArg("-m","/home/dormon/Desktop/san-miguel/san-miguel.obj");

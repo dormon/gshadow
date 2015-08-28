@@ -164,8 +164,22 @@ void CubeNavyMapping::_createShadowMap(){
 }
 
 void CubeNavyMapping::createShadowMap(){
+  
+  ge::gl::FramebufferObject*fbo=new ge::gl::FramebufferObject();
   for(unsigned i=0;i<6;++i){
-    //if(i!=3)continue;
+    fbo->bind();
+    glFramebufferTexture2D(
+        GL_FRAMEBUFFER,
+        GL_DEPTH_ATTACHMENT,
+        id2CubeMapSide(i),
+        this->_shadowMap->getId(),
+        0);
+    glClear(GL_DEPTH_BUFFER_BIT);
+    fbo->unbind();
+  }
+  delete fbo;
+  
+  for(unsigned i=0;i<6;++i){
     glm::mat4 mvp=this->_lightProjection*this->_lightView[i]*glm::translate(glm::mat4(1.0f),-glm::vec3(GETLIGHT->position));
     this->_createWarping->setPosition   (GETTEXTURE(GBUFFER_POSITION));
     this->_createWarping->setMvp        (glm::value_ptr(mvp)         );
@@ -176,22 +190,22 @@ void CubeNavyMapping::createShadowMap(){
     this->_createWarping->setFastSmooth (GETBOOL(USE_FAST_SMOOTH)    );
     this->_createWarping->setSmoothX    (this->_smoothX[i]           );
     this->_createWarping->setSmoothY    (this->_smoothY[i]           );
-    
+
     /*
-    this->_createWarping->setMeasureComputeViewSamples(GETGPUGAUGE(MEASURE_CVS       ));
-    this->_createWarping->setMeasureCreateDesiredView (GETGPUGAUGE(MEASURE_DV        ));
-    this->_createWarping->setMeasureWholeWarp         (GETGPUGAUGE(MEASURE_WHOLEWARP ));
-    this->_createWarping->setMeasureCountMap          (GETGPUGAUGE(MEASURE_COUNTMAP  ));
-    this->_createWarping->setMeasureWholeX            (GETGPUGAUGE(MEASURE_WHOLEX    ));
-    this->_createWarping->setMeasureUnwarpX           (GETGPUGAUGE(MEASURE_UNWARPX   ));
-    this->_createWarping->setMeasureWholeY            (GETGPUGAUGE(MEASURE_WHOLEY    ));
-    this->_createWarping->setMeasureIntegrateX        (GETGPUGAUGE(MEASURE_INTEGRATEX));
-    this->_createWarping->setMeasureOffsetX           (GETGPUGAUGE(MEASURE_OFFSETX   ));
-    this->_createWarping->setMeasureSmoothX           (GETGPUGAUGE(MEASURE_SMOOTHX   ));
-    this->_createWarping->setMeasureIntegrateY        (GETGPUGAUGE(MEASURE_INTEGRATEY));
-    this->_createWarping->setMeasureOffsetY           (GETGPUGAUGE(MEASURE_OFFSETY   ));
-    this->_createWarping->setMeasureSmoothY           (GETGPUGAUGE(MEASURE_SMOOTHY   ));
-    */
+       this->_createWarping->setMeasureComputeViewSamples(GETGPUGAUGE(MEASURE_CVS       ));
+       this->_createWarping->setMeasureCreateDesiredView (GETGPUGAUGE(MEASURE_DV        ));
+       this->_createWarping->setMeasureWholeWarp         (GETGPUGAUGE(MEASURE_WHOLEWARP ));
+       this->_createWarping->setMeasureCountMap          (GETGPUGAUGE(MEASURE_COUNTMAP  ));
+       this->_createWarping->setMeasureWholeX            (GETGPUGAUGE(MEASURE_WHOLEX    ));
+       this->_createWarping->setMeasureUnwarpX           (GETGPUGAUGE(MEASURE_UNWARPX   ));
+       this->_createWarping->setMeasureWholeY            (GETGPUGAUGE(MEASURE_WHOLEY    ));
+       this->_createWarping->setMeasureIntegrateX        (GETGPUGAUGE(MEASURE_INTEGRATEX));
+       this->_createWarping->setMeasureOffsetX           (GETGPUGAUGE(MEASURE_OFFSETX   ));
+       this->_createWarping->setMeasureSmoothX           (GETGPUGAUGE(MEASURE_SMOOTHX   ));
+       this->_createWarping->setMeasureIntegrateY        (GETGPUGAUGE(MEASURE_INTEGRATEY));
+       this->_createWarping->setMeasureOffsetY           (GETGPUGAUGE(MEASURE_OFFSETY   ));
+       this->_createWarping->setMeasureSmoothY           (GETGPUGAUGE(MEASURE_SMOOTHY   ));
+       */
     (*this->_createWarping)();
 
     this->_createNavyShadowMap->setShadowMap          (this->_shadowMap,id2CubeMapSide(i));
@@ -209,11 +223,11 @@ void CubeNavyMapping::createShadowMap(){
     (*this->_createNavyShadowMap)();
   }
   /*
-  float data[4];
-  for(unsigned i=0;i<6;++i){
-    glGetTextureImage(this->_desiredView[i]->getId(),0,GL_RGBA,GL_FLOAT,sizeof(float)*4,data);
-    std::cerr<<"face"<<i<<": "<<data[0]<<" - "<<data[1]<<" "<<data[2]<<" - "<<data[3]<<std::endl;
-  }*/
+     float data[4];
+     for(unsigned i=0;i<6;++i){
+     glGetTextureImage(this->_desiredView[i]->getId(),0,GL_RGBA,GL_FLOAT,sizeof(float)*4,data);
+     std::cerr<<"face"<<i<<": "<<data[0]<<" - "<<data[1]<<" "<<data[2]<<" - "<<data[3]<<std::endl;
+     }*/
 
 }
 

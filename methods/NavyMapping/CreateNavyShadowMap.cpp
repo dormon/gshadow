@@ -97,9 +97,6 @@ void CreateNavyShadowMap::setFactor(float factor){
 }
 
 void CreateNavyShadowMap::operator()(){
-    glFinish();
-    glMemoryBarrier(GL_ALL_BARRIER_BITS);
-
   this->_program->use();
   this->_program->set("mvp",1,GL_FALSE,this->_mvp          );
   this->_program->set("shadowMapSize" ,this->_resolution   );
@@ -118,8 +115,8 @@ void CreateNavyShadowMap::operator()(){
   glEnable(GL_DEPTH_TEST);
   glDepthFunc(GL_LESS);
   glDepthMask(GL_TRUE);
-  //glClear(GL_DEPTH_BUFFER_BIT);
-  glClearNamedFramebufferfi(this->_fbo->getId(),GL_DEPTH_STENCIL,1,0);
+  glClear(GL_DEPTH_BUFFER_BIT);
+  //glClearNamedFramebufferfi(this->_fbo->getId(),GL_DEPTH_STENCIL,1,0);
 
   glEnable(GL_POLYGON_OFFSET_FILL);
   glPolygonOffset(this->_polygonOffsetFactor,this->_polygonOffsetUnits);
