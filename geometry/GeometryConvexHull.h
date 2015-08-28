@@ -3,6 +3,7 @@
 #include"GeometryPoint.h"
 #include"GeometryPlane.h"
 
+/*
 namespace geom{
   class ConvexHull{
     protected:
@@ -20,3 +21,4 @@ namespace geom{
       std::set<Plane>::iterator getPlanar()const;
   };
 }
+*/

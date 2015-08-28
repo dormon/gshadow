@@ -1,7 +1,8 @@
 #include"GeometryConvexHull.h"
-
+#include <algorithm>
 using namespace geom;
 
+/*
 void ConvexHull::_createUsingCorners(glm::vec3 p[8]){
   Point points[8];
   Plane planes[6];
@@ -94,6 +95,32 @@ ConvexHull::ConvexHull(ConvexHull const&a,ConvexHull const&b){
     for(auto x:hulls[1-i]._points)
       if(hulls[i].inside(x))this->_points.insert(x);
 
+  typedef std::set<Plane>::iterator iter;
+
+  for(unsigned h=0;h<2;++h)
+    for(iter i=hulls[h]._planes.begin();i!=hulls[h]._planes.end();++i){
+      iter j=i;++j;
+      for(;j!=hulls[h]._planes.end();++j)
+        for(iter k=hulls[1-h]._planes.begin();k!=hulls[1-h]._planes.end();++k){
+          Point newPoint=Point(*i,*j,*k);
+          bool insert=true;
+          for(unsigned f=0;f<2;++f){
+            bool inFrontOf=true;
+            for(auto x:hulls[f]._planes)
+              if(x.behind(newPoint)){
+                inFrontOf=false;
+                break;
+              }
+            if(!inFrontOf){
+              insert=false;
+              break;
+            }
+          }
+          if(!insert)continue;
+          this->_points.insert(newPoint);
+        }
+    }
+
   for(unsigned i=0;i<2;++i)
     for(auto x:hulls[i]._planes){
       bool insert=false;
@@ -111,6 +138,11 @@ ConvexHull::ConvexHull(ConvexHull const&a,ConvexHull const&b){
         x.add(y);
         y.add(x);
       }
+
+  if(this->getPlanar()!=this->_planes.end()){
+    this->_planes.clear();
+    this->_points.clear();
+  }
 }
 
 ConvexHull::ConvexHull(ConvexHull const&hull,Point const&point){
@@ -150,7 +182,6 @@ ConvexHull::ConvexHull(ConvexHull const&hull,Point const&point){
   std::vector<iter>loop;
   loop.push_back(curIndex);
 
-  std::set<int>asd;
   for(;;){
     bool stop=true;
     iter next;
@@ -174,6 +205,13 @@ ConvexHull::ConvexHull(ConvexHull const&hull,Point const&point){
     if(stop)break;
   }
   Point center=hull.center();
+  if(!Plane(loop[0]->first,loop[1]->first,point).inFront(center))
+    std::reverse(loop.begin(),loop.end());
+  for(unsigned i=0;i<loop.size();++i){
+    Plane newPlane=Plane(loop[i]->first,loop[(i+1)%loop.size()]->first,point);
+
+  }
+    
 
 
 }
@@ -206,3 +244,5 @@ std::set<Plane>::iterator ConvexHull::getPlanar()const{
   }
   return this->_planes.end();
 }
+
+*/
