@@ -16,16 +16,17 @@ namespace geom{
       Point(const float*data);
       Point(glm::vec3 point);
       Point(Plane const&a,Plane const&b,Plane const&c);
-      int  relation(Point const&other);
+      int  relation  (Point const&other)const;
       bool operator< (Point const&other)const;
       bool operator==(Point const&other)const;
       bool operator<=(Point const&other)const;
       bool operator> (Point const&other)const;
       bool operator>=(Point const&other)const;
-      bool inFront( Plane const&plane)const;
-      bool behind  (Plane const&plane)const;
-      bool in      (Plane const&plane)const;
-      void addPlane(Plane const&plane)const;
+      bool inFront    (Plane const&plane)const;
+      bool behind     (Plane const&plane)const;
+      bool on         (Plane const&plane)const;
+      bool inFrontOrOn(Plane const&plane)const;
+      void addPlane(Plane const&plane);
       void add(){}
       template<typename... ARGS>
       void add(Plane const&plane,ARGS...args){

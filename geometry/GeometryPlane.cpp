@@ -19,6 +19,14 @@ Plane::Plane(glm::vec4 vec){
     (*this)[i]=vec[i];
 }
 
+Plane::Plane(Plane const&plane,Point const&point){
+  this->x = point.x;
+  this->y = point.y;
+  this->z = point.z;
+  this->w = -glm::dot(glm::vec3((glm::vec4)(*this)),(glm::vec3)point);
+  this->add(point);
+}
+
 Plane::Plane(Point const&A,Point const&B,Point const&C){
   Point a=A;
   Point b=B;
@@ -41,7 +49,7 @@ Plane::Plane(Point const&A,Point const&B,Point const&C){
   this->_points.insert(c);
 }
 
-int  Plane::relation(Plane const&other){
+int  Plane::relation(Plane const&other)const{
   for(unsigned i=0;i<4;++i){
     if((*this)[i]<other[i])return -1;
     if((*this)[i]>other[i])return +1;
@@ -70,18 +78,25 @@ bool Plane::operator>=(Plane const&other)const{
 }
 
 bool Plane::inFront(Point const&point)const{
+  if(this->_points.find(point)!=this->_points.end())return false;
   return glm::dot(glm::vec4(*this),glm::vec4(glm::vec3(point),1))>0;
 }
 
 bool Plane::behind (Point const&point)const{
+  if(this->_points.find(point)!=this->_points.end())return false;
   return glm::dot(glm::vec4(*this),glm::vec4(glm::vec3(point),1))<0;
 }
 
-bool Plane::in     (Point const&point)const{
+bool Plane::on     (Point const&point)const{
   if(this->_points.find(point)!=this->_points.end())return true;
   return glm::dot(glm::vec4(*this),glm::vec4(glm::vec3(point),1))==0;
 }
 
-void Plane::addPoint(Point const&point)const{
+bool Plane::inFrontOrOn(Point const&point)const{
+  if(this->_points.find(point)!=this->_points.end())return true;
+  return glm::dot(glm::vec4(*this),glm::vec4(glm::vec3(point),1))>=0;
+}
+
+void Plane::addPoint(Point const&point){
   ((Plane*)this)->_points.insert(point);
 }

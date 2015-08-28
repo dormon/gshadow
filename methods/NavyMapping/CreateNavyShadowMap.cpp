@@ -31,13 +31,15 @@ CreateNavyShadowMap::~CreateNavyShadowMap(){
 }
 
 void CreateNavyShadowMap::setShadowMap(ge::gl::TextureObject*shadowMap,GLenum target){
+  /*
   glNamedFramebufferTextureLayer(
       this->_fbo->getId(),
       GL_DEPTH_ATTACHMENT,
       shadowMap->getId(),
       0,
       target-GL_TEXTURE_CUBE_MAP_POSITIVE_X);
-  /*
+   //   */
+  //*
   this->_fbo->bind();
   glFramebufferTexture2D(
       GL_FRAMEBUFFER,
@@ -46,7 +48,7 @@ void CreateNavyShadowMap::setShadowMap(ge::gl::TextureObject*shadowMap,GLenum ta
       shadowMap->getId(),
       0);
   this->_fbo->unbind();
-  */
+  
   if(!this->_fbo->check())std::cerr<<"framebuffer je divny!!!!!!"<<std::endl;
 }
 

@@ -72,7 +72,7 @@ vec4 dir2Clip(vec3 dir,int major){
 }
 
 vec4 desiredViewAndWarp(vec4 clip,int major){
-  return nv_getFinal(clip,desiredView[major],smoothX[major],smoothY[major]);
+  //return nv_getFinal(clip,desiredView[major],smoothX[major],smoothY[major]);
   //return clip;
   if(major==0)return nv_getFinal(clip,desiredView[0],smoothX[0],smoothY[0]);
   if(major==1)return nv_getFinal(clip,desiredView[1],smoothX[1],smoothY[1]);

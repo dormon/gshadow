@@ -55,7 +55,7 @@ Point::Point(Plane const&A,Plane const&B,Plane const&C){
   this->_planes.insert(c);
 }
 
-int  Point::relation(Point const&other){
+int  Point::relation(Point const&other)const{
   for(unsigned i=0;i<3;++i){
     if((*this)[i]<other[i])return -1;
     if((*this)[i]>other[i])return +1;
@@ -91,11 +91,16 @@ bool Point::behind (Plane const&plane)const{
   return plane.behind(*this);
 }
 
-bool Point::in     (Plane const&plane)const{
+bool Point::on     (Plane const&plane)const{
   if(this->_planes.find(plane)!=this->_planes.end())return true;
-  return plane.in(*this);
+  return plane.on(*this);
 }
 
-void Point::addPlane(Plane const&plane)const{
+bool Point::inFrontOrOn(Plane const&plane)const{
+  if(this->_planes.find(plane)!=this->_planes.end())return true;
+  return plane.inFrontOrOn(*this);
+}
+
+void Point::addPlane(Plane const&plane){
   ((Point*)this)->_planes.insert(plane);
 }
