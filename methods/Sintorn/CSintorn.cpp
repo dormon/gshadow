@@ -656,7 +656,7 @@ void CSintorn::Merge(){
   this->MergeProgram->set("TileDivisibility",this->NumLevels,this->TileDivisibility);
   this->MergeProgram->set("TileSizeInPixels",this->NumLevels,this->TileSizeInPixels);
 
-  GLsync Sync;
+  GLsync Sync=0;
   for(unsigned l=0;l<this->NumLevels
       /*
       -1
@@ -724,7 +724,7 @@ void CSintorn::MergeTexture(){
   this->MergeTextureProgram->use();
   this->MergeTextureProgram->set("WindowSize",1,this->WindowSize);
 
-  GLsync Sync;
+  GLsync Sync=0;
   for(unsigned l=0;l<this->NumLevels-1;++l){
     this->MergeTextureProgram->set("DstTileSizeInPixels",1,this->TileSizeInPixels+l*2);
     this->MergeTextureProgram->set("DstTileDivisibility",1,this->TileDivisibility+l*2);

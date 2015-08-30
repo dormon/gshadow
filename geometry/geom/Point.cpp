@@ -1,9 +1,14 @@
 #include"Point.h"
 #include<algorithm>
+#include"PointCreator.h"
+#include"PlaneCreator.h"
+#include"PlaneCreatorEqPointCreator.h"
+#include"creators/ThreePlanes.h"
+
+#include<sstream>
+#include<geCore/dtemplates.h>
 
 using namespace geom;
-
-
 
 Point::Point(float x,float y,float z){
   this->x = x;
@@ -55,10 +60,46 @@ Point::Point(Plane const&A,Plane const&B,Plane const&C){
   this->x=result.x/dt;
   this->y=result.y/dt;
   this->z=result.z/dt;
+  this->_creator = new ThreePlanes(a,b,c,*this);
+}
+
+Point::Point(Point const&point){
+  this->x = point.x;
+  this->y = point.y;
+  this->z = point.z;
+  this->_planes = point._planes;
+  if(point._creator)this->_creator = point._creator->clone();
+  else this->_creator = nullptr;
+}
+
+Point&Point::operator=(Point const&point){
+  this->~Point();
+  this->x = point.x;
+  this->y = point.y;
+  this->z = point.z;
+  this->_planes = point._planes;
+  if(point._creator)this->_creator = point._creator->clone();
+  else this->_creator = nullptr;
+  return *this;
+}
+
+Point::~Point(){
+  delete this->_creator;
+  this->_planes.clear();
 }
 
 PointCreator*Point::getCreator()const{
   return this->_creator;
+}
+
+Point Point::cloneWithoutCreator()const{
+  Point point;
+  point.x = this->x;
+  point.y = this->y;
+  point.z = this->z;
+  point._planes = this->_planes;
+  point._creator = nullptr;
+  return point;
 }
 
 int  Point::relation(Point const&other)const{
@@ -70,54 +111,96 @@ int  Point::relation(Point const&other)const{
 }
 
 int  Point::relation  (Plane const&plane)const{
-  return int(glm::sign(glm::dot(glm::vec4(plane),glm::vec4(glm::vec3(*this),1.f))));
-}
-
-bool Point::operator<(Point const&other)const{
-  return ((Point*)this)->relation(other)<0;
+  return int(glm::sign(glm::dot((glm::vec4)(plane),glm::vec4((glm::vec3)(*this),1.f))));
 }
 
 bool Point::operator==(Point const&other)const{
-  if(this->_creator){
-    if(other._creator){
-      return *this->_creator==*other._creator;
-    }else{
-      return *this->_creator==other;
-    }
-  }else{
-    if(other._creator){
-      return *other._creator==*this;
-    }else{
-      return ((Point*)this)->relation(other)==0;
-    }
+  if(this->relation(other)==0)return true;
+  unsigned nofMyPlanesOnOther=0;
+  for(auto x:this->_planes){
+    if(other==x)nofMyPlanesOnOther++;
+    if(nofMyPlanesOnOther==3)return true;
   }
+  unsigned nofOtherPlanesOnMe=0;
+  for(auto x:other._planes){
+    if(*this==x)nofOtherPlanesOnMe++;
+    if(nofOtherPlanesOnMe==3)return true;
+  }
+  if(this->getCreator()){
+    if(other.getCreator())return *this->getCreator()==*other.getCreator();
+    else return *this->getCreator()==other;
+  }else if(other.getCreator())return *other.getCreator()==*this;
+  return false;
 }
 
-bool Point::operator<=(Point const&other)const{
-  return ((Point*)this)->relation(other)<=0;
+bool Point::operator<(Point const&other)const{
+  if(*this==other)return false;
+  return this->relation(other)<0;
 }
 
 bool Point::operator>(Point const&other)const{
-  return ((Point*)this)->relation(other)>0;
+  if(*this==other)return false;
+  return this->relation(other)>0;
+}
+
+bool Point::operator<=(Point const&other)const{
+  if(*this==other)return true;
+  return this->relation(other)<=0;
 }
 
 bool Point::operator>=(Point const&other)const{
-  return ((Point*)this)->relation(other)>=0;
+  if(*this==other)return true;
+  return this->relation(other)>=0;
+}
+
+bool Point::operator!=(Point const&other)const{
+  return !(*this==other);
 }
 
 bool Point::operator==(Plane const&plane)const{
+  if(this->relation(plane)==0)return true;
+  if(this->_planes.find(plane)!=this->_planes.end())return true;
   if(this->getCreator()){
-    if(plane.getCreator()){
-      return false;//TODO
-    }else{
-      return *this->getCreator()==plane;
-    }
-  }else{
-    if(plane.getCreator()){
-      return *plane.getCreator()==*this;
-    }else{
-      return this->relation(plane)==0;
-    }
-  }
+    if(plane.getCreator())return *this->getCreator()==*plane.getCreator();
+    else return *this->getCreator()==plane;
+  }else if(plane.getCreator())return *plane.getCreator()==*this;
+  return false;
 }
 
+bool Point::operator< (Plane const&plane)const{
+  if(*this==plane)return false;
+  return this->relation(plane)<0;
+}
+
+bool Point::operator> (Plane const&plane)const{
+  if(*this==plane)return false;
+  return this->relation(plane)>0;
+}
+
+bool Point::operator<=(Plane const&plane)const{
+  if(*this==plane)return true;
+  return this->relation(plane)<=0;
+}
+
+bool Point::operator>=(Plane const&plane)const{
+  if(*this==plane)return true;
+  return this->relation(plane)>=0;
+}
+
+bool Point::operator!=(Plane const&plane)const{
+  return !(*this==plane);
+}
+
+bool Point::invalid()const{
+  return std::isnan(this->x)||std::isnan(this->y)||std::isnan(this->z);
+}
+
+std::string Point::toStr()const{
+  std::stringstream ss;
+  ss<<this->x<<" "<<this->y<<" "<<this->z;
+  return ss.str();
+}
+
+void Point::addPlane(Plane const&plane){
+  this->_planes.insert(plane);
+}

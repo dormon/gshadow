@@ -260,6 +260,14 @@ SSintornParam             SintornParam          ,SintornParamLast          ;
 simulation::SimulationData*simData=NULL;
 
 int main(int Argc,char*Argv[]){
+  geom::ConvexHull a(glm::vec3(0.f,0.f,0.f),glm::vec3(2.f,2.f,2.f));
+  //geom::ConvexHull b(glm::vec3(1.f,1.f,1.f),glm::vec3(3.f,3.f,3.f));
+  //geom::ConvexHull c(a,b);
+  geom::ConvexHull d(a,geom::Point(10.f,10.f,10.f));
+  return 0;
+
+
+
   //*
   ge::util::ArgumentLoader*argLoader=NULL;
   try{

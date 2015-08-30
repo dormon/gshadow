@@ -103,6 +103,8 @@ using namespace std;
 #include"../objectConfiguration/cameraPathConfiguration.h"
 #include"../objectConfiguration/SimDataConfiguration.h"
 
+#include"../geometry/geom/ConvexHull.h"
+
 #include"core.h"
 
 #define ILUT_USE_OPENGL

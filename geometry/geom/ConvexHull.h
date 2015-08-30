@@ -3,7 +3,6 @@
 #include"Point.h"
 #include"Plane.h"
 
-/*
 namespace geom{
   class ConvexHull{
     protected:
@@ -19,6 +18,7 @@ namespace geom{
       bool inside (Point const&a)const;
       Point center()const;
       std::set<Plane>::iterator getPlanar()const;
+      std::string toStr()const;
   };
 }
-*/
+

@@ -115,7 +115,7 @@ void VertexZPass::update(){
     BLIT_GAUGE
   };
 
-  unsigned var2Method[]={
+  static const unsigned var2Method[]={
   ADJACENCY                      ,SETBIT(DATA)|SETBIT(PROGRAM),
   SHADOWMASK                     ,SETBIT(FBO)                 ,
   MEASURE_STENCIL_DRAWSIDES      ,SETBIT(DRAWSIDE_GAUGE)      ,
