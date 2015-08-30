@@ -155,23 +155,22 @@ ConvexHull::ConvexHull(ConvexHull const&hull,Point const&point){
     this->_planes = hull._planes;
     return;
   }
-  ___;
+  
   std::set<Plane>::iterator planar=hull.getPlanar();
   if(planar!=hull._planes.end()){
     this->_points.insert(point);
     this->_planes.insert(Plane(*planar,point));
     return;
   }
-  ___;
+  
   std::vector<Plane>frontFacingPlanes;
   std::vector<Plane>backFacingPlanes;
   for(auto x:hull._planes){
     if(point>x)frontFacingPlanes.push_back(x);
     else        backFacingPlanes.push_back(x);
   }
-  ___;
+  
   std::map<Point,std::vector<std::set<Plane>>>point2FBPlane;
-  std::vector<Point>silhouettePoints;
   for(auto x:hull._points){
     point2FBPlane[x].push_back(std::set<Plane>());
     point2FBPlane[x].push_back(std::set<Plane>());
@@ -183,21 +182,25 @@ ConvexHull::ConvexHull(ConvexHull const&hull,Point const&point){
       if(y==x)
         point2FBPlane[x][1].insert(y);
 
-    if(!point2FBPlane[x][0].size()||point2FBPlane[x][1].size())
+    if(!point2FBPlane[x][0].size()||!point2FBPlane[x][1].size())
       point2FBPlane.erase(x);
   }
-  ___;
+  
   typedef std::map<Point,std::vector<std::set<Plane>>>::iterator iter;
   iter curIndex  = point2FBPlane.begin();
-  iter prevIndex = point2FBPlane.begin();
   std::vector<iter>loop;
   loop.push_back(curIndex);
-  ___;
   for(;;){
     bool stop=true;
     iter next;
     for(next=point2FBPlane.begin();next!=point2FBPlane.end();++next){
-      if(next==curIndex||next==prevIndex)continue;
+      bool exists=false;
+      for(auto x:loop)
+        if(x==next){
+          exists=true;
+          break;
+        }
+      if(exists)continue;
       bool fbFound[2]={false,false};
       for(unsigned j=0;j<2;++j)
         for(auto x:curIndex->second[j])
@@ -206,7 +209,6 @@ ConvexHull::ConvexHull(ConvexHull const&hull,Point const&point){
             break;
           }
       if(fbFound[0]&&fbFound[1]){
-        prevIndex=curIndex;
         curIndex=next;
         loop.push_back(next);
         stop=false;
@@ -215,17 +217,11 @@ ConvexHull::ConvexHull(ConvexHull const&hull,Point const&point){
     }
     if(stop)break;
   }
-  ___;
   Point center=hull.center();
-  ___;
-  std::cerr<<loop.size()<<std::endl;
-  Plane proxy=Plane(loop[0]->first,loop[1]->first,point);
-  ___;
-  if(center<=proxy){
-    ___;
+
+  if(center<=Plane(loop[0]->first,loop[1]->first,point))
     std::reverse(loop.begin(),loop.end());
-  }
-  ___;
+
   for(auto x:hull._points){
     bool insert=false;
     for(auto y:frontFacingPlanes)
@@ -235,7 +231,6 @@ ConvexHull::ConvexHull(ConvexHull const&hull,Point const&point){
       }
     if(insert)this->_points.insert(x);
   }
-  ___;
   this->_points.insert(point);
 
   for(auto x:frontFacingPlanes)
@@ -263,7 +258,6 @@ Point ConvexHull::center()const{
   glm::vec3 cen=glm::vec3(0.f);
   for(auto x:this->_points)
     cen+=(glm::vec3)x;
-  ___;
   cen/=float(this->_points.size());
   return Point(cen);
 }
