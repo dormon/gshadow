@@ -248,6 +248,7 @@ NavyMapping::NavyMapping(simulation::SimulationData*data):simulation::Simulation
       GETUINT(RESOLUTION),
       GETUINT(SMOOTH_WINDOW),
       GETFLOAT(WARP_FACTOR),
+      "",
       GETUINT(VS_SIZE_X),
       GETUINT(VS_SIZE_Y),
       GETUINT(FDV_SIZE_X),

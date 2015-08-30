@@ -9,7 +9,8 @@ ComputeViewSamples::ComputeViewSamples(
     unsigned              height     ,
     const GLfloat*        mvp        ,
     unsigned              wgsx       ,
-    unsigned              wgsy       ){
+    unsigned              wgsy       ,
+    std::string           dpProjFile ){
 
   this->_dir         = shaderDir;
   this->_viewSamples = viewSamples;
@@ -20,8 +21,11 @@ ComputeViewSamples::ComputeViewSamples(
   this->_wgsx        = wgsx;
   this->_wgsy        = wgsy;
 
+  this->_useDP = dpProjFile!="";
+
   this->_program = new ge::gl::ProgramObject(
       this->_dir+"viewSamples.comp",
+      (this->_useDP?ge::gl::ShaderObject::include(dpProjFile):""),
       ge::gl::ShaderObject::define("WORKGROUP_SIZE_X",(int)this->_wgsx)+
       ge::gl::ShaderObject::define("WORKGROUP_SIZE_Y",(int)this->_wgsy)+
       "");
@@ -49,6 +53,10 @@ void ComputeViewSamples::operator()(){
   this->_program->use();
   this->_program->set("windowSize",this->_width,this->_height);
   this->_program->set("mvp",1,GL_FALSE,this->_mvp);
+  if(this->_useDP){
+    this->_program->set("near",this->_near);
+    this->_program->set("far",this->_far);
+  }
   unsigned workSizex=ge::core::getDispatchSize(this->_width ,this->_wgsx);
   unsigned workSizey=ge::core::getDispatchSize(this->_height,this->_wgsy);
   glDispatchCompute(workSizex,workSizey,1);

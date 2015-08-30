@@ -20,6 +20,7 @@ CreateWarping::CreateWarping(
     unsigned resolution,
     unsigned window    ,
     float    factor    ,
+    std::string dpProjFile,
     unsigned computeViewSamplesWGSX,
     unsigned computeViewSamplesWGSY,
     unsigned createDesiredViewWGSX,
@@ -47,7 +48,10 @@ CreateWarping::CreateWarping(
       height,
       NULL,
       computeViewSamplesWGSX,
-      computeViewSamplesWGSY);
+      computeViewSamplesWGSY,
+      dpProjFile);
+
+  if(dpProjFile!="")this->_useDP = true;
 
   this->_createDesiredView = new CreateDesiredView(
       dir,
@@ -110,6 +114,15 @@ void CreateWarping::setFactor(float factor){
 void CreateWarping::setFastSmooth(bool value){
   this->_wholeWarp->setFastSmooth(value);
 }
+
+void CreateWarping::setNear(float near){
+  this->_computeViewSamples->setNear(near);
+}
+
+void CreateWarping::setFar(float far){
+  this->_computeViewSamples->setFar(far);
+}
+
 
 void CreateWarping::setSmoothX(ge::gl::TextureObject*smoothX){
   this->_wholeWarp->setSmoothX(smoothX);
@@ -181,7 +194,7 @@ void CreateWarping::operator()(){
   this->_measureComputeViewSamples->begin();
   (*this->_computeViewSamples)();
   this->_measureComputeViewSamples->end();
-  
+
   this->_measureCreateDesiredView->begin();
   (*this->_createDesiredView)();
   this->_measureCreateDesiredView->end();

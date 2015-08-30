@@ -18,12 +18,23 @@ uniform mat4  mvp;
 
 #define COORD gl_GlobalInvocationID.xy
 
+#ifdef USE_PARABOLOID
+uniform float near;
+uniform float far ;
+#endif
+
+
 void main(){
   if(any(greaterThanEqual(COORD,windowSize)))return;
   vec2 final=vec2(2.);
   vec4 pos=texelFetch(position,ivec2(COORD),0);
   if(!any(isnan(pos))){
+#ifdef USE_PARABOLOID
+    vec4 shadowCoord=dualParaboloidProjection(mvp,pos.xyz,near,far);
+#else//USE_PARABOLOID
     vec4 shadowCoord=mvp*vec4(pos.xyz,1);
+#endif//USE_PARABOLOID
+
     if( all(greaterThan(shadowCoord.xyz,-shadowCoord.www))&&
         all(lessThan   (shadowCoord.xyz,+shadowCoord.www))){
       final=shadowCoord.xy/shadowCoord.w*.5+.5;

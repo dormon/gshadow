@@ -1,0 +1,14 @@
+vec4 dualParaboloidProjection(mat4 lightView,vec3 worldSpace,float near,float far){
+  vec4 viewSpace =lightView*(vec4(worldSpace,1));
+  if(viewSpace.z>0)return vec4(0,0,10,1);
+  float Length = length( viewSpace.xyz );
+  viewSpace.z *= -1.0;
+  viewSpace.xyz = normalize( viewSpace.xyz );
+  viewSpace.z += 1.0;
+  viewSpace.xy /= viewSpace.z;
+  viewSpace.z = (Length - near)/(far - near);
+  viewSpace.w = 1.0;
+  return viewSpace;
+}
+
+#define USE_PARABOLOID

@@ -5,15 +5,19 @@ CreateNavyShadowMap::CreateNavyShadowMap(
     unsigned width,
     unsigned height,
     ge::gl::VertexArrayObject*sceneVAO,
-    unsigned nofTriangles){
+    unsigned nofTriangles,
+    std::string dpProjFile){
   this->_width  = width ;
   this->_height = height;
 
   this->_vao = sceneVAO;
   this->_nofTriangles = nofTriangles;
 
+  this->_useDP = dpProjFile!="";
+
   this->_program  = new ge::gl::ProgramObject(
       dir+"createNVTS.vp",
+      (this->_useDP?ge::gl::ShaderObject::include(dpProjFile):""),
       dir+"createNVTS.cp",
       ge::gl::ShaderObject::include(dir+"dv.vp")+
       ge::gl::ShaderObject::include(dir+"nv.vp"),
@@ -96,14 +100,26 @@ void CreateNavyShadowMap::setFactor(float factor){
   this->_factor = factor;
 }
 
+void CreateNavyShadowMap::setNear(float near){
+  this->_near = near;
+}
+void CreateNavyShadowMap::setFar(float far){
+  this->_far = far;
+}
+
 void CreateNavyShadowMap::operator()(){
   this->_program->use();
   this->_program->set("mvp",1,GL_FALSE,this->_mvp          );
   this->_program->set("shadowMapSize" ,this->_resolution   );
   this->_program->set("tessFactor"    ,this->_tessFactor   );
   this->_program->set("cullTriangles" ,this->_cullTriangles);
-
   this->_program->set("useWarping",this->_factor>0.f);
+
+  if(this->_useDP){
+    this->_program->set("near",this->_near);
+    this->_program->set("far",this->_far);
+  }
+
   //this->_desiredView->bindImage(2,0);
   this->_desiredView->bind(GL_TEXTURE2);
   this->_smoothX->bind(GL_TEXTURE3);

@@ -13,6 +13,9 @@ class ComputeViewSamples{
     std::string           _dir        ;
     unsigned              _wgsx       ;
     unsigned              _wgsy       ;
+    bool                  _useDP      ;
+    float                 _near       ;
+    float                 _far        ;
   public:
     ComputeViewSamples(
         std::string           shaderDir  ,
@@ -22,10 +25,13 @@ class ComputeViewSamples{
         unsigned              height     ,
         const GLfloat*        mvp        ,
         unsigned              wgsx       ,
-        unsigned              wgsy       );
+        unsigned              wgsy       ,
+        std::string           dpProjFile = "");
     ~ComputeViewSamples();
     void setViewSamples(ge::gl::TextureObject*viewSamples);
     void setPosition(ge::gl::TextureObject*position);
     void setMvp(const GLfloat*mvp);
+    void setNear(float near){this->_near = near;}
+    void setFar(float far){this->_far = far;}
     void operator()();
 };

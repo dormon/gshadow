@@ -21,13 +21,17 @@ class CreateNavyShadowMap{
     float       _polygonOffsetFactor = 1;
     float       _polygonOffsetUnits = 1;
     float       _factor = 0;
+    float _near;
+    float _far;
+    bool _useDP;
   public:
     CreateNavyShadowMap(
         std::string dir,
         unsigned width,
         unsigned height,
         ge::gl::VertexArrayObject*sceneVAO,
-        unsigned nofTriangles);
+        unsigned nofTriangles,
+        std::string dpProjFile="");
     ~CreateNavyShadowMap();
     void setShadowMap(ge::gl::TextureObject*shadowMap,GLenum target = GL_TEXTURE_2D);
     void setSmoothX(ge::gl::TextureObject*smoothX);
@@ -41,5 +45,7 @@ class CreateNavyShadowMap{
     void setPolygonOffsetFactor(float polygonOffsetFactor);
     void setPolygonOffsetUnits(float polygonOffsetUnits);
     void setFactor(float factor);
+    void setNear(float near);
+    void setFar(float far);
     void operator()();
 };

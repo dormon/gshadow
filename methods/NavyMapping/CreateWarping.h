@@ -17,6 +17,9 @@ class CreateWarping{
     simulation::GpuGauge*_measureComputeViewSamples = NULL;
     simulation::GpuGauge*_measureCreateDesiredView  = NULL;
     simulation::GpuGauge*_measureWholeWarp          = NULL;
+    bool _useDP;
+    float _near;
+    float _far;
   public:
     CreateWarping(
         std::string dir,
@@ -25,6 +28,7 @@ class CreateWarping{
         unsigned resolution,
         unsigned window    ,
         float    factor    ,
+        std::string dpProjFile = "",
         unsigned computeViewSamplesWGSX = 8,
         unsigned computeViewSamplesWGSY = 8,
         unsigned createDesiredViewWGSX = 8,
@@ -48,9 +52,14 @@ class CreateWarping{
     void setWindow(unsigned window);//input
     void setFactor(float factor);//input
     void setFastSmooth(bool value);//input
+
+    void setNear(float near);
+    void setFar(float far);
+
     void setSmoothX(ge::gl::TextureObject*smoothX);//output
     void setSmoothY(ge::gl::TextureObject*smoothY);//output
     void setDesiredView(ge::gl::TextureObject*desiredView);//output
+
 
 
     void setMeasureComputeViewSamples(simulation::GpuGauge*gauge);

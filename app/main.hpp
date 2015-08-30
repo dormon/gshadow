@@ -69,6 +69,8 @@ using namespace std;
 #include"../methods/CubeShadowMapping/CubeShadowMapping.h"
 #include"../methods/CubeNavyMapping/CubeNavyMapping.h"
 #include"../methods/RayTrace/RayTrace.h"
+#include"../methods/DualParaboloid/DualParaboloid.h"
+#include"../methods/NavyDualParaboloid/NavyDualParaboloid.h"
 
 
 #include"../methods/ComputeGeometry/ComputeGeometry.h"

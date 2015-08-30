@@ -6,10 +6,14 @@ layout(binding=2)uniform sampler2D desiredView;
 layout(binding=3)uniform sampler2D smoothX;
 layout(binding=4)uniform sampler2D smoothY;
 
+out float z;
+
 void main(){
   vec4 clip=vec4(0);
   clip+=gl_in[0].gl_Position*gl_TessCoord.x;
   clip+=gl_in[1].gl_Position*gl_TessCoord.y;
   clip+=gl_in[2].gl_Position*gl_TessCoord.z;
-  gl_Position=nv_getFinal(clip,desiredView,smoothX,smoothY);
+  vec4 fin=nv_getFinal(clip,desiredView,smoothX,smoothY);
+  z=fin.z;
+  gl_Position=fin;
 }

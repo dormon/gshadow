@@ -67,9 +67,11 @@ CTessellationSides*TessellationSides = NULL;
 CVertexSides      *VertexSides       = NULL;
 CVertexCaps       *VertexCaps        = NULL;
 CShadowMapping    *Shadowmapping     = NULL;
+DualParaboloid    *dualParaboloid    = NULL;
 NavyMapping       *navyMapping       = NULL;
 CubeShadowMapping *cubeShadowMapping = NULL;
 CubeNavyMapping   *cubeNavyMapping   = NULL;
+NavyDualParaboloid *navyDualParaboloid = NULL;
 RayTrace          *raytrace          = NULL;
 
 ComputeGeometry   *computeGeometry   = NULL;
@@ -226,15 +228,17 @@ enum ESSMethod{
   SS_COMPUTE,
   SS_VS,
   SS_SHADOWMAP,
+  SS_DUALPARABOLOID,
   SS_CUBESHADOWMAP,
   SS_CUBENAVYMAPPING,
+  SS_NAVYDUALPARABOLOID,
   SS_RTW,
   SS_NAVYMAPPING,
   SS_RAYTRACE,
   SS_TS,
   SS_SINTORN,
   SS_NO
-}SSMethod=SS_CUBENAVYMAPPING,LastSSMethod=SS_CUBENAVYMAPPING;
+}SSMethod=SS_DUALPARABOLOID,LastSSMethod=SS_DUALPARABOLOID;
 
 bool DSDrawLightSilhouette = false;
 bool DSDrawViewSilhouette  = false;
@@ -260,6 +264,7 @@ SSintornParam             SintornParam          ,SintornParamLast          ;
 simulation::SimulationData*simData=NULL;
 
 int main(int Argc,char*Argv[]){
+  /*
   geom::ConvexHull a(glm::vec3(0.f,0.f,0.f),glm::vec3(2.f,2.f,2.f));
   //geom::ConvexHull b(glm::vec3(1.f,1.f,1.f),glm::vec3(3.f,3.f,3.f));
   //geom::ConvexHull c(a,b);
@@ -267,7 +272,7 @@ int main(int Argc,char*Argv[]){
   geom::ConvexHull e(d,a);
   std::cout<<e.toStr()<<std::endl;
   return 0;
-
+  */
 
 
   //*
@@ -300,7 +305,9 @@ int main(int Argc,char*Argv[]){
 
   //ModelFile          = Args->getArg("-m","models/o/o.3ds");
   //ModelFile          = Args->getArg("-m","models/bunny/bunny.obj");
-  ModelFile          = Args->getArg("-m","models/robots/robots.obj");
+  //ModelFile          = Args->getArg("-m","models/robots/robots.obj");
+  ModelFile          = Args->getArg("-m","models/robot/robot.obj");
+  //ModelFile          = Args->getArg("-m","models/tessrobot/tessrobot.obj");
   //ModelFile          = Args->getArg("-m","/home/dormon/Desktop/lost_empire/lost_empire.obj");
   //ModelFile          = Args->getArg("-m","/home/dormon/Desktop/sponza/sponza.obj");
   //ModelFile          = Args->getArg("-m","/home/dormon/Desktop/san-miguel/san-miguel.obj");
@@ -360,10 +367,12 @@ int main(int Argc,char*Argv[]){
   else if(MethodString=="ts"               )TestParam.Method = SS_TS;
   else if(MethodString=="vs"               )TestParam.Method = SS_VS;
   else if(MethodString=="sm"               )TestParam.Method = SS_SHADOWMAP;
+  else if(MethodString=="dp"               )TestParam.Method = SS_DUALPARABOLOID;
   else if(MethodString=="rtw"              )TestParam.Method = SS_RTW;
   else if(MethodString=="nm"               )TestParam.Method = SS_NAVYMAPPING;
   else if(MethodString=="cm"               )TestParam.Method = SS_CUBESHADOWMAP;
   else if(MethodString=="cn"               )TestParam.Method = SS_CUBENAVYMAPPING;
+  else if(MethodString=="nd"               )TestParam.Method = SS_NAVYDUALPARABOLOID;
   else if(MethodString=="si"               )TestParam.Method = SS_SINTORN;
   else if(MethodString=="ra"               )TestParam.Method = SS_RAYTRACE;
   else TestParam.Method=SS_NO;
@@ -535,6 +544,14 @@ void idle(){
         mm->createShadowMask();
         drawDiffuseSpecular(true,lightConfiguration->getLight());
         break;
+      case SS_DUALPARABOLOID:
+        ___;
+        mm=dualParaboloid;
+        ___;
+        mm->createShadowMask();
+        ___;
+        drawDiffuseSpecular(true,lightConfiguration->getLight());
+        break;
       case SS_CUBESHADOWMAP:
         mm=cubeShadowMapping;
         mm->createShadowMask();
@@ -544,6 +561,11 @@ void idle(){
         break;
       case SS_CUBENAVYMAPPING:
         mm=cubeNavyMapping;
+        mm->createShadowMask();
+        drawDiffuseSpecular(true,lightConfiguration->getLight());
+        break;
+      case SS_NAVYDUALPARABOLOID:
+        mm=navyDualParaboloid;
         mm->createShadowMask();
         drawDiffuseSpecular(true,lightConfiguration->getLight());
         break;
@@ -598,6 +620,14 @@ void idle(){
   }
   if(SSMethod==SS_SHADOWMAP){
     simpleDraw->drawDepth(Shadowmapping->getShadowMap()->getId(),.5f,.0f,.5f,.5f,1.f,1000.f);
+  }
+  if(SSMethod==SS_DUALPARABOLOID){
+    simpleDraw->drawDepth(dualParaboloid->getShadowMap(0)->getId(),.5f,.0f,.5f,.5f,1.f,6000.f);
+    simpleDraw->drawDepth(dualParaboloid->getShadowMap(1)->getId(),.5f,.5f,.5f,.5f,1.f,6000.f);
+  }
+  if(SSMethod==SS_NAVYDUALPARABOLOID){
+    simpleDraw->drawDepth(navyDualParaboloid->getShadowMap(0)->getId(),.5f,.0f,.5f,.5f,1.f,6000.f);
+    simpleDraw->drawDepth(navyDualParaboloid->getShadowMap(1)->getId(),.5f,.5f,.5f,.5f,1.f,6000.f);
   }
 
 
@@ -673,8 +703,10 @@ void init(){
   TwEnumVal MethodDef[]={
     {SS_COMPUTE        ,"compute"                            },
     {SS_SHADOWMAP      ,"shadowmapping"                      },
+    {SS_DUALPARABOLOID ,"dualParaboloid"                     },
     {SS_CUBESHADOWMAP  ,"cubeShadowMapping"                  },
     {SS_CUBENAVYMAPPING,"cubeNavyMapping"                    },
+    {SS_NAVYDUALPARABOLOID,"navyDualParaboloid"              },
     {SS_RTW            ,"rtv"                                },
     {SS_NAVYMAPPING    ,"ours"                               },
     {SS_TS             ,"Tessellation Shader Silhouette Edge"},
@@ -756,8 +788,12 @@ void init(){
 
   navyMapping       = new NavyMapping(simData);
   Shadowmapping     = new CShadowMapping(simData);
+  ___;
+  dualParaboloid    = new DualParaboloid(simData);
+  ___;
   cubeShadowMapping = new CubeShadowMapping(simData);
   cubeNavyMapping   = new CubeNavyMapping(simData);
+  navyDualParaboloid = new NavyDualParaboloid(simData);
   rtw               = new RTWBack(simData);
   computeGeometry   = new ComputeGeometry(simData);
 

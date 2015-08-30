@@ -4,6 +4,15 @@ layout(location=0)in vec3 Pos;
 
 uniform mat4 mvp;
 
+#ifdef USE_PARABOLOID
+uniform float near;
+uniform float far ;
+#endif
+
 void main(){
+#ifdef USE_PARABOLOID
+  gl_Position=dualParaboloidProjection(mvp,Pos,near,far);
+#else//USE_PARABOLOID
   gl_Position=mvp*vec4(Pos,1);
+#endif//USE_PARABOLOID
 }

@@ -1,0 +1,16 @@
+#version 430 core
+
+layout(location=0)in vec3 Pos;
+
+uniform mat4 v;
+uniform float near;
+uniform float far;
+
+out float z;
+
+void main(void){
+  vec4 fin=dualParaboloidProjection(v,Pos,near,far);
+  z = fin.z;
+  gl_Position = fin;
+}
+
