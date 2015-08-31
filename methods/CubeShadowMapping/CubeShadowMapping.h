@@ -29,6 +29,7 @@ class CubeShadowMapping: public simulation::SimulationObject, public ShadowMetho
     unsigned getNofDependentVariables();
     std::string getDependentVariable(unsigned id);
     virtual void update();
+    ge::gl::TextureObject*getShadowMap(){return this->_shadowMap;}
 };
 
 

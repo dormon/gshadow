@@ -26,6 +26,7 @@ void AntOpenDialog::setSaveCallBack(CALLBACK callback,void*data){
 void AntOpenDialog::_open(void*A){
   AntOpenDialog*_this=(AntOpenDialog*)A;
   std::string file=_this->_currentDir+_this->_dirContentNames[_this->_selectedFile];
+  std::cout<<"AntOpenDialog::_open: "<<file<<std::endl;
   struct stat st;
   lstat(file.c_str(), &st);
   if(S_ISDIR(st.st_mode)){
@@ -89,7 +90,7 @@ void AntOpenDialog::_loadDir(std::string dir){
 
   this->_selectedFile = 0;
 
-  TwType DirContentType=TwDefineEnum("dircontent",this->_dirContent,this->_dirContentNames.size());
+  TwType DirContentType=TwDefineEnum(std::string("dircontent"+this->_ownerName).c_str(),this->_dirContent,this->_dirContentNames.size());
 
   TwAddVarRW(this->_bar,"list",DirContentType,&this->_selectedFile,
       this->_getWithGroup("help='list of files in current dirr' ").c_str());
@@ -119,8 +120,9 @@ void TW_CALL AntOpenDialog::_cpyStdStringToClient(
   destinationClientString = sourceLibraryString;
 }
 
-AntOpenDialog::AntOpenDialog(TwBar*bar,std::string dir,std::string group){
+AntOpenDialog::AntOpenDialog(TwBar*bar,std::string ownerName,std::string dir,std::string group){
   TwCopyStdStringToClientFunc(this->_cpyStdStringToClient);
+  this->_ownerName=ownerName;
   this->_listExists = false;
   this->_bar        = bar;
   this->_skipHidden = true;
@@ -134,9 +136,10 @@ AntOpenDialog::AntOpenDialog(TwBar*bar,std::string dir,std::string group){
   this->_saveCallBack = NULL;
   this->_saveCallBackData = NULL;
   
-  char buf[PATH_MAX+1];
+  //TODO zjistit absolutini cestu
+  //char buf[PATH_MAX+1];
   //realpath(dir.c_str(),buf);
-  this->_currentDir = std::string(buf)+"/";
+  //this->_currentDir = std::string(buf)+"/";
   TwAddVarRW(this->_bar,"hidden",TW_TYPE_BOOLCPP,&this->_skipHidden,this->_getWithGroup("label='hide hidden'").c_str());
   TwAddButton(this->_bar,"open",this->_open,this,this->_getWithGroup("label='open'").c_str());
   TwAddButton(this->_bar,"save",this->_save,this,this->_getWithGroup("label='save'").c_str());

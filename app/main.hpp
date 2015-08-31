@@ -76,6 +76,8 @@ using namespace std;
 #include"../methods/ComputeGeometry/ComputeGeometry.h"
 #include"../methods/RTW/RTW.h"
 
+#include"copyTex.h"
+
 #include"AssimpLoader.h"
 #include"Scene.h"
 

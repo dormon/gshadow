@@ -5,6 +5,7 @@
 
 #include"../NavyMapping/CreateWarping.h"
 #include"../NavyMapping/CreateNavyShadowMap.h"
+#include"../NavyMapping/UnwarpAll.h"
 
 class CubeNavyMapping: public simulation::SimulationObject, public ShadowMethod
 {
@@ -23,6 +24,14 @@ class CubeNavyMapping: public simulation::SimulationObject, public ShadowMethod
 
     glm::mat4                  _lightProjection;
     glm::mat4                  _lightView[6];
+    ge::gl::FramebufferObject*_clearingFBO = NULL;
+
+    bool _computeVisualisation = false;
+    UnwarpAll*            _unwarpAll         = NULL;
+    ge::gl::TextureObject*_countMap[6]       = {NULL,NULL,NULL,NULL,NULL,NULL};
+    ge::gl::TextureObject*_warpedCountMap[6] = {NULL,NULL,NULL,NULL,NULL,NULL};
+
+
     DEF_UPDATEDATA(CubeNavyMapping);
   public:
     void createShadowMap();
@@ -36,6 +45,10 @@ class CubeNavyMapping: public simulation::SimulationObject, public ShadowMethod
     unsigned getNofDependentVariables();
     std::string getDependentVariable(unsigned id);
     virtual void update();
+    ge::gl::TextureObject*getShadowMap(){return this->_shadowMap;}
+    ge::gl::TextureObject*getCountMap      (unsigned i){return this->_countMap      [i];}
+    ge::gl::TextureObject*getWarpedCountMap(unsigned i){return this->_warpedCountMap[i];}
+
 };
 
 

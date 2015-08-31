@@ -78,4 +78,7 @@ class CreateWarping{
     void setMeasureSmoothY   (simulation::GpuGauge*gauge);
 
     void operator()();
+
+    ge::gl::TextureObject*getViewSamples(){return this->_viewSamples;}
+    ge::gl::TextureObject*getCountMap(){return this->_wholeWarp->getCountMap();}
 };

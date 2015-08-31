@@ -41,6 +41,12 @@ DrawPrimitive::DrawPrimitive(std::string shaderDir){
       shaderDir+"drawTexture.gp",
       shaderDir+"drawDepth.fp");
 
+  this->_drawCubeDepth = new ge::gl::ProgramObject(
+      shaderDir+"drawTexture.vp",
+      shaderDir+"drawTexture.gp",
+      shaderDir+"drawCubeDepth.fp");
+
+
   this->_emptyVAO   = new ge::gl::VertexArrayObject();
   this->_mode       = TRIANGLES;
   this->_view       = glm::mat4(1.f);
@@ -175,13 +181,14 @@ void DrawPrimitive::drawTexture(GLuint id,float x,float y,float sx,float sy){
 }
 
 void DrawPrimitive::drawHeatMap(GLuint id,float x,float y,float sx,float sy,
-    float min,float max,unsigned channel){
+    float min,float max,int trans,unsigned channel){
   this->_setViewPort(x,y,sx,sy);
 
   this->_drawHeatF->use();
   this->_drawHeatF->set("minValue",min);
   this->_drawHeatF->set("maxValue",max);
   this->_drawHeatF->set("channel",channel);
+  this->_drawHeatF->set("transId",trans);
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D,id);
 
@@ -189,13 +196,14 @@ void DrawPrimitive::drawHeatMap(GLuint id,float x,float y,float sx,float sy,
 }
 
 void DrawPrimitive::drawHeatMap(GLuint id,float x,float y,float sx,float sy,
-    unsigned min,unsigned max,unsigned channel){
+    unsigned min,unsigned max,int trans,unsigned channel){
   this->_setViewPort(x,y,sx,sy);
 
   this->_drawHeatU->use();
   this->_drawHeatU->set("minValue",min);
   this->_drawHeatU->set("maxValue",max);
   this->_drawHeatU->set("channel",channel);
+  this->_drawHeatU->set("transId",trans);
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D,id);
 
@@ -218,12 +226,13 @@ void DrawPrimitive::draw1D(GLuint id,float x,float y,float sx,float sy,
 }
 
 void DrawPrimitive::drawDepth  (GLuint id,float x,float y,float sx,float sy,
-        float near,float far){
+        float near,float far,LinMet met){
   this->_setViewPort(x,y,sx,sy);
 
   this->_drawDepth->use();
   this->_drawDepth->set("near",near);
   this->_drawDepth->set("far",far);
+  this->_drawDepth->set("linMet",(int)met);
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D,id);
   GLint last;
@@ -231,6 +240,24 @@ void DrawPrimitive::drawDepth  (GLuint id,float x,float y,float sx,float sy,
   glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_COMPARE_MODE,GL_NONE);
   this->_resetViewPort();
   glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_COMPARE_MODE,last);
+
+}
+void DrawPrimitive::drawCubeDepth  (GLuint id,float x,float y,float sx,float sy,
+    float near,float far,int face,LinMet met){
+  this->_setViewPort(x,y,sx,sy);
+
+  this->_drawCubeDepth->use();
+  this->_drawCubeDepth->set("near",near);
+  this->_drawCubeDepth->set("far",far);
+  this->_drawCubeDepth->set("face",face);
+  this->_drawCubeDepth->set("linMet",(int)met);
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_CUBE_MAP,id);
+  GLint last;
+  glGetTexParameteriv(GL_TEXTURE_CUBE_MAP,GL_TEXTURE_COMPARE_MODE,&last);
+  glTexParameteri(GL_TEXTURE_CUBE_MAP,GL_TEXTURE_COMPARE_MODE,GL_NONE);
+  this->_resetViewPort();
+  glTexParameteri(GL_TEXTURE_CUBE_MAP,GL_TEXTURE_COMPARE_MODE,last);
 
 }
 

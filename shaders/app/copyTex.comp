@@ -1,0 +1,25 @@
+#version 450
+
+#ifndef WORKGROUP_SIZE_X
+#define WORKGROUP_SIZE_X 8
+#endif//WORKGROUP_SIZE_X
+
+#ifndef WORKGROUP_SIZE_Y
+#define WORKGROUP_SIZE_Y 8
+#endif//WORKGROUP_SIZE_Y
+
+layout(local_size_x=WORKGROUP_SIZE_X,local_size_y=WORKGROUP_SIZE_Y)in;
+
+layout(r32ui,binding=0)uniform uimage2D inTexture ;
+layout(r32ui,binding=1)uniform uimage2D outTexture;
+
+#define COORD  gl_GlobalInvocationID.xy
+#define WCOORD gl_WorkGroupID.xy
+#define LID    (gl_WorkGroupSize.x*gl_LocalInvocationID.y+gl_LocalInvocationID.x)
+#define WS     (WORKGROUP_SIZE_X*WORKGROUP_SIZE_Y)
+
+void main(){
+  if(all(greaterThanEqual(COORD,imageSize(inTexture))))return;
+  uvec4 data=imageLoad(inTexture,ivec2(COORD));
+  imageStore(outTexture,ivec2(COORD),data);
+}

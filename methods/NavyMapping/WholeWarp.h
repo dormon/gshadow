@@ -74,4 +74,6 @@ class WholeWarp{
     void setMeasureSmoothY   (simulation::GpuGauge*gauge);
 
     void operator()();
+
+    ge::gl::TextureObject*getCountMap(){return this->_countMapX;}
 };

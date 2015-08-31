@@ -11,6 +11,7 @@
 #define CLASSNAME NavyDualParaboloid
 #include"../ShadowMethodMacro.h"
 #include"../CubeShadowMapping/createCubeShadowMapTexture.h"
+#include"../../app/copyTex.h"
 
 DEFVARSSTART
   "shaderDirectory",
@@ -37,7 +38,15 @@ DEFVARSSTART
   "nv.cullTriangles",
 
   "measure.shadowMap.createShadowMap",
-  "measure.shadowMap.createShadowMask"
+  "measure.shadowMap.createShadowMask",
+
+  "ndp.computeVisualisation",
+  "ndp.drawSM0",
+  "ndp.drawSM1",
+  "ndp.drawCountMap0",
+  "ndp.drawCountMap1",
+  "ndp.drawWarpedCountMap0",
+  "ndp.drawWarpedCountMap1",
 DEFVARSEND
 
 DEFVARSIDSTART
@@ -65,7 +74,16 @@ DEFVARSIDSTART
   CULL_TRIANGLES,
 
   MEASURE_CREATESHADOWMAP,
-  MEASURE_CREATESHADOWMASK
+  MEASURE_CREATESHADOWMASK,
+
+
+  VISUALISATION,
+  DRAWSM0,
+  DRAWSM1,
+  DRAWCOUNTMAP0,
+  DRAWCOUNTMAP1,
+  DRAWWARPEDCOUNTMAP0,
+  DRAWWARPEDCOUNTMAP1,
 DEFVARSIDEND
 
 DEFGETNOFDEP
@@ -147,6 +165,24 @@ NavyDualParaboloid::NavyDualParaboloid(simulation::SimulationData*data):simulati
       GETVAO(SCENEVAO),
       GETFASTADJACENCY->getNofTriangles(),
       GETSTRING(SHADERDIRECTORY)+"methods/DualParaboloid/dpProj.vp");
+
+
+  for(unsigned i=0;i<2;++i){
+    this->_countMap[i]       = new ge::gl::TextureObject(GL_TEXTURE_2D,GL_R32UI,1,GETUINT(RESOLUTION),GETUINT(RESOLUTION));
+    this->_warpedCountMap[i] = new ge::gl::TextureObject(GL_TEXTURE_2D,GL_R32UI,1,GETUINT(RESOLUTION),GETUINT(RESOLUTION));
+  }
+
+  this->_unwarpAll = new UnwarpAll(
+      GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/",
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      GETFLOAT(WARP_FACTOR),
+      GETUINT(RESOLUTION),
+      GETUVEC2(WINDOWSIZE).x,
+      GETUVEC2(WINDOWSIZE).y);
 }
 
 NavyDualParaboloid::~NavyDualParaboloid(){
@@ -159,6 +195,12 @@ NavyDualParaboloid::~NavyDualParaboloid(){
   }
   delete this->_createWarping;
   delete this->_createNavyShadowMap;
+
+  for(unsigned i=0;i<2;++i){
+    delete this->_countMap[i]      ;
+    delete this->_warpedCountMap[i];
+  }
+  delete this->_unwarpAll;
 }
 
 void NavyDualParaboloid::_createShadowMap(){
@@ -169,6 +211,7 @@ void NavyDualParaboloid::_createShadowMap(){
 }
 
 void NavyDualParaboloid::createShadowMap(){
+  this->_computeMatrices();
   for(unsigned i=0;i<2;++i){
     glm::mat4 mvp=this->_lightView[i];
     this->_createWarping->setPosition   (GETTEXTURE(GBUFFER_POSITION));
@@ -200,6 +243,20 @@ void NavyDualParaboloid::createShadowMap(){
        this->_createWarping->setMeasureSmoothY           (GETGPUGAUGE(MEASURE_SMOOTHY   ));
        */
     (*this->_createWarping)();
+
+    if(/*this->_computeVisualisation*/GETBOOL(VISUALISATION)){
+      this->_unwarpAll->setViewSamples(this->_createWarping->getViewSamples());
+      this->_unwarpAll->setDesiredView(this->_desiredView[i]);
+      this->_unwarpAll->setSmoothX(this->_smoothX[i]);
+      this->_unwarpAll->setSmoothY(this->_smoothY[i]);
+      this->_unwarpAll->setCountMap(this->_warpedCountMap[i]);
+      this->_unwarpAll->setFactor(GETFLOAT(WARP_FACTOR));
+      this->_unwarpAll->setResolution(GETUINT(RESOLUTION));
+      (*this->_unwarpAll)();
+      copyTex(this->_countMap[i],this->_createWarping->getCountMap(),GETUINT(RESOLUTION),GETUINT(RESOLUTION));
+
+      //copy 
+    }
 
     this->_createNavyShadowMap->setShadowMap          (this->_shadowMap[i]);
     this->_createNavyShadowMap->setSmoothX            (this->_smoothX[i]               );

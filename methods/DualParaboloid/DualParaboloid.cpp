@@ -23,7 +23,9 @@ DEFVARSSTART
   "gbuffer.position",
   "shadowMask",
   "measure.shadowMap.createShadowMap",
-  "measure.shadowMap.createShadowMask"
+  "measure.shadowMap.createShadowMask",
+  "dp.drawSM0",
+  "dp.drawSM1"
 DEFVARSEND
 
 DEFVARSIDSTART
@@ -40,7 +42,9 @@ DEFVARSIDSTART
   GBUFFER_POSITION,
   SHADOWMASK,
   MEASURE_CREATESHADOWMAP,
-  MEASURE_CREATESHADOWMASK
+  MEASURE_CREATESHADOWMASK,
+  DRAWSM0,
+  DRAWSM1
 DEFVARSIDEND
 
 DEFGETNOFDEP

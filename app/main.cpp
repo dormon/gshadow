@@ -83,6 +83,16 @@ objconf::LightConfiguration     * lightConfiguration      = NULL;
 objconf::ShadowMethodConfig     * navyConfig              = NULL;
 objconf::ShadowMethodConfig     * rtwConfig               = NULL;
 
+
+objconf::ShadowMethodConfig     * dualParaboloidConfig     = NULL;
+objconf::ShadowMethodConfig     * navyDualParaboloidConfig = NULL;
+objconf::ShadowMethodConfig     * cubeShadowMapConfig      = NULL;
+objconf::ShadowMethodConfig     * cubeNavyMapConfig        = NULL;
+
+
+
+
+
 ShadowMethod*mm;
 
 ge::gl::VertexArrayObject*EmptyVAO;
@@ -238,7 +248,8 @@ enum ESSMethod{
   SS_TS,
   SS_SINTORN,
   SS_NO
-}SSMethod=SS_DUALPARABOLOID,LastSSMethod=SS_DUALPARABOLOID;
+//}SSMethod=SS_NAVYDUALPARABOLOID,LastSSMethod=SS_NAVYDUALPARABOLOID;
+}SSMethod=SS_CUBESHADOWMAP,LastSSMethod=SS_CUBESHADOWMAP;
 
 bool DSDrawLightSilhouette = false;
 bool DSDrawViewSilhouette  = false;
@@ -509,6 +520,11 @@ void idle(){
   ___;
   setConfig(&navyConfig,navyMapping,"navyconfig");
   setConfig(&rtwConfig ,rtw        ,"rtwconfig" );
+  setConfig(&dualParaboloidConfig,dualParaboloid,"dpsmconfig");
+  setConfig(&navyDualParaboloidConfig,navyDualParaboloid,"navydpsmconfig");
+  setConfig(&cubeShadowMapConfig,cubeShadowMapping,"cubeShadowMap");
+  setConfig(&cubeNavyMapConfig,cubeNavyMapping,"cubeNavyMapping");
+
 
   if(Window->isKeyOn('q'))exit(0);
 
@@ -621,13 +637,67 @@ void idle(){
   if(SSMethod==SS_SHADOWMAP){
     simpleDraw->drawDepth(Shadowmapping->getShadowMap()->getId(),.5f,.0f,.5f,.5f,1.f,1000.f);
   }
-  if(SSMethod==SS_DUALPARABOLOID){
-    simpleDraw->drawDepth(dualParaboloid->getShadowMap(0)->getId(),.5f,.0f,.5f,.5f,1.f,6000.f);
-    simpleDraw->drawDepth(dualParaboloid->getShadowMap(1)->getId(),.5f,.5f,.5f,.5f,1.f,6000.f);
+
+  if(SSMethod==SS_CUBESHADOWMAP){
+    if(simData->getBool("csm.drawSM")){
+      simpleDraw->drawCubeDepth(cubeShadowMapping->getShadowMap()->getId(),.0f,.25f,.25f,.25f,simData->getFloat("shadowMapMethods.near"),simData->getFloat("shadowMapMethods.far"),5);
+      simpleDraw->drawCubeDepth(cubeShadowMapping->getShadowMap()->getId(),.25f,.25f,.25f,.25f,simData->getFloat("shadowMapMethods.near"),simData->getFloat("shadowMapMethods.far"),1);
+      simpleDraw->drawCubeDepth(cubeShadowMapping->getShadowMap()->getId(),.5f,.25f,.25f,.25f,simData->getFloat("shadowMapMethods.near"),simData->getFloat("shadowMapMethods.far"),4);
+      simpleDraw->drawCubeDepth(cubeShadowMapping->getShadowMap()->getId(),.75f,.25f,.25f,.25f,simData->getFloat("shadowMapMethods.near"),simData->getFloat("shadowMapMethods.far"),0);
+      simpleDraw->drawCubeDepth(cubeShadowMapping->getShadowMap()->getId(),.25f,.0f,.25f,.25f,simData->getFloat("shadowMapMethods.near"),simData->getFloat("shadowMapMethods.far"),2);
+      simpleDraw->drawCubeDepth(cubeShadowMapping->getShadowMap()->getId(),.25f,.5f,.25f,.25f,simData->getFloat("shadowMapMethods.near"),simData->getFloat("shadowMapMethods.far"),3);
+    }
   }
+
+  if(SSMethod==SS_CUBENAVYMAPPING){
+    if(simData->getBool("cnm.drawSM")){
+      simpleDraw->drawCubeDepth(cubeNavyMapping->getShadowMap()->getId(),.0f,.25f,.25f,.25f,simData->getFloat("shadowMapMethods.near"),simData->getFloat("shadowMapMethods.far"),5);
+      simpleDraw->drawCubeDepth(cubeNavyMapping->getShadowMap()->getId(),.25f,.25f,.25f,.25f,simData->getFloat("shadowMapMethods.near"),simData->getFloat("shadowMapMethods.far"),1);
+      simpleDraw->drawCubeDepth(cubeNavyMapping->getShadowMap()->getId(),.5f,.25f,.25f,.25f,simData->getFloat("shadowMapMethods.near"),simData->getFloat("shadowMapMethods.far"),4);
+      simpleDraw->drawCubeDepth(cubeNavyMapping->getShadowMap()->getId(),.75f,.25f,.25f,.25f,simData->getFloat("shadowMapMethods.near"),simData->getFloat("shadowMapMethods.far"),0);
+      simpleDraw->drawCubeDepth(cubeNavyMapping->getShadowMap()->getId(),.25f,.0f,.25f,.25f,simData->getFloat("shadowMapMethods.near"),simData->getFloat("shadowMapMethods.far"),2);
+      simpleDraw->drawCubeDepth(cubeNavyMapping->getShadowMap()->getId(),.25f,.5f,.25f,.25f,simData->getFloat("shadowMapMethods.near"),simData->getFloat("shadowMapMethods.far"),3);
+    }
+    if(simData->getBool("cnm.drawCountMap")){
+      simpleDraw->drawHeatMap(cubeNavyMapping->getCountMap(5)->getId(),.0f ,.25f,.25f,.25f,0u,10u,0);
+      simpleDraw->drawHeatMap(cubeNavyMapping->getCountMap(1)->getId(),.25f,.25f,.25f,.25f,0u,10u,6);
+      simpleDraw->drawHeatMap(cubeNavyMapping->getCountMap(4)->getId(),.5f ,.25f,.25f,.25f,0u,10u,1);
+      simpleDraw->drawHeatMap(cubeNavyMapping->getCountMap(0)->getId(),.75f,.25f,.25f,.25f,0u,10u,4);
+      simpleDraw->drawHeatMap(cubeNavyMapping->getCountMap(2)->getId(),.25f,.0f ,.25f,.25f,0u,10u,6);
+      simpleDraw->drawHeatMap(cubeNavyMapping->getCountMap(3)->getId(),.25f,.5f ,.25f,.25f,0u,10u,7);
+    }
+    if(simData->getBool("cnm.drawWarpedCountMap")){
+      simpleDraw->drawHeatMap(cubeNavyMapping->getWarpedCountMap(5)->getId(),.0f ,.25f,.25f,.25f,0u,10u,0);
+      simpleDraw->drawHeatMap(cubeNavyMapping->getWarpedCountMap(1)->getId(),.25f,.25f,.25f,.25f,0u,10u,6);
+      simpleDraw->drawHeatMap(cubeNavyMapping->getWarpedCountMap(4)->getId(),.5f ,.25f,.25f,.25f,0u,10u,1);
+      simpleDraw->drawHeatMap(cubeNavyMapping->getWarpedCountMap(0)->getId(),.75f,.25f,.25f,.25f,0u,10u,4);
+      simpleDraw->drawHeatMap(cubeNavyMapping->getWarpedCountMap(2)->getId(),.25f,.0f ,.25f,.25f,0u,10u,6);
+      simpleDraw->drawHeatMap(cubeNavyMapping->getWarpedCountMap(3)->getId(),.25f,.5f ,.25f,.25f,0u,10u,7);
+    }
+  }
+
+  if(SSMethod==SS_DUALPARABOLOID){
+    if(simData->getBool("dp.drawSM0"))
+      simpleDraw->drawDepth(dualParaboloid->getShadowMap(0)->getId(),.0f,.0f,1.0f,1.0f,simData->getFloat("shadowMapMethods.near"),simData->getFloat("shadowMapMethods.far"),DrawPrimitive::DP);
+    if(simData->getBool("dp.drawSM1"))
+      simpleDraw->drawDepth(dualParaboloid->getShadowMap(1)->getId(),.0f,.0f,1.0f,1.0f,simData->getFloat("shadowMapMethods.near"),simData->getFloat("shadowMapMethods.far"),DrawPrimitive::DP);
+  }
+
   if(SSMethod==SS_NAVYDUALPARABOLOID){
-    simpleDraw->drawDepth(navyDualParaboloid->getShadowMap(0)->getId(),.5f,.0f,.5f,.5f,1.f,6000.f);
-    simpleDraw->drawDepth(navyDualParaboloid->getShadowMap(1)->getId(),.5f,.5f,.5f,.5f,1.f,6000.f);
+    if(simData->getBool("ndp.drawSM0"))
+      simpleDraw->drawDepth(navyDualParaboloid->getShadowMap(0)->getId(),.0f,.0f,1.0f,1.0f,simData->getFloat("shadowMapMethods.near"),simData->getFloat("shadowMapMethods.far"),DrawPrimitive::DP);
+    if(simData->getBool("ndp.drawSM1"))
+      simpleDraw->drawDepth(navyDualParaboloid->getShadowMap(1)->getId(),.0f,.0f,1.0f,1.0f,simData->getFloat("shadowMapMethods.near"),simData->getFloat("shadowMapMethods.far"),DrawPrimitive::DP);
+
+    if(simData->getBool("ndp.drawCountMap0"))
+      simpleDraw->drawHeatMap(navyDualParaboloid->getCountMap(0)->getId(),.0f,.0f,1.f,1.f,0u,10u);
+    if(simData->getBool("ndp.drawCountMap1"))
+      simpleDraw->drawHeatMap(navyDualParaboloid->getCountMap(1)->getId(),.0f,.0f,1.f,1.f,0u,10u);
+
+    if(simData->getBool("ndp.drawWarpedCountMap0"))
+      simpleDraw->drawHeatMap(navyDualParaboloid->getWarpedCountMap(0)->getId(),.0f,.0f,1.f,1.f,0u,10u);
+    if(simData->getBool("ndp.drawWarpedCountMap1"))
+      simpleDraw->drawHeatMap(navyDualParaboloid->getWarpedCountMap(1)->getId(),.0f,.0f,1.f,1.f,0u,10u);
   }
 
 
@@ -668,13 +738,13 @@ void init(){
   InitDrawStencilToTexture();
 
   /*
-  modelLoaderManager = new ge::db::ModelLoaderManager();
-  assimpLoader       = new ge::db::AssimpLoader();
-  modelLoaderManager->registerLoader(assimpLoader);
-  scene = modelLoaderManager->load(ModelFile);
-  std::cerr<<"sceneGeometries: "<<scene->geometries.size()<<std::endl;
-  std::cerr<<scene->geometries[0]->vertices->toStr()<<std::endl;
-  */
+     modelLoaderManager = new ge::db::ModelLoaderManager();
+     assimpLoader       = new ge::db::AssimpLoader();
+     modelLoaderManager->registerLoader(assimpLoader);
+     scene = modelLoaderManager->load(ModelFile);
+     std::cerr<<"sceneGeometries: "<<scene->geometries.size()<<std::endl;
+     std::cerr<<scene->geometries[0]->vertices->toStr()<<std::endl;
+     */
 
 
   InitModel(ModelFile.c_str());
@@ -774,9 +844,29 @@ void init(){
   simData->insertVariable("measure.nv.wholey"            ,new simulation::GpuGauge(false,true));
 
 
+  simData->insertVariable("csm.drawSM", new simulation::Bool(false));
+  
+  simData->insertVariable("cnm.drawSM", new simulation::Bool(false));
+  simData->insertVariable("cnm.computeVisualisation",new simulation::Bool(false));
+  simData->insertVariable("cnm.drawSM"              ,new simulation::Bool(false));
+  simData->insertVariable("cnm.drawCountMap"        ,new simulation::Bool(false));
+  simData->insertVariable("cnm.drawWarpedCountMap"  ,new simulation::Bool(false));
 
 
 
+
+
+
+  simData->insertVariable("dp.drawSM0", new simulation::Bool(false));
+  simData->insertVariable("dp.drawSM1", new simulation::Bool(false));
+
+  simData->insertVariable("ndp.computeVisualisation",new simulation::Bool(true));
+  simData->insertVariable("ndp.drawSM0"            ,new simulation::Bool(false));
+  simData->insertVariable("ndp.drawSM1"            ,new simulation::Bool(false));
+  simData->insertVariable("ndp.drawCountMap0"      ,new simulation::Bool(false));
+  simData->insertVariable("ndp.drawCountMap1"      ,new simulation::Bool(false));
+  simData->insertVariable("ndp.drawWarpedCountMap0",new simulation::Bool(false));
+  simData->insertVariable("ndp.drawWarpedCountMap1",new simulation::Bool(false));
 
 
 
@@ -794,6 +884,7 @@ void init(){
   cubeShadowMapping = new CubeShadowMapping(simData);
   cubeNavyMapping   = new CubeNavyMapping(simData);
   navyDualParaboloid = new NavyDualParaboloid(simData);
+  navyDualParaboloid->setComputeVisualisation(true);
   rtw               = new RTWBack(simData);
   computeGeometry   = new ComputeGeometry(simData);
 
@@ -808,6 +899,7 @@ void init(){
   simpleDraw = new DrawPrimitive(ShaderDir+"app/");
   simpleDraw->setWindowSize(simData->getUVec2("window.size"));
 
+  copyTexInit(ShaderDir);
   //std::cerr<<"konec initu\n";
 
   fpsPrinter = new ge::util::FPSPrinter(200);

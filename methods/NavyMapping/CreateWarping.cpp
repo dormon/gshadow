@@ -51,7 +51,7 @@ CreateWarping::CreateWarping(
       computeViewSamplesWGSY,
       dpProjFile);
 
-  if(dpProjFile!="")this->_useDP = true;
+  this->_useDP=dpProjFile!="";
 
   this->_createDesiredView = new CreateDesiredView(
       dir,

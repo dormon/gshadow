@@ -24,7 +24,8 @@ CreateNavyShadowMap::CreateNavyShadowMap(
       dir+"createNVTS.ep",
       ge::gl::ShaderObject::include(dir+"dv.vp")+
       ge::gl::ShaderObject::include(dir+"nv.vp"),
-      dir+"createNVTS.fp");
+      dir+"createNVTS.fp",
+      (this->_useDP?ge::gl::ShaderObject::define("USE_PARABOLOID"):""));
 
   this->_fbo = new ge::gl::FramebufferObject();
 }
@@ -43,7 +44,7 @@ void CreateNavyShadowMap::setShadowMap(ge::gl::TextureObject*shadowMap,GLenum ta
       0,
       target-GL_TEXTURE_CUBE_MAP_POSITIVE_X);
    //   */
-  //*
+  /*
   this->_fbo->bind();
   glFramebufferTexture2D(
       GL_FRAMEBUFFER,
@@ -52,6 +53,14 @@ void CreateNavyShadowMap::setShadowMap(ge::gl::TextureObject*shadowMap,GLenum ta
       shadowMap->getId(),
       0);
   this->_fbo->unbind();
+  */
+
+  if(target==GL_TEXTURE_2D)
+    glNamedFramebufferTexture(this->_fbo->getId(),GL_DEPTH_ATTACHMENT,shadowMap->getId(),0);
+  else
+    glNamedFramebufferTextureLayer(this->_fbo->getId(),GL_DEPTH_ATTACHMENT,shadowMap->getId(),0,target-GL_TEXTURE_CUBE_MAP_POSITIVE_X);
+  float v=1;
+  glClearNamedFramebufferfv(this->_fbo->getId(),GL_DEPTH,0,&v);
   
   if(!this->_fbo->check())std::cerr<<"framebuffer je divny!!!!!!"<<std::endl;
 }
@@ -131,8 +140,7 @@ void CreateNavyShadowMap::operator()(){
   glEnable(GL_DEPTH_TEST);
   glDepthFunc(GL_LESS);
   glDepthMask(GL_TRUE);
-  glClear(GL_DEPTH_BUFFER_BIT);
-  //glClearNamedFramebufferfi(this->_fbo->getId(),GL_DEPTH_STENCIL,1,0);
+  //glClear(GL_DEPTH_BUFFER_BIT);
 
   glEnable(GL_POLYGON_OFFSET_FILL);
   glPolygonOffset(this->_polygonOffsetFactor,this->_polygonOffsetUnits);

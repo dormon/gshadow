@@ -22,6 +22,7 @@ class DrawPrimitive
     ge::gl::ProgramObject     *_drawPlaneProgram;
     ge::gl::ProgramObject     *_drawTexture;
     ge::gl::ProgramObject     *_drawDepth;
+    ge::gl::ProgramObject     *_drawCubeDepth;
     ge::gl::ProgramObject     *_drawHeatF;
     ge::gl::ProgramObject     *_drawHeatU;
     ge::gl::ProgramObject     *_draw1DF;
@@ -37,6 +38,12 @@ class DrawPrimitive
     void _setViewPort(float x,float y,float sx,float sy);
     void _resetViewPort();
   public:
+    enum LinMet{
+      STANDARD=0,
+      DP=1,
+      NEITHY=2,
+      LOG=3
+    };
     DrawPrimitive(std::string shaderDir);
     void setWindowSize(unsigned*size);
     void setWindowSize(glm::uvec2 size);
@@ -55,11 +62,14 @@ class DrawPrimitive
     void plane(glm::vec4 a,float size);
     void drawTexture(GLuint id,float x,float y,float sx,float sy);
     void drawDepth  (GLuint id,float x,float y,float sx,float sy,
-        float near,float far);
+        float near,float far,LinMet met=STANDARD);
+    void drawCubeDepth  (GLuint id,float x,float y,float sx,float sy,
+        float near,float far,int face,LinMet met=STANDARD);
+
     void drawHeatMap(GLuint id,float x,float y,float sx,float sy,
-        unsigned min=0,unsigned max=255,unsigned channel=0);
+        unsigned min=0,unsigned max=255,int trans=0,unsigned channel=0);
     void drawHeatMap(GLuint id,float x,float y,float sx,float sy,
-        float min=0.f,float max=1.f,unsigned channel=0);
+        float min=0.f,float max=1.f,int trans=0,unsigned channel=0);
     void draw1D(GLuint id,float x,float y,float sx,float sy,float min=0.f,float max=1.f,unsigned channel=0);
 };
 

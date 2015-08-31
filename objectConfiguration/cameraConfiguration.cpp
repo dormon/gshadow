@@ -21,7 +21,7 @@ CameraConfiguration::CameraConfiguration(glm::uvec2 windowSize,float fovy,float 
       " help='mouse lock' ");
 
   this->_mouseLock = false;
-  this->_openDialog = new AntOpenDialog(this->_bar);
+  this->_openDialog = new AntOpenDialog(this->_bar,"camera_configurator");
   this->_openDialog->setOpenCallBack(this->_load,this);
   this->_openDialog->setSaveCallBack(this->_save,this);
 }

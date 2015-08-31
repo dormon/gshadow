@@ -11,6 +11,7 @@
 #define CLASSNAME CubeNavyMapping
 #include"../ShadowMethodMacro.h"
 #include"../CubeShadowMapping/createCubeShadowMapTexture.h"
+#include"../../app/copyTex.h"
 
 DEFVARSSTART
   "shaderDirectory",
@@ -37,7 +38,13 @@ DEFVARSSTART
   "nv.cullTriangles",
 
   "measure.shadowMap.createShadowMap",
-  "measure.shadowMap.createShadowMask"
+  "measure.shadowMap.createShadowMask",
+
+  "cnm.computeVisualisation",
+  "cnm.drawSM",
+  "cnm.drawCountMap",
+  "cnm.drawWarpedCountMap",
+
 DEFVARSEND
 
 DEFVARSIDSTART
@@ -65,7 +72,11 @@ DEFVARSIDSTART
   CULL_TRIANGLES,
 
   MEASURE_CREATESHADOWMAP,
-  MEASURE_CREATESHADOWMASK
+  MEASURE_CREATESHADOWMASK,
+  VISUALISATION,
+  DRAWSM,
+  DRAWCOUNTMAP,
+  DRAWWARPEDCOUNTMAP,
 DEFVARSIDEND
 
 DEFGETNOFDEP
@@ -143,6 +154,26 @@ CubeNavyMapping::CubeNavyMapping(simulation::SimulationData*data):simulation::Si
       GETUVEC2(WINDOWSIZE).y,
       GETVAO(SCENEVAO),
       GETFASTADJACENCY->getNofTriangles());
+
+  this->_clearingFBO = new ge::gl::FramebufferObject();
+
+  for(unsigned i=0;i<6;++i){
+    this->_countMap[i]       = new ge::gl::TextureObject(GL_TEXTURE_2D,GL_R32UI,1,GETUINT(RESOLUTION),GETUINT(RESOLUTION));
+    this->_warpedCountMap[i] = new ge::gl::TextureObject(GL_TEXTURE_2D,GL_R32UI,1,GETUINT(RESOLUTION),GETUINT(RESOLUTION));
+  }
+
+  this->_unwarpAll = new UnwarpAll(
+      GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/",
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      GETFLOAT(WARP_FACTOR),
+      GETUINT(RESOLUTION),
+      GETUVEC2(WINDOWSIZE).x,
+      GETUVEC2(WINDOWSIZE).y);
+
 }
 
 CubeNavyMapping::~CubeNavyMapping(){
@@ -156,6 +187,15 @@ CubeNavyMapping::~CubeNavyMapping(){
   }
   delete this->_createWarping;
   delete this->_createNavyShadowMap;
+
+  delete this->_clearingFBO;
+
+  for(unsigned i=0;i<6;++i){
+    delete this->_countMap[i]      ;
+    delete this->_warpedCountMap[i];
+  }
+  delete this->_unwarpAll;
+
 }
 
 void CubeNavyMapping::_createShadowMap(){
@@ -165,20 +205,17 @@ void CubeNavyMapping::_createShadowMap(){
 
 void CubeNavyMapping::createShadowMap(){
   
-  ge::gl::FramebufferObject*fbo=new ge::gl::FramebufferObject();
+  ge::gl::FramebufferObject*fb=new ge::gl::FramebufferObject();
   for(unsigned i=0;i<6;++i){
-    fbo->bind();
-    glFramebufferTexture2D(
-        GL_FRAMEBUFFER,
-        GL_DEPTH_ATTACHMENT,
-        id2CubeMapSide(i),
-        this->_shadowMap->getId(),
-        0);
+    fb->bind();
+    glFramebufferTexture2D(GL_FRAMEBUFFER,GL_DEPTH_ATTACHMENT,id2CubeMapSide(i),this->_shadowMap->getId(),0);
+    //fb->attachDepthTexture(this->_shadowMap->getId(),id2CubeMapSide(i));
     glClear(GL_DEPTH_BUFFER_BIT);
-    fbo->unbind();
+    fb->unbind();
   }
-  delete fbo;
-  
+  delete fb;
+
+
   for(unsigned i=0;i<6;++i){
     glm::mat4 mvp=this->_lightProjection*this->_lightView[i]*glm::translate(glm::mat4(1.0f),-glm::vec3(GETLIGHT->position));
     this->_createWarping->setPosition   (GETTEXTURE(GBUFFER_POSITION));
@@ -208,6 +245,20 @@ void CubeNavyMapping::createShadowMap(){
        */
     (*this->_createWarping)();
 
+    if(/*this->_computeVisualisation*/GETBOOL(VISUALISATION)){
+      this->_unwarpAll->setViewSamples(this->_createWarping->getViewSamples());
+      this->_unwarpAll->setDesiredView(this->_desiredView[i]);
+      this->_unwarpAll->setSmoothX(this->_smoothX[i]);
+      this->_unwarpAll->setSmoothY(this->_smoothY[i]);
+      this->_unwarpAll->setCountMap(this->_warpedCountMap[i]);
+      this->_unwarpAll->setFactor(GETFLOAT(WARP_FACTOR));
+      this->_unwarpAll->setResolution(GETUINT(RESOLUTION));
+      (*this->_unwarpAll)();
+      copyTex(this->_countMap[i],this->_createWarping->getCountMap(),GETUINT(RESOLUTION),GETUINT(RESOLUTION));
+
+      //copy 
+    }
+
     this->_createNavyShadowMap->setShadowMap          (this->_shadowMap,id2CubeMapSide(i));
     this->_createNavyShadowMap->setSmoothX            (this->_smoothX[i]               );
     this->_createNavyShadowMap->setSmoothY            (this->_smoothY[i]               );
@@ -222,13 +273,6 @@ void CubeNavyMapping::createShadowMap(){
     this->_createNavyShadowMap->setFactor             (GETFLOAT(WARP_FACTOR)           );
     (*this->_createNavyShadowMap)();
   }
-  /*
-     float data[4];
-     for(unsigned i=0;i<6;++i){
-     glGetTextureImage(this->_desiredView[i]->getId(),0,GL_RGBA,GL_FLOAT,sizeof(float)*4,data);
-     std::cerr<<"face"<<i<<": "<<data[0]<<" - "<<data[1]<<" "<<data[2]<<" - "<<data[3]<<std::endl;
-     }*/
-
 }
 
 void CubeNavyMapping::createShadowMask(GLuint mask){

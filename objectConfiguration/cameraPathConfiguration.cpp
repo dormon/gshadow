@@ -50,7 +50,7 @@ CameraPathConfiguration::CameraPathConfiguration(){
   TwAddVarCB(this->_bar,"selected",TW_TYPE_UINT32,this->_selectSet,this->_selectGet,this,"label='selected'");
   TwAddButton(this->_bar,"push",this->_push,this,"label='push'");
   TwAddButton(this->_bar,"remove",this->_remove,this,"label='remove'");
-  this->_openDialog = new AntOpenDialog(this->_bar);
+  this->_openDialog = new AntOpenDialog(this->_bar,"path_configurator");
   this->_openDialog->setOpenCallBack(this->_load,this);
   this->_openDialog->setSaveCallBack(this->_save,this);
 }
@@ -109,7 +109,7 @@ void objconf::setCameraPathAntTweakBar(){
 
 
 
-  cameraPathConfiguration.antDirectory=new AntOpenDialog(cameraPathConfiguration.bar);
+  cameraPathConfiguration.antDirectory=new AntOpenDialog(cameraPathConfiguration.bar,"cam_path_config");
 
   /*
      TwAddVarRW(bar,"CameraMationFile",TW_TYPE_STDSTRING,&cameraPathConfiguration.file, 

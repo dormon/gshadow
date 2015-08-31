@@ -80,12 +80,13 @@ LightConfiguration::LightConfiguration(){
   TwAddVarRW(this->_bar,"zpos"    ,TW_TYPE_FLOAT  ,pos+2," label='zpos' help='zpos of current light'");
   TwAddVarRW(this->_bar,"diffuse" ,TW_TYPE_COLOR3F,dif  ," noalpha help='Light diffuse color.' "     );
   TwAddVarRW(this->_bar,"speculra",TW_TYPE_COLOR3F,spec ," noalpha help='Light specular color.' "    );
-  this->_openDialog = new AntOpenDialog(this->_bar);
+  this->_openDialog = new AntOpenDialog(this->_bar,"light_configurator");
   this->_openDialog->setOpenCallBack(this->_load,this);
   this->_openDialog->setSaveCallBack(this->_save,this);
 
 }
 void LightConfiguration::_load(std::string name,void*A){
+  std::cout<<"LightConfiguration:_load"<<std::endl;
   LightConfiguration*_this=(LightConfiguration*)A;
   _this->_light->loadFromFile(name);
 
@@ -97,6 +98,7 @@ void LightConfiguration::_save(std::string name,void*A){
 
 
 LightConfiguration::~LightConfiguration(){
+  delete this->_openDialog;
   TwDeleteBar(this->_bar);
 }
 
