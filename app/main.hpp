@@ -6,8 +6,6 @@
 #include<fstream>
 #include<istream>
 #include<sstream>
-using namespace std;
-
 
 //#include<glbinding/gl/gl.h>
 //#include<glbinding/Binding.h>
@@ -25,31 +23,18 @@ using namespace std;
 #include<assimp/cimport.h>
 #include<assimp/scene.h>
 #include<assimp/postprocess.h>
-/*
-#include<opencv/cv.h>
-#include<opencv/highgui.h>
-*/
 
-//#include"light.h"
-//#include"terrain.hpp"
-//#include"window.hpp"
 #include"deferred.hpp"
 
 //#include"CLight.hpp"
 
 #include<geGL/geGL.h>
 #include<geCore/geCore.h>
-//#include<geGL/UniformCommands.h>
-//#include<geGL/ProgramCommands.h>
 
 #include<geUtil/WindowObject.h>
 #include<geUtil/ArgumentObject.h>
 #include<geUtil/FPSPrinter.h>
 #include"../GPUPerfApi/GpuPerfApi.h"
-
-//#include"CGenerateGeometryShaderSilhouette.hpp"
-//#include"CGenerateVertexShaderSilhouette.hpp"
-//#include"CGenerateTessellationShaderSilhouette.hpp"
 
 #include"methodsparam.hpp"
 #include"../methods/TessellationSides/CTessellationSides.hpp"
@@ -109,6 +94,11 @@ using namespace std;
 
 #include"../geometry/geom/ConvexHull.h"
 
+#include"simpleLoader.h"
+#include"ModelPN2VAO.h"
+#include"Model2AABB.h"
+#include"Model2DIBO.h"
+
 #include"core.h"
 
 #define ILUT_USE_OPENGL
@@ -116,33 +106,4 @@ using namespace std;
 #include <IL/ilu.h>
 #include <IL/ilut.h>
 
-
-#define DEBUG
-#ifdef DEBUG
-#define glError() {\
-	GLenum err=glGetError();\
-	while(err!=GL_NO_ERROR){\
-		fprintf(stderr,"glError: %s caught at %s:%u\n", (char *)gluErrorString(err), __FILE__, __LINE__); \
-		err=glGetError();\
-	}\
-}
-#else
-#define glError() 
-#endif
-
-
-aiScene*SceneModel;
-
-
-void InitModel(const char*File);
-
-void DrawQuad(unsigned*X,unsigned*S);
-
-void DrawScene();
-void DrawShadow();
-void Draw();
-/*
-IplImage*TakeGroundTruth();
-IplImage*ComputeDifference(IplImage*A,IplImage*B);
-*/
 #endif//_MAIN_HPP_

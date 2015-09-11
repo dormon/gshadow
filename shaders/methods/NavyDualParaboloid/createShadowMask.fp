@@ -18,13 +18,35 @@ ivec2 screenCoord=ivec2(gl_FragCoord.xy);
 #define POLY_OFFSET 100
 #endif//POLY_OFFSET
 
-void main(){
-  vec3 worldSpace=texelFetch(position,screenCoord,0).xyz;
-  int face=int((worldSpace.x-lightPosition.x)>0);
+float getShadow(int face,vec3 worldSpace){
   vec4 fin=dualParaboloidProjection(v[face],worldSpace,near,far+POLY_OFFSET);
   fin=nv_getFinal(fin,desiredView[face],smoothX[face],smoothY[face]);
   fin.xy*=.5;
   fin.xy+=.5;
-  fColor=textureProj(shadowMap[face],fin).x;
+  return textureProj(shadowMap[face],fin).x;
+}
+
+void main(){
+  vec3 worldSpace=texelFetch(position,screenCoord,0).xyz;
+  int face=int((worldSpace.x-lightPosition.x)>0);
+  if(face==0){
+    fColor=getShadow(1,worldSpace);
+  /*
+    vec4 fin=dualParaboloidProjection(v[0],worldSpace,near,far+POLY_OFFSET);
+    fin=nv_getFinal(fin,desiredView[0],smoothX[0],smoothY[0]);
+    fin.xy*=.5;
+    fin.xy+=.5;
+    fColor=textureProj(shadowMap[0],fin).x;
+    */
+  }else{
+    fColor=getShadow(1,worldSpace);
+  /*
+    vec4 fin=dualParaboloidProjection(v[1],worldSpace,near,far+POLY_OFFSET);
+    fin=nv_getFinal(fin,desiredView[1],smoothX[1],smoothY[1]);
+    fin.xy*=.5;
+    fin.xy+=.5;
+    fColor=textureProj(shadowMap[1],fin).x;
+*/
+  }
 }
 

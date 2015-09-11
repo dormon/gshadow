@@ -15,6 +15,7 @@
 class ShadowMethod
 {
   public:
+    virtual ~ShadowMethod(){}
     virtual void createShadowMask()=0;
     virtual void createShadowMask(GLuint mask)=0;
 };

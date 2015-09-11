@@ -33,7 +33,7 @@ class AntOpenDialog
     void _deleteDirContent();
     void _listDir(std::vector<std::string>&dirs,std::vector<std::string>&files,std::string dirName);
   public:
-    AntOpenDialog(TwBar*bar,std::string ownerName,std::string dir="/home/dormon/git/gshadow/",std::string group="files");
+    AntOpenDialog(TwBar*bar,std::string ownerName,std::string dir="/home/dormon/git/gshadowzal/gshadow/",std::string group="files");
     void setOpenCallBack(CALLBACK callback,void*data=NULL);
     void setSaveCallBack(CALLBACK callback,void*data=NULL);
     ~AntOpenDialog();

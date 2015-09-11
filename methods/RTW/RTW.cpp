@@ -39,7 +39,8 @@ DEFVARSSTART
   "measure.rtw.importance1D",
   "measure.rtw.smooth",
   "measure.rtw.sum",
-  "measure.rtw.whole"
+  "measure.rtw.whole",
+  "rtw.drawSM",
 DEFVARSEND
 
 DEFVARSIDSTART
@@ -73,7 +74,8 @@ DEFVARSIDSTART
   MEASURE_IMPORTANCE1D,
   MEASURE_SMOOTH,
   MEASURE_SUM,
-  MEASURE_WHOLE
+  MEASURE_WHOLE,
+  DRAWSM,
 DEFVARSIDEND
 
 DEFGETNOFDEP

@@ -27,7 +27,6 @@ class CComputeSides
     ge::gl::VertexArrayObject* _vao;
     Adjacency*                 _adjacency;
     unsigned                   _workGroupSize;
-    unsigned                   _maxMult;
     unsigned                   _nofEdges;
     ge::core::CommandList*       _computeList;
     unsigned                   _lightUniformCommand;

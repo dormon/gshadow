@@ -1,52 +1,18 @@
 #include"CComputeSides.hpp"
 #include"../../app/fastAdjacency.h"
 
-//#include<geGL/UniformCommands.h>
-//#include<geGL/ProgramCommands.h>
-//#include<geGL/BufferCommands.h>
+#include"AdjacencyToVBO.h"
 
 CComputeSides::CComputeSides(Adjacency*ad,
     unsigned WorkGroupSize,bool CullSides){
   this->_workGroupSize=WorkGroupSize;
   this->_adjacency=ad;
-  //input
-  this->_maxMult  = ad->getMaxMultiplicity();
   this->_nofEdges = ad->getNofEdges();
 
-  unsigned NumVer=2+1+this->_maxMult;
-
-  this->_input=new ge::gl::BufferObject(sizeof(float)*4*NumVer*this->_nofEdges);
-
-  float*Ptr=(float*)this->_input->map();
-
-  for(unsigned e=0;e<this->_nofEdges;++e){
-    //A
-    for(int k=0;k<3;++k)
-      Ptr[(e*NumVer+0)*4+k]=ad->getVertices()[ad->getEdge(e,0)+k];
-    Ptr[(e*NumVer+0)*4+3]=1;
-    //B
-    for(int k=0;k<3;++k)
-      Ptr[(e*NumVer+1)*4+k]=ad->getVertices()[ad->getEdge(e,1)+k];
-    Ptr[(e*NumVer+1)*4+3]=1;
-    //N
-    Ptr[(e*NumVer+2)*4+0]=ad->getNofOpposite(e);
-    for(int k=1;k<4;++k)
-      Ptr[(e*NumVer+2)*4+k]=0;
-    //O
-    for(unsigned o=0;o<ad->getNofOpposite(e);++o){
-      for(int k=0;k<3;++k)
-        Ptr[(e*NumVer+3+o)*4+k]=ad->getVertices()[ad->getOpposite(e,o)+k];
-      Ptr[(e*NumVer+3+o)*4+3]=1;
-    }
-    for(unsigned o=ad->getNofOpposite(e);o<this->_maxMult;++o){
-      for(int k=0;k<4;++k)
-        Ptr[(e*NumVer+3+o)*4+k]=0;
-    }
-  }
-  this->_input->unmap();
+  AdjacencyToVBO(&this->_input,this->_adjacency)();
 
   this->_output=new ge::gl::BufferObject(
-      sizeof(float)*4*4*this->_nofEdges*this->_maxMult,
+      sizeof(float)*4*4*this->_nofEdges*this->_adjacency->getMaxMultiplicity(),
       NULL,GL_DYNAMIC_COPY);
   this->_output->clear(GL_R32F,GL_RED,GL_FLOAT);
 
@@ -64,36 +30,13 @@ CComputeSides::CComputeSides(Adjacency*ad,
   this->_computeProgram = new ge::gl::ProgramObject(
       ShaderDir+"methods/ComputeSides/compute.comp",
       ge::gl::ShaderObject::define("WORKGROUP_SIZE_X",(int)WorkGroupSize)+
-      ge::gl::ShaderObject::define("MAX_MULTIPLICITY",(int)this->_maxMult)+
+      ge::gl::ShaderObject::define("MAX_MULTIPLICITY",(int)this->_adjacency->getMaxMultiplicity())+
       (CullSides?ge::gl::ShaderObject::define("CULL_SIDE"):"")+
       "");
 
   std::string dir=ShaderDir+"methods/ComputeSidesSOE/draw.";
   this->_drawProgram=new ge::gl::ProgramObject(dir+"vp",dir+"cp",dir+"ep",dir+"fp");
 
-
-  /*
-  this->_computeList = new ge::gl::CommandList();
-  this->_computeList->add(new ge::gl::UseProgram(this->_computeProgram->getId()));
-  this->_computeList->add(new ge::gl::Uniform<1,GLuint>(this->_computeProgram,"NumEdge",this->_nofEdges));
-  this->_lightUniformCommand = this->_computeList->add(new ge::gl::UniformV     <  4,GLfloat>(this->_computeProgram,"LightPosition",NULL));
-  this->_mvpUniformCommand   = this->_computeList->add(new ge::gl::UniformMatrix<4,4,GLfloat>(this->_computeProgram,"mvp"          ,NULL));
-  this->_computeList->add(new ge::gl::BindBufferBase(this->_computeProgram,"IBuffer",this->_input  ));
-  this->_computeList->add(new ge::gl::BindBufferBase(this->_computeProgram,"OBuffer",this->_output ));
-  this->_computeList->add(new ge::gl::BindBufferBase(this->_computeProgram,"Counter",this->_counter));
-  */
-
-  /*
-  //this->_computeList->add(new ge::gl::UniformV<4,GLfloat>(this->_computeProgram,"LightPosition",glm::value_ptr(Light->position)));
-  //
- // ge::gl::UniformData<3,GLfloat>*dada=new ge::gl::UniformData<3,GLfloat>();
-  float add;
-  ge::gl::UniformDataRef<3,GLfloat>*dadaref=new ge::gl::UniformDataRef<3,GLfloat>(
-      (float*)&add,
-      (float*)&add,
-      (float*)&add);
-  dadaref->data[0]=NULL;
-*/
 }
 
 CComputeSides::~CComputeSides(){
@@ -110,11 +53,6 @@ void CComputeSides::ComputeSides(float*mvp,simulation::Light*Light){
 
   glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
-
-  /*
-  ((ge::gl::UniformV     <  4,GLfloat>*)this->_computeList->getCommand(this->_lightUniformCommand))->set(glm::value_ptr(Light->position));
-  ((ge::gl::UniformMatrix<4,4,GLfloat>*)this->_computeList->getCommand(this->_mvpUniformCommand  ))->set(mvp                            );
-  this->_computeList->apply();*/
   this->_computeProgram->use();
   this->_computeProgram->set("NumEdge",this->_nofEdges);
   this->_computeProgram->set("LightPosition",1,glm::value_ptr(Light->position));

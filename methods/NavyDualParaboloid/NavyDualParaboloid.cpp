@@ -128,10 +128,12 @@ void NavyDualParaboloid::_computeMatrices(){
 
 
 NavyDualParaboloid::NavyDualParaboloid(simulation::SimulationData*data):simulation::SimulationObject(data){
+  ___;
   this->_simulationData->registerUser(this);
   this->_emptyVAO      = new ge::gl::VertexArrayObject();
   
   std::string dir=GETSTRING(SHADERDIRECTORY)+"methods/NavyDualParaboloid/";
+  ___;
   this->_createShadowMask   = new ge::gl::ProgramObject(
       dir+"createShadowMask.vp",//napsat
       dir+"createShadowMask.gp",
@@ -139,16 +141,17 @@ NavyDualParaboloid::NavyDualParaboloid(simulation::SimulationData*data):simulati
       ge::gl::ShaderObject::include(GETSTRING(SHADERDIRECTORY)+"methods/DualParaboloid/dpProj.vp")+
       ge::gl::ShaderObject::include(GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/dv.vp")+
       ge::gl::ShaderObject::include(GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/nv.vp")+"");
+  ___;
   this->_createShadowMap();
   this->_computeMatrices();
   this->_createShadowMaskFBO();
-
+  ___;
   for(unsigned i=0;i<2;++i){
     this->_desiredView[i]=createDesiredViewTexture();
     this->_smoothX    [i]=createSmoothTexture(GETUINT(RESOLUTION));
     this->_smoothY    [i]=createSmoothTexture(GETUINT(RESOLUTION));
   }
-
+  ___;
   this->_createWarping = new CreateWarping(
       GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/",
       GETUVEC2(WINDOWSIZE).x,
@@ -157,7 +160,7 @@ NavyDualParaboloid::NavyDualParaboloid(simulation::SimulationData*data):simulati
       GETUINT(SMOOTH_WINDOW),
       GETFLOAT(WARP_FACTOR),
       GETSTRING(SHADERDIRECTORY)+"methods/DualParaboloid/dpProj.vp");
-
+  ___;
   this->_createNavyShadowMap = new CreateNavyShadowMap(
       GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/",
       GETUVEC2(WINDOWSIZE).x,
@@ -165,13 +168,13 @@ NavyDualParaboloid::NavyDualParaboloid(simulation::SimulationData*data):simulati
       GETVAO(SCENEVAO),
       GETFASTADJACENCY->getNofTriangles(),
       GETSTRING(SHADERDIRECTORY)+"methods/DualParaboloid/dpProj.vp");
-
+   ___;
 
   for(unsigned i=0;i<2;++i){
     this->_countMap[i]       = new ge::gl::TextureObject(GL_TEXTURE_2D,GL_R32UI,1,GETUINT(RESOLUTION),GETUINT(RESOLUTION));
     this->_warpedCountMap[i] = new ge::gl::TextureObject(GL_TEXTURE_2D,GL_R32UI,1,GETUINT(RESOLUTION),GETUINT(RESOLUTION));
   }
-
+  ___;
   this->_unwarpAll = new UnwarpAll(
       GETSTRING(SHADERDIRECTORY)+"methods/NavyMapping/",
       NULL,
