@@ -3,118 +3,90 @@
 #include<iostream>
 #include<stdlib.h>
 
-void deferred_Init(
-		SDeferred*D,
-		unsigned Widht,
-		unsigned Height){
+Deferred::Deferred(){}
 
-  std::cerr<<"nene\n";
-  D->Create=new ge::gl::ProgramObject(
-      ShaderDir+"app/cgb.vp",
-      ShaderDir+"app/cgb.fp");
+Deferred::~Deferred(){
+  delete this->createProgram;
+  delete this->color;
+  delete this->position;
+  delete this->normal;
+  delete this->stencil;
+  delete this->depth;
+  delete this->fbo;
+}
 
-  GLint bufferActive=0;
-  GLint blockActive=0;
-  glGetProgramInterfaceiv(D->Create->getId(),GL_BUFFER_VARIABLE,GL_ACTIVE_RESOURCES,&bufferActive);
-  glGetProgramInterfaceiv(D->Create->getId(),GL_SHADER_STORAGE_BLOCK,GL_ACTIVE_RESOURCES,&blockActive);
-  std::cerr<<"bufferActive: "<<bufferActive<<std::endl;
-  std::cerr<<"blockActive: "<<blockActive<<std::endl;
-  D->Size[0]=Widht;
-  D->Size[1]=Height;
+Deferred::Deferred(unsigned width,unsigned height,std::string shaderDir){
+  this->create(width,height,shaderDir);
+}
 
-  std::cerr<<"jojo\n";
+void Deferred::create(unsigned width,unsigned height,std::string shaderDir){
+  this->size[0]=width;
+  this->size[1]=height;
 
-  D->color    = new ge::gl::TextureObject(GL_TEXTURE_2D       ,GL_RGBA16UI        ,1,Widht,Height);
-  D->position = new ge::gl::TextureObject(GL_TEXTURE_2D       ,GL_RGBA32F         ,1,Widht,Height);
-  D->normal   = new ge::gl::TextureObject(GL_TEXTURE_2D       ,GL_RGBA32F         ,1,Widht,Height);
-  D->stencil  = new ge::gl::TextureObject(GL_TEXTURE_2D       ,GL_R32F            ,1,Widht,Height);
-  D->depth    = new ge::gl::TextureObject(GL_TEXTURE_RECTANGLE,GL_DEPTH24_STENCIL8,1,Widht,Height);
+  this->color    = new ge::gl::TextureObject(GL_TEXTURE_2D       ,GL_RGBA16UI        ,1,width,height);
+  this->position = new ge::gl::TextureObject(GL_TEXTURE_2D       ,GL_RGBA32F         ,1,width,height);
+  this->normal   = new ge::gl::TextureObject(GL_TEXTURE_2D       ,GL_RGBA32F         ,1,width,height);
+  this->stencil  = new ge::gl::TextureObject(GL_TEXTURE_2D       ,GL_R32F            ,1,width,height);
+  this->depth    = new ge::gl::TextureObject(GL_TEXTURE_RECTANGLE,GL_DEPTH24_STENCIL8,1,width,height);
 
-  D->color   ->bind(GL_TEXTURE1);
-  D->position->bind(GL_TEXTURE2);
-  D->normal  ->bind(GL_TEXTURE3);
-  D->stencil ->bind(GL_TEXTURE4);
-  
-  D->fbo=new ge::gl::FramebufferObject();
-  D->fbo->attachColorTexture  (GL_COLOR_ATTACHMENT4,D->color   ->getId());
-  D->fbo->attachColorTexture  (GL_COLOR_ATTACHMENT5,D->position->getId());
-  D->fbo->attachColorTexture  (GL_COLOR_ATTACHMENT6,D->normal  ->getId());
-  D->fbo->attachColorTexture  (GL_COLOR_ATTACHMENT7,D->stencil ->getId());
-  D->fbo->attachDepthTexture  (D->depth->getId());
-  D->fbo->attachStencilTexture(D->depth->getId());
-  D->fbo->drawBuffers(4,
+  this->color   ->bind(GL_TEXTURE1);
+  this->position->bind(GL_TEXTURE2);
+  this->normal  ->bind(GL_TEXTURE3);
+  this->stencil ->bind(GL_TEXTURE4);
+
+  this->fbo=new ge::gl::FramebufferObject();
+  this->fbo->attachColorTexture  (GL_COLOR_ATTACHMENT4,this->color   ->getId());
+  this->fbo->attachColorTexture  (GL_COLOR_ATTACHMENT5,this->position->getId());
+  this->fbo->attachColorTexture  (GL_COLOR_ATTACHMENT6,this->normal  ->getId());
+  this->fbo->attachColorTexture  (GL_COLOR_ATTACHMENT7,this->stencil ->getId());
+  this->fbo->attachDepthTexture  (this->depth->getId());
+  this->fbo->attachStencilTexture(this->depth->getId());
+  this->fbo->drawBuffers(4,
       GL_COLOR_ATTACHMENT4,
       GL_COLOR_ATTACHMENT5,
       GL_COLOR_ATTACHMENT6,
       GL_COLOR_ATTACHMENT7);
-  if(!D->fbo->check())
+  if(!this->fbo->check())
     std::cerr<<"framebuffer je rozsypany\n";
+
+  this->createProgram=new ge::gl::ProgramObject(
+      shaderDir+"app/cgb.vp",
+      shaderDir+"app/cgb.fp");
 }
 
-void deferred_Free(SDeferred*D){
-  delete D->Create;
-  delete D->color;
-  delete D->position;
-  delete D->normal;
-  delete D->stencil;
-  delete D->depth;
-  delete D->fbo;
+void Deferred::activate(){
+  this->fbo->bind();
+  glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT|GL_STENCIL_BUFFER_BIT);
+  float clearPosition[]={0.f/0.f,0.f/0.f,0.f/0.f};
+  glClearTexImage(this->position->getId(),0,GL_RGB,GL_FLOAT,clearPosition);
 }
 
-void deferred_ClearStencil(SDeferred*D){
-  D->fbo->bind();
-  float Data[]={0,0,0,0};
-  glClearBufferfv(GL_COLOR,GL_DRAW_BUFFER3,Data);
-  D->fbo->unbind();
+void Deferred::deactivate(){
+  this->fbo->unbind();
 }
 
-void deferred_StartCreateFrameBuffer(SDeferred*D){
-  D->fbo->bind();
+void Deferred::blitDepth2Default(){
+  this->fbo->bind(GL_READ_FRAMEBUFFER);
+  glBindFramebuffer(GL_DRAW_FRAMEBUFFER,0);
+  glBlitFramebuffer(0,0,this->size[0],this->size[1],0,0,this->size[0],this->size[1],GL_DEPTH_BUFFER_BIT,GL_NEAREST);
 }
 
-void deferred_EndCreateFrameBuffer(SDeferred*D){
-  D->fbo->unbind();
+void Deferred::blitStencil2Default(){
+  this->fbo->bind(GL_READ_FRAMEBUFFER);
+  glBindFramebuffer(GL_DRAW_FRAMEBUFFER,0);
+  glBlitFramebuffer(0,0,this->size[0],this->size[1],0,0,this->size[0],this->size[1],GL_STENCIL_BUFFER_BIT,GL_NEAREST);
 }
 
-void deferred_StartCreateStencil(SDeferred*D){
-  D->fbo->bind();
+void Deferred::setTextures(){
+  this->color   ->bind(GL_TEXTURE1);
+  this->position->bind(GL_TEXTURE2);
+  this->normal  ->bind(GL_TEXTURE3);
+  this->stencil ->bind(GL_TEXTURE4);
+}
+
+void Deferred::activateCreateStencil(){
+  this->fbo->bind();
   glClear(GL_STENCIL_BUFFER_BIT);
 }
 
-void deferred_EndCreateStencil(SDeferred*D){
-  D->fbo->unbind();
-}
-
-void deferred_EnableFBO(SDeferred*D){
-  D->fbo->bind();
-  glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT|GL_STENCIL_BUFFER_BIT);
-  float clearPosition[]={0.f/0.f,0.f/0.f,0.f/0.f};
-  glClearTexImage(D->position->getId(),0,GL_RGB,GL_FLOAT,clearPosition);
-}
-
-void deferred_EnableFBOStencil(SDeferred*D){
-  D->fbo->bind();
-}
-
-void deferred_BlitStencilBuffer(SDeferred*D){
-  D->fbo->bind(GL_READ_FRAMEBUFFER);
-  glBindFramebuffer(GL_DRAW_FRAMEBUFFER,0);
-  glBlitFramebuffer(0,0,D->Size[0],D->Size[1],0,0,D->Size[0],D->Size[1],GL_STENCIL_BUFFER_BIT,GL_NEAREST);
-}
-void deferred_BlitDepthToDefault(SDeferred*D){
-  D->fbo->bind(GL_READ_FRAMEBUFFER);
-  glBindFramebuffer(GL_DRAW_FRAMEBUFFER,0);
-  glBlitFramebuffer(0,0,D->Size[0],D->Size[1],0,0,D->Size[0],D->Size[1],GL_DEPTH_BUFFER_BIT,GL_NEAREST);
-}
-
-void deferred_DisableFBO(SDeferred*D){
-  D->fbo->unbind();
-}
-
-void deferred_SetTextures(SDeferred*D){
-  D->color   ->bind(GL_TEXTURE1);
-  D->position->bind(GL_TEXTURE2);
-  D->normal  ->bind(GL_TEXTURE3);
-  D->stencil ->bind(GL_TEXTURE4);
-}
 

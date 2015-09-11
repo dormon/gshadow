@@ -64,30 +64,30 @@ ge::gl::ProgramObject*frustumCullingProgram;
 #define FRUSTUMCULLING_BINDING_AABB      1
 #define FRUSTUMCULLING_WORKGROUP_SIZE_X 64
 
-AxisAlignBoundingBox*sceneAABB;
+AxisAlignBoundingBox*sceneAABB = nullptr;
 
 Adjacency*fastAdjacency=NULL;
 
 //sintorn
-ge::gl::BufferObject*SintornVBO;
+ge::gl::BufferObject*SintornVBO = nullptr;
 
 //base shader
-ge::gl::ProgramObject*DrawShader;
+ge::gl::ProgramObject*DrawShader = nullptr;
 
 GLuint StencilToTextureFBO;
 GLuint ShadowTexture;
-ge::gl::ProgramObject*StencilToTexture;
+ge::gl::ProgramObject*StencilToTexture = nullptr;
 
-ge::gl::TextureObject*shadowMask;
+ge::gl::TextureObject*shadowMask = nullptr;
 
 
 DrawPrimitive*simpleDraw = NULL;
 
-ge::gl::ProgramPipelineObject*programPipeline;
+ge::gl::ProgramPipelineObject*programPipeline = nullptr;
 
 //pro vykresleni sceny/hloubky
 //STerrain Terrain;
-SDeferred Deferred;
+Deferred*deferred = nullptr;
 
 std::string ModelFile;
 
@@ -234,7 +234,7 @@ void drawDiffuseSpecular(bool useShadows,simulation::Light*L){
   glBlendEquation(GL_FUNC_ADD);
   glDepthFunc(GL_ALWAYS);
 
-  deferred_SetTextures(&Deferred);
+  deferred->setTextures();
   glUseProgram(0);
   shadowMask->bind(GL_TEXTURE8);
   if(!Linked){
@@ -317,7 +317,7 @@ void idle(){
   glBindFramebuffer(GL_FRAMEBUFFER,0);
   glDepthFunc(GL_LEQUAL);
   glEnable(GL_DEPTH_TEST);
-  deferred_BlitDepthToDefault(&Deferred);
+  deferred->blitDepth2Default();
   ___;
   glDepthFunc(GL_LESS);
   glBindFramebuffer(GL_FRAMEBUFFER,0);
@@ -460,7 +460,7 @@ void init(){
   }catch(std::string&e){
     std::cerr<<e<<std::endl;
   }
-  deferred_Init(&Deferred,simData->getUVec2("window.size").x,simData->getUVec2("window.size").y);
+  deferred=new Deferred(simData->getUVec2("window.size").x,simData->getUVec2("window.size").y,simData->getString("shaderDirectory"));
   InitDrawStencilToTexture();
 
   InitModel(ModelFile.c_str());
@@ -504,9 +504,9 @@ void init(){
   simData->insertVariable("sceneVBO" ,new simulation::Object(SceneBuffer));
   simData->insertVariable("light"    ,lightConfiguration->getLight()                                 );
   simData->insertVariable("fastAdjacency",new simulation::Object(fastAdjacency));
-  simData->insertVariable("gbuffer.position",new simulation::Object(Deferred.position));
-  simData->insertVariable("gbuffer.fbo"     ,new simulation::Object(Deferred.fbo     ));
-  simData->insertVariable("gbuffer.stencil" ,new simulation::Object(Deferred.depth ));
+  simData->insertVariable("gbuffer.position",new simulation::Object(deferred->position));
+  simData->insertVariable("gbuffer.fbo"     ,new simulation::Object(deferred->fbo     ));
+  simData->insertVariable("gbuffer.stencil" ,new simulation::Object(deferred->depth ));
   simData->insertVariable("gpa"             ,new simulation::Object(GPA            ));
   simData->insertVariable("computeMethod.program.WORKGROUPSIZE", new simulation::Int(64));
   simData->insertVariable("computeMethod.program.CULL_SIDE", new simulation::Bool(true));
@@ -613,16 +613,17 @@ void DrawGBuffer(){
   glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
   // */
-  deferred_EnableFBO(&Deferred);
-  deferred_SetTextures(&Deferred);
-  Deferred.Create->use();
-  ShaderSetMatrix(Deferred.Create);
+  deferred->activate();
+  deferred->setTextures();
+  deferred->createProgram->use();
+  ShaderSetMatrix(deferred->createProgram);
   DrawScene();
-  deferred_DisableFBO(&Deferred);
+  deferred->deactivate();
+
 }
 
 void DrawAmbient(){
-  deferred_SetTextures(&Deferred);
+  deferred->setTextures();
 
   DrawShader->use();
 
@@ -640,7 +641,7 @@ void DrawAmbient(){
 
 
 void DrawDiffuseSpecular(bool FrameBuffer,bool ImageAtomicAdd,simulation::Light*L){
-  deferred_SetTextures(&Deferred);
+  deferred->setTextures();
   glUseProgram(0);
 
   if(!Linked){
@@ -664,7 +665,7 @@ void DrawDiffuseSpecular(bool FrameBuffer,bool ImageAtomicAdd,simulation::Light*
 }
 
 void setGLForStencil(bool zfail){
-  deferred_StartCreateStencil(&Deferred);
+  deferred->activateCreateStencil();
   glEnable(GL_STENCIL_TEST);
   glStencilFunc(GL_ALWAYS,0,0);
   if(zfail){
@@ -680,8 +681,8 @@ void setGLForStencil(bool zfail){
 }
 
 void drawStencil(simulation::Light*Light){
-  deferred_EndCreateStencil(&Deferred);
-  deferred_BlitStencilBuffer(&Deferred);
+  deferred->deactivate();
+  deferred->blitStencil2Default();
   glStencilOp(GL_KEEP,GL_KEEP,GL_KEEP);
   glStencilFunc(GL_EQUAL,0,0xff);
   glColorMask(GL_TRUE,GL_TRUE,GL_TRUE,GL_TRUE);
@@ -702,7 +703,7 @@ void InitDrawStencilToTexture(){
   glBindTexture(GL_TEXTURE_2D,ShadowTexture);
   glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
-  glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA32F,Deferred.Size[0],Deferred.Size[1],0,GL_RGBA,
+  glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA32F,deferred->size[0],deferred->size[1],0,GL_RGBA,
       GL_FLOAT,NULL);
 
   glGenFramebuffers(1,&StencilToTextureFBO);
@@ -710,7 +711,7 @@ void InitDrawStencilToTexture(){
   glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,
       GL_TEXTURE_2D,ShadowTexture,0);
   glFramebufferTexture2D(GL_FRAMEBUFFER,GL_STENCIL_ATTACHMENT,
-      GL_TEXTURE_RECTANGLE,Deferred.depth->getId(),0);
+      GL_TEXTURE_RECTANGLE,deferred->depth->getId(),0);
 
   GLenum DrawBuffers[]={
     GL_COLOR_ATTACHMENT0
@@ -823,10 +824,10 @@ void InitModel(const char* File){
 }
 
 void destroy(){
+  delete deferred;
   delete programPipeline;
   delete CameraMation;
   delete DrawShader;
-  deferred_Free(&Deferred);
   delete StencilToTexture;
   delete SceneBuffer;
 }
