@@ -4,6 +4,11 @@
 #include<assimp/scene.h>
 #include<assimp/postprocess.h>
 
+ModelPN::ModelPN(){
+  this->_positions = nullptr;
+  this->_normals   = nullptr;
+}
+
 ModelPN::ModelPN(const aiScene*sceneModelPN){
   if(!sceneModelPN){
     std::cerr<<"error while loading opened assimp file"<<std::endl;

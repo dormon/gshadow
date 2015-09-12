@@ -4,11 +4,11 @@
 
 class Adjacency{
   protected:
-    std::vector<unsigned>_edges;          ///< (a_ind,b_ind,offset,count)* 
-    std::vector<unsigned>_opposite;       ///< list of all indices to opposite vertices
-    unsigned             _maxMultiplicity;///<max allowed multiplicity
-    const float*         _vertices;       ///<all vertices, with redundancies
-    unsigned             _nofTriangles;   ///<number of triangles
+    std::vector<unsigned>_edges;              ///< (a_ind,b_ind,offset,count)* 
+    std::vector<unsigned>_opposite;           ///< list of all indices to opposite vertices
+    unsigned             _maxMultiplicity = 0;///<max allowed multiplicity
+    const float*         _vertices = nullptr; ///<all vertices, with redundancies
+    unsigned             _nofTriangles = 0;   ///<number of triangles
   public:
     /**
      * @brief constructor of adjacency information

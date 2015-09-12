@@ -8,13 +8,13 @@
 template<unsigned dim>
 class Vertex{
   public:
-    const float* data;///<global data
-    unsigned index;   ///<this vertex starts here
+    const float* data = nullptr;///<global data
+    unsigned index = 0;   ///<this vertex starts here
     Vertex(const float*data,unsigned i){
       this->data  = data;
       this->index = i;
     }
-    Vertex(){this->data=NULL;}
+    Vertex(){this->data=nullptr;}
     int compare(Vertex<dim> b)const{
       for(unsigned d=0;d<dim;++d){
         if(this->data[this->index+d]>b.data[b.index+d])return 1;

@@ -55,14 +55,20 @@ DEFVAR2UPDATEEND
 DEFUPDATE
 
 ComputeGeometry::ComputeGeometry(simulation::SimulationData*data):simulation::SimulationObject(data){
+  ___;
   this->_simulationData->registerUser(this);
   this->_caps    = NULL;
   this->_sides   = NULL;
   this->_maskFBO = NULL;
+  ___;
   this->_caps  = new CGeometryCapsAlt(GETFASTADJACENCY);
+  ___;
   this->_sides = new CComputeSides(GETFASTADJACENCY,GETUINT(WORKGROUPSIZE),GETBOOL(CULL_SIDE));
+  ___;
   this->_maskFBO = new ge::gl::FramebufferObject();
+  ___;
   this->_maskFBO->attachColorTexture(GL_COLOR_ATTACHMENT0,GETTEXTURE(SHADOWMASK)->getId());
+  ___;
   this->_maskFBO->attachStencilTexture(GETTEXTURE(GBUFFER_STENCIL)->getId());
   this->_blit = new ge::gl::ProgramObject(
       GETSTRING(SHADERDIRECTORY)+"methods/Stencil/blit.vp",

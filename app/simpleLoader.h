@@ -11,6 +11,7 @@ class ModelPN{
     float*_normals   = nullptr;
     std::vector<unsigned>_meshOffset;
   public:
+    ModelPN();
     ModelPN(const aiScene*sceneModel);
     ~ModelPN();
     const float*getPositions();

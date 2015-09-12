@@ -8,7 +8,7 @@ namespace simulation{
   class Namespace
   {
     private:
-      std::string _name;
+      std::string _name = "";
       std::vector<std::string>_subNamespaceNames;
       std::vector<Namespace*> _subNamespaces;
       std::vector<std::string>_subVariableNames;
@@ -43,7 +43,7 @@ namespace simulation{
       std::vector<bool>_sendUpdate;
       std::map<std::string,VariableUsers*>_variableUser;
 
-      Namespace*_rootNamespace;
+      Namespace*_rootNamespace = nullptr;
       bool _isNumber(std::string data);
       bool _isFloat(std::string name);
     public:
@@ -81,7 +81,7 @@ namespace simulation{
 
   class SimulationObject{
     protected:
-      SimulationData*_simulationData;
+      SimulationData*_simulationData = nullptr;
       std::map<std::string,bool>_changed;
     public:
       void initChanged(std::string name);

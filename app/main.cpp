@@ -27,57 +27,53 @@ void DrawAmbient();
 void DrawDeferred();
 void InitDrawStencilToTexture();
 
-ge::gl::AsynchronousQueryObject*gbufferQuery          = NULL;
+ge::gl::AsynchronousQueryObject*gbufferQuery = nullptr;
 
-ge::util::CameraPath*CameraMation;
+ge::util::CameraPath*CameraMation = nullptr;
 std::string CameraMationFile="sponzaprulet";
 
 ge::util::FPSPrinter*fpsPrinter;
 
-objconf::CameraPathConfiguration* cameraPathConfiguration  = NULL;
-objconf::CameraConfiguration    * cameraConfiguration      = NULL;
-objconf::LightConfiguration     * lightConfiguration       = NULL;
-objconf::ShadowMethodConfig     * navyConfig               = NULL;
-objconf::ShadowMethodConfig     * rtwConfig                = NULL;
-objconf::ShadowMethodConfig     * dualParaboloidConfig     = NULL;
-objconf::ShadowMethodConfig     * navyDualParaboloidConfig = NULL;
-objconf::ShadowMethodConfig     * cubeShadowMapConfig      = NULL;
-objconf::ShadowMethodConfig     * cubeNavyMapConfig        = NULL;
+objconf::CameraPathConfiguration* cameraPathConfiguration  = nullptr;
+objconf::CameraConfiguration    * cameraConfiguration      = nullptr;
+objconf::LightConfiguration     * lightConfiguration       = nullptr;
+objconf::ShadowMethodConfig     * navyConfig               = nullptr;
+objconf::ShadowMethodConfig     * rtwConfig                = nullptr;
+objconf::ShadowMethodConfig     * dualParaboloidConfig     = nullptr;
+objconf::ShadowMethodConfig     * navyDualParaboloidConfig = nullptr;
+objconf::ShadowMethodConfig     * cubeShadowMapConfig      = nullptr;
+objconf::ShadowMethodConfig     * cubeNavyMapConfig        = nullptr;
 
 ShadowMethod*shadowMethod = nullptr;
 
-ge::gl::VertexArrayObject*EmptyVAO;
+ge::gl::VertexArrayObject*EmptyVAO = nullptr;
 
 void DrawShadowless();
 
 
+ModelPN*model = nullptr;
 
-ge::gl::BufferObject*SceneBuffer;
+ge::gl::BufferObject*SceneBuffer = nullptr;
 //GLuint SceneVAO;
-ge::gl::VertexArrayObject*sceneVAO;
-ge::gl::BufferObject*sceneDIBO;
-ge::gl::BufferObject*sceneMaterial;
-ge::gl::BufferObject*sceneAABBData;
+ge::gl::VertexArrayObject*sceneVAO = nullptr;
+ge::gl::BufferObject*sceneDIBO     = nullptr;
+ge::gl::BufferObject*sceneMaterial = nullptr;
+ge::gl::BufferObject*sceneAABBData = nullptr;
 unsigned sceneDIBOSize=0;
-ge::gl::ProgramObject*frustumCullingProgram;
+ge::gl::ProgramObject*frustumCullingProgram = nullptr;
 #define FRUSTUMCULLING_BINDING_DIBO      0
 #define FRUSTUMCULLING_BINDING_AABB      1
 #define FRUSTUMCULLING_WORKGROUP_SIZE_X 64
 
 AxisAlignBoundingBox*sceneAABB = nullptr;
 
-Adjacency*fastAdjacency=NULL;
+Adjacency*fastAdjacency=nullptr;
 
 //sintorn
 ge::gl::BufferObject*SintornVBO = nullptr;
 
 //base shader
 ge::gl::ProgramObject*DrawShader = nullptr;
-
-GLuint StencilToTextureFBO;
-GLuint ShadowTexture;
-ge::gl::ProgramObject*StencilToTexture = nullptr;
-
 ge::gl::TextureObject*shadowMask = nullptr;
 
 
@@ -85,28 +81,26 @@ DrawPrimitive*simpleDraw = NULL;
 
 ge::gl::ProgramPipelineObject*programPipeline = nullptr;
 
-//pro vykresleni sceny/hloubky
-//STerrain Terrain;
 Deferred*deferred = nullptr;
 
-std::string ModelFile;
+std::string ModelFile = "";
 
 glm::vec3 Pos=glm::vec3(0.f,10.f,0.f);
 float Angle[3]={0,0,0};
 
-glm::mat4 Model;
-glm::mat4 View;
-glm::mat4 Projection;
-glm::mat4 mvp;
+glm::mat4 Model      = glm::mat4(1.f);
+glm::mat4 View       = glm::mat4(1.f);
+glm::mat4 Projection = glm::mat4(1.f);
+glm::mat4 mvp        = glm::mat4(1.f);
 
-ge::util::WindowObject*Window;
+ge::util::WindowObject*Window = nullptr;
 
-NDormon::GpuPerfApi*GPA=NULL;
-bool GPAavalable=true;
+NDormon::GpuPerfApi*GPA = nullptr;
+bool GPAavalable        = true;
 
-bool     SSEnable              = true;
-bool     SSAOEnable            = false;
-bool     SSMeasureGbuffer      = true;
+bool SSEnable         = true;
+bool SSAOEnable       = false;
+bool SSMeasureGbuffer = true;
 enum ESSMethod{
   SS_COMPUTE,
   SS_SHADOWMAP,
@@ -126,11 +120,12 @@ bool DSDrawLightSilhouette = false;
 bool DSDrawViewSilhouette  = false;
 bool DSDrawEverything      = false;
 
-bool DisableAnttweakbar=false;
+bool DisableAnttweakbar = false;
 
-simulation::SimulationData*simData=NULL;
+simulation::SimulationData*simData = nullptr;
 
 int main(int Argc,char*Argv[]){
+
   ge::util::ArgumentLoader*argLoader=new ge::util::ArgumentLoader(Argc,Argv);
   for(unsigned i=0;i<argLoader->getNumVariables();++i)
     std::cerr<<argLoader->getVariable(i)<<":"<<argLoader->getData(i)<<std::endl;
@@ -170,30 +165,6 @@ int main(int Argc,char*Argv[]){
       simData->getUint("context.version"),
       simData->getString("context.profile"),
       simData->getString("context.debug"));
-
-  glewExperimental=GL_TRUE;
-  glewInit();
-
-  try{
-    ge::gl::initShadersAndPrograms();
-  }catch(std::string&e){
-    std::cerr<<e<<std::endl;
-  }
-
-  try{
-    GPA=new NDormon::GpuPerfApi(Window->getContext());
-    GPA->enableComputeShader();
-  }catch(std::string&e){
-    std::cerr<<e<<std::endl;
-    GPAavalable=false;
-  }
-
-  ge::gl::setHighDebugMessage();
-  EmptyVAO=new ge::gl::VertexArrayObject();
-
-  glEnable(GL_DEPTH_TEST);
-  glDepthFunc(GL_LEQUAL);
-  glDisable(GL_CULL_FACE);
 
 
   init();
@@ -425,8 +396,11 @@ void methodChangeSet(const void*A,void*D){
   std::cout<<"volam set"<<std::endl;
   ESSMethod newMethod=*((ESSMethod*)A);
   ESSMethod*oldMethod= ((ESSMethod*)D);
+  ___;
   if(*oldMethod!=newMethod||!shadowMethod){
+    ___;
     delete shadowMethod;
+    ___;
     switch(newMethod){
       case SS_NAVYMAPPING       :shadowMethod = new NavyMapping       (simData);break;
       case SS_SHADOWMAP         :shadowMethod = new CShadowMapping    (simData);break;
@@ -435,12 +409,13 @@ void methodChangeSet(const void*A,void*D){
       case SS_CUBENAVYMAPPING   :shadowMethod = new CubeNavyMapping   (simData);break;
       case SS_NAVYDUALPARABOLOID:shadowMethod = new NavyDualParaboloid(simData);break;
       case SS_RTW               :shadowMethod = new RTWBack           (simData);break;
-      case SS_COMPUTE           :shadowMethod = new ComputeGeometry   (simData);break;
+      case SS_COMPUTE           :shadowMethod = new ComputeGeometry   (simData);___;break;
       case SS_RAYTRACE          :shadowMethod = new RayTrace          (simData);break;
       default                   :shadowMethod = nullptr                        ;break;
     }
   }
   *oldMethod=newMethod;
+  ___;
 }
 
 void methodChangeGet(void*A,void*D){
@@ -449,6 +424,30 @@ void methodChangeGet(void*A,void*D){
 
 
 void init(){
+  glewExperimental=GL_TRUE;
+  glewInit();
+
+  try{
+    ge::gl::initShadersAndPrograms();
+  }catch(std::string&e){
+    std::cerr<<e<<std::endl;
+  }
+
+  try{
+    GPA=new NDormon::GpuPerfApi(Window->getContext());
+    GPA->enableComputeShader();
+  }catch(std::string&e){
+    std::cerr<<e<<std::endl;
+    GPAavalable=false;
+  }
+
+  ge::gl::setHighDebugMessage();
+  EmptyVAO=new ge::gl::VertexArrayObject();
+
+  glEnable(GL_DEPTH_TEST);
+  glDepthFunc(GL_LEQUAL);
+  glDisable(GL_CULL_FACE);
+
   gbufferQuery = new ge::gl::AsynchronousQueryObject(GL_TIME_ELAPSED,GL_QUERY_RESULT_NO_WAIT,ge::gl::AsynchronousQueryObject::UINT64);
   programPipeline=new ge::gl::ProgramPipelineObject();
   try{
@@ -461,7 +460,7 @@ void init(){
     std::cerr<<e<<std::endl;
   }
   deferred=new Deferred(simData->getUVec2("window.size").x,simData->getUVec2("window.size").y,simData->getString("shaderDirectory"));
-  InitDrawStencilToTexture();
+  //InitDrawStencilToTexture();
 
   InitModel(ModelFile.c_str());
   std::cerr<<"NumTriangles: "   <<fastAdjacency->getNofTriangles   ()<<std::endl;
@@ -473,7 +472,7 @@ void init(){
   cameraPathConfiguration->setCamera(cameraConfiguration->getCamera());
   lightConfiguration = new objconf::LightConfiguration();
 
-  TwBar*Bar;
+  TwBar*Bar = nullptr;
   Bar=TwNewBar("TweakBar");
   TwAddVarRW(Bar,"Speed"  ,TW_TYPE_FLOAT  ,&Speed     ," label='Movement speed' min=0 max=2 step=0.01"  );
   TwAddVarRW(Bar,"SSAO"   ,TW_TYPE_BOOLCPP,&SSAOEnable," help='Toggle screenspace ambient occlussion.' ");
@@ -502,7 +501,7 @@ void init(){
   simData->insertVariable("emptyVAO" ,new simulation::Object(EmptyVAO       ));
   simData->insertVariable("sceneVAO" ,new simulation::Object(sceneVAO       ));
   simData->insertVariable("sceneVBO" ,new simulation::Object(SceneBuffer));
-  simData->insertVariable("light"    ,lightConfiguration->getLight()                                 );
+  simData->insertVariable("light"    ,lightConfiguration->getLight());
   simData->insertVariable("fastAdjacency",new simulation::Object(fastAdjacency));
   simData->insertVariable("gbuffer.position",new simulation::Object(deferred->position));
   simData->insertVariable("gbuffer.fbo"     ,new simulation::Object(deferred->fbo     ));
@@ -515,7 +514,7 @@ void init(){
   simData->insertVariable("measure.computeGeometry.blit",new simulation::GpuGauge(false,true));
 
 
-  simData->insertVariable("shadowMask",new simulation::Object(shadowMask));
+  simData->insertVariable("shadowMask"                        ,new simulation::Object(shadowMask)  );
   simData->insertVariable("measure.shadowMap.createShadowMap" ,new simulation::GpuGauge(false,true));
   simData->insertVariable("measure.shadowMap.createShadowMask",new simulation::GpuGauge(false,true));
 
@@ -527,7 +526,7 @@ void init(){
   simData->insertVariable("measure.rtw.smooth"          ,new simulation::GpuGauge(false,true));
   simData->insertVariable("measure.rtw.sum"             ,new simulation::GpuGauge(false,true));
   simData->insertVariable("measure.rtw.whole"           ,new simulation::GpuGauge(false,true));
-  simData->insertVariable("rtw.drawSM", new simulation::Bool(false));
+  simData->insertVariable("rtw.drawSM"                  ,new simulation::Bool(false));
 
   simData->insertVariable("measure.nv.computeViewSamples",new simulation::GpuGauge(false,true));
   simData->insertVariable("measure.nv.dv"                ,new simulation::GpuGauge(false,true));
@@ -545,9 +544,9 @@ void init(){
   simData->insertVariable("measure.nv.wholey"            ,new simulation::GpuGauge(false,true));
 
 
-  simData->insertVariable("csm.drawSM", new simulation::Bool(false));
+  simData->insertVariable("csm.drawSM",new simulation::Bool(false));
 
-  simData->insertVariable("cnm.drawSM", new simulation::Bool(false));
+  simData->insertVariable("cnm.drawSM"              ,new simulation::Bool(false));
   simData->insertVariable("cnm.computeVisualisation",new simulation::Bool(false));
   simData->insertVariable("cnm.drawSM"              ,new simulation::Bool(false));
   simData->insertVariable("cnm.drawCountMap"        ,new simulation::Bool(false));
@@ -557,12 +556,12 @@ void init(){
   simData->insertVariable("dp.drawSM1", new simulation::Bool(false));
 
   simData->insertVariable("ndp.computeVisualisation",new simulation::Bool(true));
-  simData->insertVariable("ndp.drawSM0"            ,new simulation::Bool(false));
-  simData->insertVariable("ndp.drawSM1"            ,new simulation::Bool(false));
-  simData->insertVariable("ndp.drawCountMap0"      ,new simulation::Bool(false));
-  simData->insertVariable("ndp.drawCountMap1"      ,new simulation::Bool(false));
-  simData->insertVariable("ndp.drawWarpedCountMap0",new simulation::Bool(false));
-  simData->insertVariable("ndp.drawWarpedCountMap1",new simulation::Bool(false));
+  simData->insertVariable("ndp.drawSM0"             ,new simulation::Bool(false));
+  simData->insertVariable("ndp.drawSM1"             ,new simulation::Bool(false));
+  simData->insertVariable("ndp.drawCountMap0"       ,new simulation::Bool(false));
+  simData->insertVariable("ndp.drawCountMap1"       ,new simulation::Bool(false));
+  simData->insertVariable("ndp.drawWarpedCountMap0" ,new simulation::Bool(false));
+  simData->insertVariable("ndp.drawWarpedCountMap1" ,new simulation::Bool(false));
 
   simData->insertVariable("camera",new simulation::Object(cameraConfiguration->getCamera()));
 
@@ -603,7 +602,6 @@ void ShaderSetMatrix(ge::gl::ProgramObject*P){
 }
 
 void DrawGBuffer(){
-  //*  
   frustumCullingProgram->use();
   frustumCullingProgram->bindSSBO("dibo",sceneDIBO);
   frustumCullingProgram->bindSSBO("aabb",sceneAABBData);
@@ -612,14 +610,12 @@ void DrawGBuffer(){
   glDispatchCompute(ge::core::getDispatchSize(sceneDIBOSize,FRUSTUMCULLING_WORKGROUP_SIZE_X),1,1);
   glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
-  // */
   deferred->activate();
   deferred->setTextures();
   deferred->createProgram->use();
   ShaderSetMatrix(deferred->createProgram);
   DrawScene();
   deferred->deactivate();
-
 }
 
 void DrawAmbient(){
@@ -634,31 +630,6 @@ void DrawAmbient(){
   DrawShader->set("SSAO",SSAOEnable);
   DrawShader->set("useShadows",false);
 
-  EmptyVAO->bind();
-  glDrawArrays(GL_POINTS,0,1);
-  EmptyVAO->unbind();
-}
-
-
-void DrawDiffuseSpecular(bool FrameBuffer,bool ImageAtomicAdd,simulation::Light*L){
-  deferred->setTextures();
-  glUseProgram(0);
-
-  if(!Linked){
-    DrawShader->setSeparable();
-    DrawShader->setRetrievable();
-    Linked=true;
-    programPipeline->useProgramStages(GL_ALL_SHADER_BITS,DrawShader->getId());
-  }
-  programPipeline->bind();
-  DrawShader->setdsa("La",0.f,0.f,0.f);
-  DrawShader->setdsa("Ld",1,glm::value_ptr(L->diffuse));
-  DrawShader->setdsa("Ls",1,glm::value_ptr(L->specular));
-  DrawShader->setdsa("LightPosition",1,glm::value_ptr(L->position));
-  DrawShader->setdsa("CameraPosition",-Pos[0],-Pos[1],-Pos[2]);
-  DrawShader->setdsa("SSAO",SSAOEnable);
-  glActiveTexture(GL_TEXTURE7);
-  glBindTexture(GL_TEXTURE_2D,ShadowTexture);
   EmptyVAO->bind();
   glDrawArrays(GL_POINTS,0,1);
   EmptyVAO->unbind();
@@ -680,55 +651,6 @@ void setGLForStencil(bool zfail){
   glColorMask(GL_FALSE,GL_FALSE,GL_FALSE,GL_FALSE);
 }
 
-void drawStencil(simulation::Light*Light){
-  deferred->deactivate();
-  deferred->blitStencil2Default();
-  glStencilOp(GL_KEEP,GL_KEEP,GL_KEEP);
-  glStencilFunc(GL_EQUAL,0,0xff);
-  glColorMask(GL_TRUE,GL_TRUE,GL_TRUE,GL_TRUE);
-  glEnable(GL_BLEND);
-  glBlendFunc(GL_ONE,GL_ONE);
-  glBlendEquation(GL_FUNC_ADD);
-  glDepthFunc(GL_ALWAYS);
-  DrawDiffuseSpecular(false,false,Light);
-  glDepthFunc(GL_LESS);
-  glDisable(GL_STENCIL_TEST);
-  glDepthMask(GL_TRUE);
-  glDisable(GL_BLEND);
-}
-
-
-void InitDrawStencilToTexture(){
-  glGenTextures(1,&ShadowTexture);
-  glBindTexture(GL_TEXTURE_2D,ShadowTexture);
-  glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
-  glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA32F,deferred->size[0],deferred->size[1],0,GL_RGBA,
-      GL_FLOAT,NULL);
-
-  glGenFramebuffers(1,&StencilToTextureFBO);
-  glBindFramebuffer(GL_FRAMEBUFFER,StencilToTextureFBO);
-  glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,
-      GL_TEXTURE_2D,ShadowTexture,0);
-  glFramebufferTexture2D(GL_FRAMEBUFFER,GL_STENCIL_ATTACHMENT,
-      GL_TEXTURE_RECTANGLE,deferred->depth->getId(),0);
-
-  GLenum DrawBuffers[]={
-    GL_COLOR_ATTACHMENT0
-  };
-  glDrawBuffers(1,DrawBuffers);
-  glClear(GL_COLOR_BUFFER_BIT);
-  GLenum Status=glCheckFramebufferStatus(GL_FRAMEBUFFER);
-  if(Status!=GL_FRAMEBUFFER_COMPLETE)
-    std::cerr<<"FBO"<<std::endl;
-  glBindFramebuffer(GL_FRAMEBUFFER,0);
-
-  StencilToTexture=new ge::gl::ProgramObject(
-      ShaderDir+"app/stenciltotexture.vp",
-      ShaderDir+"app/stenciltotexture.gp",
-      ShaderDir+"app/stenciltotexture.fp");
-}
-
 void DrawShadowless(){
   DrawGBuffer();
   glDepthFunc(GL_ALWAYS);
@@ -739,7 +661,8 @@ void DrawShadowless(){
   glBlendEquation(GL_FUNC_ADD);
 
   glDepthFunc(GL_ALWAYS);
-  DrawDiffuseSpecular(false,false,lightConfiguration->getLight());
+  drawDiffuseSpecular(false,lightConfiguration->getLight());
+  //DrawDiffuseSpecular(false,false,lightConfiguration->getLight());
   glDepthFunc(GL_LESS);
 
   glDepthMask(GL_TRUE);
@@ -779,16 +702,16 @@ void InitModel(const char* File){
     exit(1);
   }
 
-  ModelPN model(SceneModel);
-  ModelPN2VAO(&sceneVAO,&SceneBuffer,&model)();
-  Model2AABB(&sceneAABBData,&model)();
-  Model2DIBO(&sceneDIBO,&model)();
+  model=new ModelPN(SceneModel);
+  ModelPN2VAO(&sceneVAO,&SceneBuffer,model)();
+  Model2AABB(&sceneAABBData,model)();
+  Model2DIBO(&sceneDIBO,model)();
 
   sceneAABB=new AxisAlignBoundingBox();
-  sceneDIBOSize=model.getNofMeshes();
+  sceneDIBOSize=model->getNofMeshes();
   unsigned actface=0;
 
-  sceneMaterial = new ge::gl::BufferObject(sizeof(float)*4*2*model.getNofMeshes());
+  sceneMaterial = new ge::gl::BufferObject(sizeof(float)*4*2*model->getNofMeshes());
   MeshMaterial*mmptr= (MeshMaterial*)sceneMaterial->map();
   for(unsigned mesh=0;mesh<SceneModel->mNumMeshes;++mesh){//loop over meshes
     aiMesh*Mesh=SceneModel->mMeshes[mesh];
@@ -820,7 +743,7 @@ void InitModel(const char* File){
       "");
 
   aiReleaseImport(SceneModel);
-  fastAdjacency = new Adjacency(model.getPositions(),model.getNofVertices()/3,2);
+  fastAdjacency = new Adjacency(model->getPositions(),model->getNofVertices()/3,2);
 }
 
 void destroy(){
@@ -828,6 +751,6 @@ void destroy(){
   delete programPipeline;
   delete CameraMation;
   delete DrawShader;
-  delete StencilToTexture;
   delete SceneBuffer;
+  delete model;
 }

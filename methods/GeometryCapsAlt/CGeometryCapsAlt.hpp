@@ -15,11 +15,11 @@
 class CGeometryCapsAlt
 {
   private:
-    ge::gl::BufferObject*VBO;
-    ge::gl::VertexArrayObject*VAO;
-    ge::gl::ProgramObject*Program;
-    unsigned _nofTriangles;
-    SAdjecency*_adjacency;
+    ge::gl::BufferObject*VBO = nullptr;
+    ge::gl::VertexArrayObject*VAO = nullptr;
+    ge::gl::ProgramObject*Program = nullptr;
+    unsigned _nofTriangles = 0;
+    SAdjecency*_adjacency = nullptr;
   public:
     CGeometryCapsAlt(Adjacency*adjacency);
     ~CGeometryCapsAlt();
