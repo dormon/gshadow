@@ -25,7 +25,6 @@ void Wheel(int d);
 void DrawGBuffer();
 void DrawAmbient();
 void DrawDeferred();
-void InitDrawStencilToTexture();
 
 ge::gl::AsynchronousQueryObject*gbufferQuery = nullptr;
 
@@ -393,14 +392,10 @@ void idle(){
 }
 
 void methodChangeSet(const void*A,void*D){
-  std::cout<<"volam set"<<std::endl;
   ESSMethod newMethod=*((ESSMethod*)A);
   ESSMethod*oldMethod= ((ESSMethod*)D);
-  ___;
   if(*oldMethod!=newMethod||!shadowMethod){
-    ___;
     delete shadowMethod;
-    ___;
     switch(newMethod){
       case SS_NAVYMAPPING       :shadowMethod = new NavyMapping       (simData);break;
       case SS_SHADOWMAP         :shadowMethod = new CShadowMapping    (simData);break;
@@ -409,13 +404,12 @@ void methodChangeSet(const void*A,void*D){
       case SS_CUBENAVYMAPPING   :shadowMethod = new CubeNavyMapping   (simData);break;
       case SS_NAVYDUALPARABOLOID:shadowMethod = new NavyDualParaboloid(simData);break;
       case SS_RTW               :shadowMethod = new RTWBack           (simData);break;
-      case SS_COMPUTE           :shadowMethod = new ComputeGeometry   (simData);___;break;
+      case SS_COMPUTE           :shadowMethod = new ComputeGeometry   (simData);break;
       case SS_RAYTRACE          :shadowMethod = new RayTrace          (simData);break;
       default                   :shadowMethod = nullptr                        ;break;
     }
   }
   *oldMethod=newMethod;
-  ___;
 }
 
 void methodChangeGet(void*A,void*D){
@@ -460,7 +454,6 @@ void init(){
     std::cerr<<e<<std::endl;
   }
   deferred=new Deferred(simData->getUVec2("window.size").x,simData->getUVec2("window.size").y,simData->getString("shaderDirectory"));
-  //InitDrawStencilToTexture();
 
   InitModel(ModelFile.c_str());
   std::cerr<<"NumTriangles: "   <<fastAdjacency->getNofTriangles   ()<<std::endl;
@@ -479,17 +472,17 @@ void init(){
   TwAddVarRW(Bar,"Shadows",TW_TYPE_BOOLCPP,&SSEnable  ," help='Toggle shadows on.' "                    );
 
   TwEnumVal MethodDef[]={
-    {SS_COMPUTE        ,"compute"                            },
-    {SS_SHADOWMAP      ,"shadowmapping"                      },
-    {SS_DUALPARABOLOID ,"dualParaboloid"                     },
-    {SS_CUBESHADOWMAP  ,"cubeShadowMapping"                  },
-    {SS_CUBENAVYMAPPING,"cubeNavyMapping"                    },
-    {SS_NAVYDUALPARABOLOID,"navyDualParaboloid"              },
-    {SS_RTW            ,"rtv"                                },
-    {SS_NAVYMAPPING    ,"ours"                               },
-    {SS_TS             ,"Tessellation Shader Silhouette Edge"},
-    {SS_RAYTRACE       ,"raytrace"                           },
-    {SS_NO             ,"No shadows"                         }
+    {SS_COMPUTE           ,"compute"                            },
+    {SS_SHADOWMAP         ,"shadowmapping"                      },
+    {SS_DUALPARABOLOID    ,"dualParaboloid"                     },
+    {SS_CUBESHADOWMAP     ,"cubeShadowMapping"                  },
+    {SS_CUBENAVYMAPPING   ,"cubeNavyMapping"                    },
+    {SS_NAVYDUALPARABOLOID,"navyDualParaboloid"                 },
+    {SS_RTW               ,"rtv"                                },
+    {SS_NAVYMAPPING       ,"ours"                               },
+    {SS_TS                ,"Tessellation Shader Silhouette Edge"},
+    {SS_RAYTRACE          ,"raytrace"                           },
+    {SS_NO                ,"No shadows"                         }
   };
   TwType MethodType=TwDefineEnum("SS mode",MethodDef,sizeof(MethodDef)/sizeof(TwEnumVal));
   TwAddVarCB(Bar,"Method",MethodType,methodChangeSet,methodChangeGet,&SSMethod,"help='Cange shadow method'");
@@ -498,20 +491,20 @@ void init(){
       simData->getIVec2("window.size",glm::ivec2(1024)).x,
       simData->getIVec2("window.size",glm::ivec2(1024)).y);
 
-  simData->insertVariable("emptyVAO" ,new simulation::Object(EmptyVAO       ));
-  simData->insertVariable("sceneVAO" ,new simulation::Object(sceneVAO       ));
-  simData->insertVariable("sceneVBO" ,new simulation::Object(SceneBuffer));
-  simData->insertVariable("light"    ,lightConfiguration->getLight());
-  simData->insertVariable("fastAdjacency",new simulation::Object(fastAdjacency));
-  simData->insertVariable("gbuffer.position",new simulation::Object(deferred->position));
-  simData->insertVariable("gbuffer.fbo"     ,new simulation::Object(deferred->fbo     ));
-  simData->insertVariable("gbuffer.stencil" ,new simulation::Object(deferred->depth ));
-  simData->insertVariable("gpa"             ,new simulation::Object(GPA            ));
-  simData->insertVariable("computeMethod.program.WORKGROUPSIZE", new simulation::Int(64));
-  simData->insertVariable("computeMethod.program.CULL_SIDE", new simulation::Bool(true));
+  simData->insertVariable("emptyVAO"                            ,new simulation::Object(EmptyVAO)          );
+  simData->insertVariable("sceneVAO"                            ,new simulation::Object(sceneVAO)          );
+  simData->insertVariable("sceneVBO"                            ,new simulation::Object(SceneBuffer)       );
+  simData->insertVariable("light"                               ,lightConfiguration->getLight()            );
+  simData->insertVariable("fastAdjacency"                       ,new simulation::Object(fastAdjacency)     );
+  simData->insertVariable("gbuffer.position"                    ,new simulation::Object(deferred->position));
+  simData->insertVariable("gbuffer.fbo"                         ,new simulation::Object(deferred->fbo)     );
+  simData->insertVariable("gbuffer.stencil"                     ,new simulation::Object(deferred->depth)   );
+  simData->insertVariable("gpa"                                 ,new simulation::Object(GPA)               );
+  simData->insertVariable("computeMethod.program.WORKGROUPSIZE" ,new simulation::Int(64));
+  simData->insertVariable("computeMethod.program.CULL_SIDE"     ,new simulation::Bool(true));
   simData->insertVariable("measure.computeGeometry.computeSides",new simulation::GpuGauge(false,true));
-  simData->insertVariable("measure.computeGeometry.draw",new simulation::GpuGauge(false,true));
-  simData->insertVariable("measure.computeGeometry.blit",new simulation::GpuGauge(false,true));
+  simData->insertVariable("measure.computeGeometry.draw"        ,new simulation::GpuGauge(false,true));
+  simData->insertVariable("measure.computeGeometry.blit"        ,new simulation::GpuGauge(false,true));
 
 
   simData->insertVariable("shadowMask"                        ,new simulation::Object(shadowMask)  );
