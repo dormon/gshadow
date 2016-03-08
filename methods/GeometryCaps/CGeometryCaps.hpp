@@ -1,10 +1,11 @@
 #ifndef _CGEOMETRYCAPS_HPP_
 #define _CGEOMETRYCAPS_HPP_
 
+#if 0
+
 #include<geGL/VertexArrayObject.h>
 #include<geGL/BufferObject.h>
 
-#include"../../app/adjacency.hpp"
 #include"../../simulationData/SimulationData.h"
 
 #include"../GeometrySides/CGeometrySides.hpp"
@@ -30,5 +31,6 @@ class CGeometryCaps
     void DrawCaps(float*mvp,simulation::Light*Light);
 };
 
+#endif
 
 #endif//_CGEOMETRYCAPS_HPP_

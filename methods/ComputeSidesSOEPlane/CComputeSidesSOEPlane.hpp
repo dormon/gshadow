@@ -4,11 +4,11 @@
 #include<geGL/VertexArrayObject.h>
 #include<geGL/BufferObject.h>
 
-#include"../../app/adjacency.hpp"
 #include"../../simulationData/SimulationData.h"
 
 #include"shaderdir.hpp"
 
+/*
 
 class CComputeSidesSOEPlane
 {
@@ -31,5 +31,7 @@ class CComputeSidesSOEPlane
     void ComputeSides(float*mvp,simulation::Light*Light);
     void DrawSides(float*mvp,simulation::Light*Light);
 };
+
+*/
 
 #endif//_COMPUTESIDESSOEPLANE_HPP_

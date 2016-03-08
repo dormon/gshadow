@@ -1,5 +1,7 @@
 #include"CSintorn.hpp"
 
+#if 0
+
 #include<sstream>
 #include<geGL/ShaderObject.h>
 
@@ -872,3 +874,4 @@ void CSintorn::DrawHSB(unsigned Level){
 
 }
 
+#endif

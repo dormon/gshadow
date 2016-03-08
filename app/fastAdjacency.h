@@ -2,13 +2,26 @@
 
 #include<vector>
 
+
 class Adjacency{
   protected:
-    std::vector<unsigned>_edges;              ///< (a_ind,b_ind,offset,count)* 
-    std::vector<unsigned>_opposite;           ///< list of all indices to opposite vertices
-    unsigned             _maxMultiplicity = 0;///<max allowed multiplicity
-    const float*         _vertices = nullptr; ///<all vertices, with redundancies
-    unsigned             _nofTriangles = 0;   ///<number of triangles
+    class EdgeAdjacency{
+      public:
+        unsigned ab[2] ;
+        unsigned offset;
+        unsigned count ;
+        EdgeAdjacency(unsigned const&a,unsigned const&b,unsigned const&offset,unsigned const&count){
+          this->ab[0] = a;
+          this->ab[1] = b;
+          this->offset = offset;
+          this->count  = count;
+        }
+    };
+    std::vector<EdgeAdjacency>_edges;
+    std::vector<unsigned>_opposite                 ;///< list of all indices to opposite vertices
+    unsigned             _maxMultiplicity = 0      ;///<max allowed multiplicity
+    const float*         _vertices        = nullptr;///<all vertices, with redundancies
+    unsigned             _nofTriangles    = 0      ;///<number of triangles
   public:
     /**
      * @brief constructor of adjacency information

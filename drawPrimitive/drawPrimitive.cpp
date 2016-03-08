@@ -228,7 +228,6 @@ void DrawPrimitive::draw1D(GLuint id,float x,float y,float sx,float sy,
 void DrawPrimitive::drawDepth  (GLuint id,float x,float y,float sx,float sy,
         float near,float far,LinMet met){
   this->_setViewPort(x,y,sx,sy);
-
   this->_drawDepth->use();
   this->_drawDepth->set("near",near);
   this->_drawDepth->set("far",far);

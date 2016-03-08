@@ -4,7 +4,6 @@
 #include<geGL/VertexArrayObject.h>
 #include<geGL/BufferObject.h>
 
-#include"../../app/adjacency.hpp"
 #include"../../app/fastAdjacency.h"
 #include"../../simulationData/SimulationData.h"
 
@@ -34,8 +33,8 @@ class CComputeSides
   public:
     CComputeSides(Adjacency*adjacency,unsigned WorkGroupSize,bool CullSides);
     virtual ~CComputeSides();
-    void ComputeSides(float*mvp,simulation::Light*Light);
-    void DrawSides(float*mvp,simulation::Light*Light);
+    void ComputeSides(float*mvp,float*Light);
+    void DrawSides(float*mvp,float*Light);
 };
 
 

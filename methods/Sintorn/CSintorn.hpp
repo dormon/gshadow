@@ -1,6 +1,8 @@
 #ifndef _CSINTORN_HPP_
 #define _CSINTORN_HPP_
 
+#if 0
+
 #include<GL/glew.h>
 #include<stdarg.h>
 #include<math.h>
@@ -17,7 +19,6 @@
 
 #include"sintorn_tiles.hpp"
 
-#include"../../app/adjacency.hpp"
 #include"../../simulationData/SimulationData.h"
 
 #include"shaderdir.hpp"
@@ -111,5 +112,6 @@ class CSintorn
     void DrawHSB(unsigned Level);
 };
 
+#endif
 
 #endif//_CSINTORN_HPP_

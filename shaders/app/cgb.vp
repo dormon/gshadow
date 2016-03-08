@@ -1,6 +1,6 @@
 #version 450 core
 
-#define USE_GL_DRAWIDARB
+//#define USE_GL_DRAWIDARB
 
 #ifndef USE_GL_DRAWIDARB
 #define gl_DrawIDARB 0

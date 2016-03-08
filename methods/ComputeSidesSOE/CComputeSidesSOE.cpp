@@ -3,6 +3,8 @@
 
 #include<stdlib.h>
 
+/*
+
 CComputeSidesSOE::CComputeSidesSOE(SAdjecency*Adjacency,
     unsigned WorkGroupSize,bool CullSides){
   //std::cerr<<"################################## new compute sides SOE"<<std::endl;
@@ -167,3 +169,5 @@ void CComputeSidesSOE::DrawSides(float*mvp,simulation::Light*Light){
   this->VAO->unbind();
   glStencilOpValueAMD(GL_FRONT_AND_BACK,1);
 }
+
+*/

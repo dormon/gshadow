@@ -1,11 +1,12 @@
 #ifndef _CGEOMETRYSIDES_HPP_
 #define _CGEOMETRYSIDES_HPP_
 
+#if 0
+
 #include<geGL/VertexArrayObject.h>
 #include<geGL/BufferObject.h>
 #include<geGL/VertexArrayObject.h>
 
-#include"../../app/adjacency.hpp"
 #include"../../simulationData/SimulationData.h"
 
 #include"shaderdir.hpp"
@@ -48,7 +49,7 @@ class CGeometrySides
     ge::gl::ProgramObject      *UProgram ;
     ge::gl::ProgramObject     **SProgram ;
     bool                        Universal;
-    SAdjecency                 *Adjacency;
+    //SAdjecency                 *Adjacency;
   public:
     CGeometrySides(
         SAdjecency        *Adjacency,
@@ -58,5 +59,7 @@ class CGeometrySides
         float  *mvp,
         simulation::Light *Light);
 };
+
+#endif
 
 #endif//_CGEOMETRYSIDES_HPP_

@@ -1,5 +1,7 @@
 #include"CGeometrySides.hpp"
 
+#if 0
+
 #include"../../app/SilhouetteShaderGenerator.h"
 
 bool operator!=(const SGeometryTemplate&a, const SGeometryTemplate&b){
@@ -259,4 +261,4 @@ void CGeometrySides::DrawSides(float*mvp,simulation::Light*Light){
   }
 }
 
-
+#endif

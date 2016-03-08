@@ -28,19 +28,18 @@ void Deferred::create(unsigned width,unsigned height,std::string shaderDir){
   this->normal   = new ge::gl::TextureObject(GL_TEXTURE_2D       ,GL_RGBA32F         ,1,width,height);
   this->stencil  = new ge::gl::TextureObject(GL_TEXTURE_2D       ,GL_R32F            ,1,width,height);
   this->depth    = new ge::gl::TextureObject(GL_TEXTURE_RECTANGLE,GL_DEPTH24_STENCIL8,1,width,height);
-
-  this->color   ->bind(GL_TEXTURE1);
-  this->position->bind(GL_TEXTURE2);
-  this->normal  ->bind(GL_TEXTURE3);
-  this->stencil ->bind(GL_TEXTURE4);
+  this->color   ->bind(1);
+  this->position->bind(2);
+  this->normal  ->bind(3);
+  this->stencil ->bind(4);
 
   this->fbo=new ge::gl::FramebufferObject();
-  this->fbo->attachColorTexture  (GL_COLOR_ATTACHMENT4,this->color   ->getId());
-  this->fbo->attachColorTexture  (GL_COLOR_ATTACHMENT5,this->position->getId());
-  this->fbo->attachColorTexture  (GL_COLOR_ATTACHMENT6,this->normal  ->getId());
-  this->fbo->attachColorTexture  (GL_COLOR_ATTACHMENT7,this->stencil ->getId());
-  this->fbo->attachDepthTexture  (this->depth->getId());
-  this->fbo->attachStencilTexture(this->depth->getId());
+  this->fbo->attachTexture(GL_COLOR_ATTACHMENT4 ,this->color   ->getId());
+  this->fbo->attachTexture(GL_COLOR_ATTACHMENT5 ,this->position->getId());
+  this->fbo->attachTexture(GL_COLOR_ATTACHMENT6 ,this->normal  ->getId());
+  this->fbo->attachTexture(GL_COLOR_ATTACHMENT7 ,this->stencil ->getId());
+  this->fbo->attachTexture(GL_DEPTH_ATTACHMENT  ,this->depth->getId());
+  this->fbo->attachTexture(GL_STENCIL_ATTACHMENT,this->depth->getId());
   this->fbo->drawBuffers(4,
       GL_COLOR_ATTACHMENT4,
       GL_COLOR_ATTACHMENT5,
@@ -78,10 +77,10 @@ void Deferred::blitStencil2Default(){
 }
 
 void Deferred::setTextures(){
-  this->color   ->bind(GL_TEXTURE1);
-  this->position->bind(GL_TEXTURE2);
-  this->normal  ->bind(GL_TEXTURE3);
-  this->stencil ->bind(GL_TEXTURE4);
+  this->color   ->bind(1);
+  this->position->bind(2);
+  this->normal  ->bind(3);
+  this->stencil ->bind(4);
 }
 
 void Deferred::activateCreateStencil(){

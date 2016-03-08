@@ -1,6 +1,6 @@
 #version 430
 
-#define USE_GL_DRAWIDARB
+//#define USE_GL_DRAWIDARB
 
 layout(location=0)out uvec4 fColor;//output color
 layout(location=1)out vec3  fPosition;//output position

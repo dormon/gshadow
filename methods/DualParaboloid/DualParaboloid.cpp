@@ -76,7 +76,7 @@ DEFUPDATE
 
 void DualParaboloid::_createShadowMaskFBO(){
   if(!this->_shadowMaskFBO)this->_shadowMaskFBO=new ge::gl::FramebufferObject();
-  this->_shadowMaskFBO->attachColorTexture(GL_COLOR_ATTACHMENT0,GETTEXTURE(SHADOWMASK)->getId());
+  this->_shadowMaskFBO->attachTexture(GL_COLOR_ATTACHMENT0,GETTEXTURE(SHADOWMASK)->getId());
 }
 
 
@@ -165,7 +165,7 @@ void DualParaboloid::createShadowMap(){
 }
 
 void DualParaboloid::createShadowMask(GLuint mask){
-  this->_shadowMaskFBO->attachColorTexture(GL_COLOR_ATTACHMENT0,mask);
+  this->_shadowMaskFBO->attachTexture(GL_COLOR_ATTACHMENT0,mask);
   this->createShadowMask();
 }
 

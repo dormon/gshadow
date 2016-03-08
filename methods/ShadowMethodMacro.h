@@ -1,5 +1,6 @@
 #pragma once
 
+#include"../app/fastAdjacency.h"
 #include"../app/core.h"
 
 #define JOIN___(x,y) x##y
@@ -28,7 +29,7 @@
 #define GETOBJECT(var) GET(getObject,var,NULL)
 #define GETSTRING(var) GET(getString,var,"")
 #define GETGAUGE(var)  GET(getGauge,var,NULL)
-#define GETADJACENCY   ((SAdjecency*)GETOBJECT(ADJACENCY))
+//#define GETADJACENCY   ((SAdjecency*)GETOBJECT(ADJACENCY))
 #define GETFASTADJACENCY ((Adjacency*)GETOBJECT(FASTADJACENCY))
 #define GETLIGHT       GET(getLight,LIGHT,NULL)
 #define GETCAMERA      ((ge::util::CameraObject*)GETOBJECT(CAMERA))

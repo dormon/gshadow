@@ -48,14 +48,14 @@ CComputeSides::~CComputeSides(){
   delete this->_drawProgram;
 }
 
-void CComputeSides::ComputeSides(float*mvp,simulation::Light*Light){
+void CComputeSides::ComputeSides(float*mvp,float*Light){
   this->_counter->clear(GL_R32UI,0,sizeof(unsigned),GL_RED_INTEGER,GL_UNSIGNED_INT);
 
   glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
   this->_computeProgram->use();
   this->_computeProgram->set("NumEdge",this->_nofEdges);
-  this->_computeProgram->set("LightPosition",1,glm::value_ptr(Light->position));
+  this->_computeProgram->set("LightPosition",1,Light);
   this->_computeProgram->set("mvp",1,GL_FALSE,(const float*)mvp);
   this->_computeProgram->bindSSBO("IBuffer",this->_input  );
   this->_computeProgram->bindSSBO("OBuffer",this->_output );
@@ -66,7 +66,7 @@ void CComputeSides::ComputeSides(float*mvp,simulation::Light*Light){
   glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 }
 
-void CComputeSides::DrawSides(float*mvp,simulation::Light*Light){
+void CComputeSides::DrawSides(float*mvp,float*Light){
   this->_drawProgram->use();
   this->_drawProgram->set("mvp",1,GL_FALSE,mvp);
   this->_vao->bind();

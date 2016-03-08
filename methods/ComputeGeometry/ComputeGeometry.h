@@ -1,26 +1,25 @@
-#ifndef _COMPUTEGEOMETRY_H_
-#define _COMPUTEGEOMETRY_H_
+#pragma once
 
 #include<geGL/geGL.h>
 #include<geUtil/CameraObject.h>
-
-#include"../../app/adjacency.hpp"
-#include"../../app/shaderdir.hpp"
 
 #include"../ShadowMethod.h"
 #include"../ComputeSides/CComputeSides.hpp"
 #include"../GeometryCapsAlt/CGeometryCapsAlt.hpp"
 
-class ComputeGeometry: public simulation::SimulationObject, public ShadowMethod
+#include<geUtil/User.h>
+#include<geUtil/NamespaceWithUsers.h>
+
+class ComputeGeometry: public ge::util::sim::User, public ShadowMethod
 {
   private:
-    CComputeSides*             _sides;
-    CGeometryCapsAlt*          _caps;
-    ge::gl::FramebufferObject* _maskFBO;
-    ge::gl::ProgramObject*     _blit;
-    ge::gl::VertexArrayObject* _emptyVAO;
+    CComputeSides*             _sides    = nullptr;
+    CGeometryCapsAlt*          _caps     = nullptr;
+    ge::gl::FramebufferObject* _maskFBO  = nullptr;
+    ge::gl::ProgramObject*     _blit     = nullptr;
+    ge::gl::VertexArrayObject* _emptyVAO = nullptr;
   public:
-    ComputeGeometry(simulation::SimulationData*data);
+    ComputeGeometry(std::shared_ptr<ge::util::sim::NamespaceWithUsers>const&data);
     ~ComputeGeometry();
     unsigned getNofDependentVariables();
     std::string getDependentVariable(unsigned id);
@@ -31,5 +30,3 @@ class ComputeGeometry: public simulation::SimulationObject, public ShadowMethod
     void createShadowMask(GLuint mask);
     void createShadowMask(ge::gl::TextureObject*mask);
 };
-
-#endif//_COMPUTEGEOMETRY_H_

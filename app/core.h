@@ -6,6 +6,7 @@
 #include<vector>
 #include<map>
 
+/*
 #define DEF_ENUM(name,...)\
   enum name{\
     __VA_ARGS__\
@@ -21,7 +22,7 @@ friend std::ostream& operator<<(std::ostream& os,const name&val){\
   os << token;\
   return os;\
 }
-
+*/
 template<typename T>
 void _argsToVector(std::vector<T>&vec,T v){
   vec.push_back(v);

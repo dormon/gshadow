@@ -31,7 +31,7 @@
 #include<geGL/geGL.h>
 #include<geCore/geCore.h>
 
-#include<geUtil/WindowObject.h>
+#include<geAd/WindowObject/WindowObject.h>
 #include<geUtil/ArgumentObject.h>
 #include<geUtil/FPSPrinter.h>
 #include"../GPUPerfApi/GpuPerfApi.h"
@@ -99,11 +99,19 @@
 #include"Model2AABB.h"
 #include"Model2DIBO.h"
 
+#include<geUtil/NamespaceWithUsers.h>
+#include<geUtil/copyArgumentManager2Namespace.h>
+#include<geUtil/ArgumentManager/ArgumentManager.h>
+
+#include"../objectConfiguration/Namespace2AntTweakbar.h"
 #include"core.h"
 
 #define ILUT_USE_OPENGL
 #include <IL/il.h>
 #include <IL/ilu.h>
 #include <IL/ilut.h>
+
+#include<geCore/interpret.h>
+#include<geCore/stdFunctions.h>
 
 #endif//_MAIN_HPP_

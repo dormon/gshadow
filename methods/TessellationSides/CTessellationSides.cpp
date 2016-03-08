@@ -55,17 +55,11 @@ CTessellationSides::CTessellationSides(
   TTS.CullSides=CullSides;
   TTS.UseStencilValueExport=UseStencilValueExport;
 
-	ge::gl::ShaderObject*TSSilVerHull2=new ge::gl::ShaderObject(
-      GL_VERTEX_SHADER,GenTSSilVertexHull(TTS));
-	ge::gl::ShaderObject*TSSilConHull2=new ge::gl::ShaderObject(
-      GL_TESS_CONTROL_SHADER,GenTSSilControlHull(
-      ad->getMaxMultiplicity(),TTS));
-	ge::gl::ShaderObject*TSSilEvaHull2=new ge::gl::ShaderObject(
-      GL_TESS_EVALUATION_SHADER,GenTSSilEvaluationHull(TTS));
-	ge::gl::ShaderObject*TSSilFragHull2=new ge::gl::ShaderObject(
-      GL_FRAGMENT_SHADER,GenTSSilFragmentHull(TTS));
-	this->Program=new ge::gl::ProgramObject(
-      4,TSSilVerHull2,TSSilConHull2,TSSilEvaHull2,TSSilFragHull2);
+  std::shared_ptr<ge::gl::ShaderObject>TSSilVerHull2  = std::make_shared<ge::gl::ShaderObject>(GL_VERTEX_SHADER         ,GenTSSilVertexHull(TTS));
+	std::shared_ptr<ge::gl::ShaderObject>TSSilConHull2  = std::make_shared<ge::gl::ShaderObject>(GL_TESS_CONTROL_SHADER   ,GenTSSilControlHull(ad->getMaxMultiplicity(),TTS));
+	std::shared_ptr<ge::gl::ShaderObject>TSSilEvaHull2  = std::make_shared<ge::gl::ShaderObject>(GL_TESS_EVALUATION_SHADER,GenTSSilEvaluationHull(TTS));
+	std::shared_ptr<ge::gl::ShaderObject>TSSilFragHull2 = std::make_shared<ge::gl::ShaderObject>(GL_FRAGMENT_SHADER       ,GenTSSilFragmentHull(TTS));
+	this->Program=new ge::gl::ProgramObject(TSSilVerHull2,TSSilConHull2,TSSilEvaHull2,TSSilFragHull2);
 
   //delete TSSilVerHull2;
   //delete TSSilConHull2;

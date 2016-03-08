@@ -1,5 +1,7 @@
 #include"VertexZPass.h"
 
+#if 0
+
 #include<geGL/VertexArrayObject.h>
 
 const std::string vertexZPassVariables[]={
@@ -71,7 +73,7 @@ enum vertexZPassVariableNames{
 #define GETOBJECT(var) GET(getObject,var,NULL)
 #define GETSTRING(var) GET(getString,var,"")
 #define GETGAUGE(var)  GET(getGauge,var,NULL)
-#define GETADJACENCY   ((SAdjecency*)GETOBJECT(ADJACENCY))
+//#define GETADJACENCY   ((SAdjecency*)GETOBJECT(ADJACENCY))
 #define GETLIGHT       GET(getLight,LIGHT,NULL)
 #define GETCAMERA      ((ge::util::CameraObject*)GETOBJECT(CAMERA))
 #define GETFBO         ((ge::gl::FramebufferObject*)GETOBJECT(GBUFFER_FBO))
@@ -398,4 +400,4 @@ void VertexZPass::_setMeasureBlit(){
   }
 }
 
-
+#endif

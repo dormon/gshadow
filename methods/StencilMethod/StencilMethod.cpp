@@ -1,5 +1,7 @@
 #include"StencilMethod.h"
 
+#if 0
+
 StencilMethod::StencilMethod(SAdjecency*adjacency){
   this->adjacency=adjacency;
 }
@@ -24,3 +26,5 @@ void StencilMethod::draw(float*mvp,simulation::Light*light,bool zfail){
 
   glColorMask(GL_TRUE,GL_TRUE,GL_TRUE,GL_TRUE);
 }
+
+#endif

@@ -201,7 +201,7 @@ void NavyMapping::createShadowMask(){
 }
 
 void NavyMapping::createShadowMask(GLuint mask){
-  this->_shadowMaskFBO->attachColorTexture(GL_COLOR_ATTACHMENT0,mask);
+  this->_shadowMaskFBO->attachTexture(GL_COLOR_ATTACHMENT0,mask);
   this->createShadowMask();
 }
 
@@ -329,7 +329,7 @@ void NavyMapping::_computeMatrices(){
 
 void NavyMapping::_createShadowMapFBO(){
   if(!this->_shadowMaskFBO)this->_shadowMaskFBO=new ge::gl::FramebufferObject();
-  this->_shadowMaskFBO->attachColorTexture(GL_COLOR_ATTACHMENT0,GETTEXTURE(SHADOWMASK)->getId());
+  this->_shadowMaskFBO->attachTexture(GL_COLOR_ATTACHMENT0,GETTEXTURE(SHADOWMASK)->getId());
 }
 
 void NavyMapping::setMatrices(glm::mat4 lp,glm::mat4 lv){

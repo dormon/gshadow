@@ -1,19 +1,42 @@
-#ifndef _SHADOWMAPPING_HPP_
-#define _SHADOWMAPPING_HPP_
+#pragma once
 
+#include<geGL/geGL.h>
 #include"../ShadowMethod.h"
-#include"../ShadowMethodMacro.h"
 
-class CShadowMapping: public simulation::SimulationObject, public ShadowMethod
+#include<geUtil/User.h>
+#include<geUtil/NamespaceWithUsers.h>
+
+#include<geCore/interpret.h>
+#include<geCore/stdFunctions.h>
+
+
+/*
+class ShadowMapping: public ge::core::Function{
+  protected:
+    std::shared_ptr<ge::gl::ProgramObject>createShadowMask;
+  public:
+    ShadowMapping(std::shared_ptr<ge::core::Accessor>shadowMask = nullptr);
+    virtual void operator()();
+};
+
+class CreateProgramObject: public ge::core::Function{
+  public:
+    CreateProgramObject(unsigned stages,std::shared_ptr<ge::core::Accessor>const&program = nullptr);
+    virtual void operator()();
+};
+*/
+
+
+class CShadowMapping: public ge::util::sim::User, public ShadowMethod
 {
   private:
-    ge::gl::TextureObject*     _shadowMask       = NULL;
-    ge::gl::FramebufferObject* _shadowMaskFBO    = NULL;
-    ge::gl::ProgramObject*     _createShadowMask = NULL;
-    ge::gl::ProgramObject*     _csm              = NULL;
-    ge::gl::TextureObject*     _shadowMap        = NULL;
-    ge::gl::FramebufferObject* _fbo              = NULL;
-    ge::gl::VertexArrayObject* _emptyVAO         = NULL;
+    ge::gl::TextureObject*     _shadowMask       = nullptr;
+    ge::gl::FramebufferObject* _shadowMaskFBO    = nullptr;
+    ge::gl::ProgramObject*     _createShadowMask = nullptr;
+    ge::gl::ProgramObject*     _csm              = nullptr;
+    ge::gl::TextureObject*     _shadowMap        = nullptr;
+    ge::gl::FramebufferObject* _fbo              = nullptr;
+    ge::gl::VertexArrayObject* _emptyVAO         = nullptr;
     glm::mat4                  _lightProjection;
     glm::mat4                  _lightView;
     glm::mat4                  _bpv;
@@ -35,7 +58,7 @@ class CShadowMapping: public simulation::SimulationObject, public ShadowMethod
       }
       this->_update<Args...>();
     }*/
-    DEF_UPDATEDATA(CShadowMapping);
+    //DEF_UPDATEDATA(CShadowMapping);
   public:
     void _createShadowMap();
     void _computeMatrices();
@@ -48,8 +71,7 @@ class CShadowMapping: public simulation::SimulationObject, public ShadowMethod
     unsigned getNofDependentVariables();
     std::string getDependentVariable(unsigned id);
     virtual void update();
-    CShadowMapping(simulation::SimulationData*data);
+    CShadowMapping(std::shared_ptr<ge::util::sim::NamespaceWithUsers>const&data);
     ~CShadowMapping();
 };
 
-#endif//_SHADOWMAPPING_HPP_

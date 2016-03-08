@@ -1,5 +1,7 @@
 #include"CGeometryCaps.hpp"
 
+#if 0
+
 #include"../../app/SilhouetteShaderGenerator.h"
 
 CGeometryCaps::CGeometryCaps(
@@ -172,4 +174,4 @@ void CGeometryCaps::DrawCaps(float*mvp,simulation::Light*Light){
   }
 }
 
-
+#endif

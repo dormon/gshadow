@@ -250,7 +250,7 @@ void RTWBack::_createShadowMap(){
   if(this->_shadowMap)delete this->_shadowMap;
   this->_shadowMap = createSM(GETUINT(RESOLUTION));
   if(!this->_fbo)this->_fbo=new ge::gl::FramebufferObject();
-  this->_fbo->attachDepthTexture(this->_shadowMap->getId());
+  this->_fbo->attachTexture(GL_DEPTH_ATTACHMENT,this->_shadowMap->getId());
 }
 
 void RTWBack::setMatrices(glm::mat4 lp,glm::mat4 lv){
@@ -271,7 +271,7 @@ void RTWBack::_computeMatrices(){
 void RTWBack::_createShadowMapFBO(){
   this->_shadowMask=(ge::gl::TextureObject*)this->_simulationData->getObject(VARS[SHADOWMASK],NULL);
   if(!this->_shadowMaskFBO)this->_shadowMaskFBO=new ge::gl::FramebufferObject();
-  this->_shadowMaskFBO->attachColorTexture(GL_COLOR_ATTACHMENT0,this->_shadowMask->getId());
+  this->_shadowMaskFBO->attachTexture(GL_COLOR_ATTACHMENT0,this->_shadowMask->getId());
 }
 
 
@@ -439,6 +439,6 @@ void RTWBack::drawGrid(float x,float y,float sx,float sy){
 }
 
 void RTWBack::createShadowMask(GLuint mask){
-  this->_shadowMaskFBO->attachColorTexture(GL_COLOR_ATTACHMENT0,mask);
+  this->_shadowMaskFBO->attachTexture(GL_COLOR_ATTACHMENT0,mask);
   this->createShadowMask();
 }

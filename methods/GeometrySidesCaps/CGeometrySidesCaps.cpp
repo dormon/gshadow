@@ -1,5 +1,7 @@
 #include"CGeometrySidesCaps.hpp"
 
+#if 0
+
 #include"../../app/SilhouetteShaderGenerator.h"
 
 CGeometrySidesCaps::CGeometrySidesCaps(
@@ -225,3 +227,4 @@ void CGeometrySidesCaps::DrawSidesCaps(float*mvp,simulation::Light*Light){
 
 
 
+#endif

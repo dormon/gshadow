@@ -10,14 +10,14 @@
 
 class Deferred{
   public:
-    ge::gl::TextureObject*     position = nullptr;
-    ge::gl::TextureObject*     color = nullptr;
-    ge::gl::TextureObject*     normal = nullptr;
-    ge::gl::TextureObject*     depth = nullptr;
-    ge::gl::TextureObject*     stencil = nullptr;
-    ge::gl::FramebufferObject* fbo = nullptr;
+    ge::gl::TextureObject*     position      = nullptr;
+    ge::gl::TextureObject*     color         = nullptr;
+    ge::gl::TextureObject*     normal        = nullptr;
+    ge::gl::TextureObject*     depth         = nullptr;
+    ge::gl::TextureObject*     stencil       = nullptr;
+    ge::gl::FramebufferObject* fbo           = nullptr;
     ge::gl::ProgramObject*     createProgram = nullptr;
-    unsigned size[2] = {1024,1024};
+    unsigned size[2] = {1024u,1024u};
 
     Deferred();
     ~Deferred();

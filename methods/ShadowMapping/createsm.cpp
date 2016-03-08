@@ -17,6 +17,6 @@ ge::gl::TextureObject*createSM(unsigned resolution){
 }
 
 glm::mat4 biasMatrix(){
-  return glm::scale    (glm::mat4(1.f),glm::vec3(.5f))*
+  return glm::scale(glm::mat4(1.f),glm::vec3(.5f))*
     glm::translate(glm::mat4(1.f),glm::vec3(1.f));
 }

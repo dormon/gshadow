@@ -4,6 +4,8 @@
 #include<stdlib.h>
 #include"../../mymath/mymath.hpp"
 
+#if 0
+
 std::string CComputeSidesSOEPlane::GenerateCompute(
     unsigned WorkGroupSize,
     unsigned MaxMultiplicity,
@@ -350,3 +352,5 @@ void CComputeSidesSOEPlane::DrawSides(float*mvp,simulation::Light*Light){
   this->VAO->unbind();
   glStencilOpValueAMD(GL_FRONT_AND_BACK,1);
 }
+
+#endif

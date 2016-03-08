@@ -1,6 +1,8 @@
 #ifndef _VERTEXZPASS_H_
 #define _VERTEXZPASS_H_
 
+#if 0
+
 #include"../ShadowMethod.h"
 #include<geUtil/CameraObject.h>
 
@@ -44,5 +46,7 @@ class VertexZPass: public simulation::SimulationObject, public ShadowMethod
     VertexZPass(simulation::SimulationData*data);
     ~VertexZPass();
 };
+
+#endif
 
 #endif//_VERTEXZPASS_H_

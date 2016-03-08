@@ -31,7 +31,7 @@ ge::gl::AsynchronousQueryObject*gbufferQuery = nullptr;
 ge::util::CameraPath*CameraMation = nullptr;
 std::string CameraMationFile="sponzaprulet";
 
-ge::util::FPSPrinter*fpsPrinter;
+ge::util::FPSPrinter*fpsPrinter = nullptr;
 
 objconf::CameraPathConfiguration* cameraPathConfiguration  = nullptr;
 objconf::CameraConfiguration    * cameraConfiguration      = nullptr;
@@ -43,7 +43,7 @@ objconf::ShadowMethodConfig     * navyDualParaboloidConfig = nullptr;
 objconf::ShadowMethodConfig     * cubeShadowMapConfig      = nullptr;
 objconf::ShadowMethodConfig     * cubeNavyMapConfig        = nullptr;
 
-ShadowMethod*shadowMethod = nullptr;
+std::shared_ptr<ShadowMethod>shadowMethod = nullptr;
 
 ge::gl::VertexArrayObject*EmptyVAO = nullptr;
 
@@ -52,9 +52,6 @@ void DrawShadowless();
 
 ModelPN*model = nullptr;
 
-ge::gl::BufferObject*SceneBuffer = nullptr;
-//GLuint SceneVAO;
-ge::gl::VertexArrayObject*sceneVAO = nullptr;
 ge::gl::BufferObject*sceneDIBO     = nullptr;
 ge::gl::BufferObject*sceneMaterial = nullptr;
 ge::gl::BufferObject*sceneAABBData = nullptr;
@@ -73,18 +70,16 @@ ge::gl::BufferObject*SintornVBO = nullptr;
 
 //base shader
 ge::gl::ProgramObject*DrawShader = nullptr;
-ge::gl::TextureObject*shadowMask = nullptr;
 
 
 DrawPrimitive*simpleDraw = NULL;
 
 ge::gl::ProgramPipelineObject*programPipeline = nullptr;
 
-Deferred*deferred = nullptr;
+//Deferred*deferred = nullptr;
 
 std::string ModelFile = "";
 
-glm::vec3 Pos=glm::vec3(0.f,10.f,0.f);
 float Angle[3]={0,0,0};
 
 glm::mat4 Model      = glm::mat4(1.f);
@@ -123,16 +118,38 @@ bool DisableAnttweakbar = false;
 
 simulation::SimulationData*simData = nullptr;
 
+ge::util::ArgumentManager*argm = nullptr;
+std::shared_ptr<ge::core::TypeRegister>typeRegister = nullptr;
+std::shared_ptr<ge::util::sim::NamespaceWithUsers>sData = nullptr;
+
+std::shared_ptr<NamespaceManipulator>sDataManipulator = nullptr;
+
 int main(int Argc,char*Argv[]){
+  typeRegister=std::make_shared<ge::core::TypeRegister>();
+  typeRegister->addClassD<ge::gl::VertexArrayObject>("VAO");
+  typeRegister->addClassD<ge::gl::BufferObject>("BO" );
+  typeRegister->addClassD<ge::gl::TextureObject>("Texture");
+  typeRegister->addClassD<ge::util::CameraObject>("Camera");
+  typeRegister->addType("Light",ge::core::TypeRegister::STRUCT,3,"vec4","vec3","vec3");
+  typeRegister->addClassD<simulation::GpuGauge>("GPUGauge");
 
-  ge::util::ArgumentLoader*argLoader=new ge::util::ArgumentLoader(Argc,Argv);
-  for(unsigned i=0;i<argLoader->getNumVariables();++i)
-    std::cerr<<argLoader->getVariable(i)<<":"<<argLoader->getData(i)<<std::endl;
+  sData= std::make_shared<ge::util::sim::NamespaceWithUsers>("*");
+  argm = new ge::util::ArgumentManager(Argc-1,Argv+1);
+  for(auto x:*argm)
+    std::cerr<<x.first<<": "<<x.second->toStr()<<std::endl;
+  ge::util::sim::copyArgumentManager2Namespace(sData,argm,typeRegister);
+  std::cout<<sData->toStr(0)<<std::endl;
+
+  //ge::util::ArgumentLoader*argLoader=new ge::util::ArgumentLoader(Argc,Argv);
+  //for(unsigned i=0;i<argLoader->getNumVariables();++i)
+  //  std::cerr<<argLoader->getVariable(i)<<":"<<argLoader->getData(i)<<std::endl;
   simData=new simulation::SimulationData();
-  for(unsigned i=0;i<argLoader->getNumVariables();++i)
-    simData->insertVariable(argLoader->getVariable(i),argLoader->getData(i));
+  //for(unsigned i=0;i<argLoader->getNumVariables();++i)
+  //  simData->insertVariable(argLoader->getVariable(i),argLoader->getData(i));
 
-  ModelFile = "models/o/o.3ds";
+  //ModelFile = "models/o/o.3ds";
+  //ModelFile = "models/bagr/bagr.obj";
+  //ModelFile = "models/bugbagr/bugbagr.obj";
   //ModelFile = "models/bunny/bunny.obj";
   //ModelFile = "models/robots/robots.obj";
   //ModelFile = "models/robot/robot.obj";
@@ -147,7 +164,7 @@ int main(int Argc,char*Argv[]){
   //ModelFile = "/media/data/models/lost_empire/lost_empire.obj";
   //ModelFile = "/home/dormon/Desktop/hairball.obj";
   //ModelFile = "models/o/o.3ds";
-  //ModelFile = "models/2quads/2quads.obj";
+  ModelFile = "models/2quads/2quads.obj";
   //ModelFile = "models/2_3quads/2_3quads.obj";
   //ModelFile = "/media/old/home/dormon/Plocha/sponza/sponza.obj";
 
@@ -155,16 +172,15 @@ int main(int Argc,char*Argv[]){
   DisableAnttweakbar = false;
 
   Window=new ge::util::WindowObject(
-      simData->getUVec2("window.size").x,
-      simData->getUVec2("window.size").y,
-      simData->getBool("window.fullscreen"),
+      sData->get<unsigned[]>("window.size")[0],
+      sData->get<unsigned[]>("window.size")[1],
+      sData->get<bool>("window.fullscreen"),
       idle,
       Mouse,
       !DisableAnttweakbar,
-      simData->getUint("context.version"),
-      simData->getString("context.profile"),
-      simData->getString("context.debug"));
-
+      sData->get<unsigned>("context.version"),
+      sData->get<std::string>("context.profile"),
+      sData->get<std::string>("context.debug"));
 
   init();
   Window->mainLoop();
@@ -187,7 +203,8 @@ void Mouse(){
     if(Window->isMiddleDown()){
       Angle[2]+=Window->getDeltaMousePosition()[0]*.01;
     }
-    cameraConfiguration->getCamera()->fpsCamera(Angle[0],Angle[1],Angle[2]);
+    sData->get<ge::util::CameraObject>("camera").fpsCamera(Angle[0],Angle[1],Angle[2]);
+    //cameraConfiguration->getCamera()->fpsCamera(Angle[0],Angle[1],Angle[2]);
   }
 }
 
@@ -204,9 +221,9 @@ void drawDiffuseSpecular(bool useShadows,simulation::Light*L){
   glBlendEquation(GL_FUNC_ADD);
   glDepthFunc(GL_ALWAYS);
 
-  deferred->setTextures();
+  sData->get<Deferred>("gbuffer").setTextures();
   glUseProgram(0);
-  shadowMask->bind(GL_TEXTURE8);
+  sData->get<ge::gl::TextureObject>("shadowMask").bind(8);
   if(!Linked){
     DrawShader->setSeparable();
     DrawShader->setRetrievable();
@@ -215,10 +232,10 @@ void drawDiffuseSpecular(bool useShadows,simulation::Light*L){
   }
   programPipeline->bind();
   DrawShader->setdsa("La",0.f,0.f,0.f);
-  DrawShader->setdsa("Ld",1,glm::value_ptr(L->diffuse));
-  DrawShader->setdsa("Ls",1,glm::value_ptr(L->specular));
-  DrawShader->setdsa("LightPosition",1,glm::value_ptr(L->position));
-  DrawShader->setdsa("CameraPosition",-Pos[0],-Pos[1],-Pos[2]);
+  DrawShader->setdsa("Ld",1,sData->get<float[]>("light.diffuse"));
+  DrawShader->setdsa("Ls",1,sData->get<float[]>("light.specular"));
+  DrawShader->setdsa("LightPosition",1,sData->get<float[]>("light.position"));
+  DrawShader->setdsa("CameraPosition",1,glm::value_ptr(sData->get<ge::util::CameraObject>("camera").getPosition()));
   DrawShader->setdsa("SSAO",SSAOEnable);
   DrawShader->setdsa("useShadows",useShadows);
   EmptyVAO->bind();
@@ -234,17 +251,22 @@ void setConfig(objconf::ShadowMethodConfig**config,simulation::SimulationObject*
   if((!method) && ( *config)){delete *config;*config = NULL;}
 }
 
+class ProgramObjectFactor: public ge::core::Function{
+  public:
+    ProgramObjectFactor():Function(10){}
+    void operator()(){
+
+
+    }
+};
+
 void idle(){
-  ___;
-  cameraConfiguration->getCamera()->right  ((Window->isKeyDown('d')-Window->isKeyDown('a'))*Speed);
-  cameraConfiguration->getCamera()->up     ((Window->isKeyDown(' ')-Window->isKeyDown('c'))*Speed);
-  cameraConfiguration->getCamera()->forward((Window->isKeyDown('w')-Window->isKeyDown('s'))*Speed);
-  Pos=cameraConfiguration->getCamera()->getPosition();
-
-  cameraConfiguration->getCamera()->getView(&View);
-  cameraConfiguration->getCamera()->getProjection(&Projection);
+  sData->get<ge::util::CameraObject>("camera").right  ((Window->isKeyDown('d')-Window->isKeyDown('a'))*Speed);
+  sData->get<ge::util::CameraObject>("camera").up     ((Window->isKeyDown(' ')-Window->isKeyDown('c'))*Speed);
+  sData->get<ge::util::CameraObject>("camera").forward((Window->isKeyDown('w')-Window->isKeyDown('s'))*Speed);
+  sData->get<ge::util::CameraObject>("camera").getView(&View);
+  sData->get<ge::util::CameraObject>("camera").getProjection(&Projection);
   mvp=Projection*View;
-
 
   ___;
   /*
@@ -259,11 +281,11 @@ void idle(){
 
   if(Window->isKeyOn('q'))exit(0);
   if(Window->isKeyDown('g')){
-    lightConfiguration->getLight()->position[1]-=0.4;
+    sData->get<float[]>("light.position")[1]-=0.4;
     simData->setAsChanged("light");
   }
   if(Window->isKeyDown('t')){
-    lightConfiguration->getLight()->position[1]+=0.4;
+    sData->get<float[]>("light.position")[1]+=0.4;
     simData->setAsChanged("light");
   }
 
@@ -287,7 +309,7 @@ void idle(){
   glBindFramebuffer(GL_FRAMEBUFFER,0);
   glDepthFunc(GL_LEQUAL);
   glEnable(GL_DEPTH_TEST);
-  deferred->blitDepth2Default();
+  sData->get<Deferred>("gbuffer").blitDepth2Default();
   ___;
   glDepthFunc(GL_LESS);
   glBindFramebuffer(GL_FRAMEBUFFER,0);
@@ -296,21 +318,21 @@ void idle(){
   ___;
   //*
   if(SSMethod==SS_NAVYMAPPING){
-    simpleDraw->drawDepth(((NavyMapping*)shadowMethod)->getShadowMap()->getId(),.5f,.0f,.5f,.5f,1.f,1000.f);
+    simpleDraw->drawDepth((std::dynamic_pointer_cast<NavyMapping>(shadowMethod))->getShadowMap()->getId(),.5f,.0f,.5f,.5f,1.f,1000.f);
   }
   ___;
   if(SSMethod==SS_RTW){
     if(simData->getBool("rtw.drawSM"))
-      simpleDraw->drawDepth(((RTWBack*)shadowMethod)->getShadowMap()->getId(),.0f,.0f,1.f,1.0f,simData->getFloat("shadowMapMethods.near"),simData->getFloat("shadowMapMethods.far"));
+      simpleDraw->drawDepth((std::dynamic_pointer_cast<RTWBack>(shadowMethod))->getShadowMap()->getId(),.0f,.0f,1.f,1.0f,simData->getFloat("shadowMapMethods.near"),simData->getFloat("shadowMapMethods.far"));
   }
   ___;
   if(SSMethod==SS_SHADOWMAP){
-    simpleDraw->drawDepth(((CShadowMapping*)shadowMethod)->getShadowMap()->getId(),.5f,.0f,.5f,.5f,1.f,1000.f);
+    simpleDraw->drawDepth((std::dynamic_pointer_cast<CShadowMapping>(shadowMethod))->getShadowMap()->getId(),.5f,.0f,.5f,.5f,sData->get<float>("shadowMapMethods.near"),sData->get<float>("shadowMapMethods.far"));
   }
   ___;
   if(SSMethod==SS_CUBESHADOWMAP){
     if(simData->getBool("csm.drawSM")){
-      GLuint sm=((CubeShadowMapping*)shadowMethod)->getShadowMap()->getId();
+      GLuint sm=(std::dynamic_pointer_cast<CubeShadowMapping>(shadowMethod))->getShadowMap()->getId();
       simpleDraw->drawCubeDepth(sm,.0f ,.25f,.25f,.25f,simData->getFloat("shadowMapMethods.near"),simData->getFloat("shadowMapMethods.far"),5);
       simpleDraw->drawCubeDepth(sm,.25f,.25f,.25f,.25f,simData->getFloat("shadowMapMethods.near"),simData->getFloat("shadowMapMethods.far"),1);
       simpleDraw->drawCubeDepth(sm,.5f ,.25f,.25f,.25f,simData->getFloat("shadowMapMethods.near"),simData->getFloat("shadowMapMethods.far"),4);
@@ -321,7 +343,7 @@ void idle(){
   }
   ___;
   if(SSMethod==SS_CUBENAVYMAPPING){
-    CubeNavyMapping*cnm=(CubeNavyMapping*)shadowMethod;
+    auto cnm=std::dynamic_pointer_cast<CubeNavyMapping>(shadowMethod);
     GLuint sm=cnm->getShadowMap()->getId();
     if(simData->getBool("cnm.drawSM")){
       simpleDraw->drawCubeDepth(sm,.0f ,.25f,.25f,.25f,simData->getFloat("shadowMapMethods.near"),simData->getFloat("shadowMapMethods.far"),5);
@@ -350,7 +372,7 @@ void idle(){
   }
   ___;
   if(SSMethod==SS_DUALPARABOLOID){
-    DualParaboloid*dp=(DualParaboloid*)shadowMethod;
+    auto dp=std::dynamic_pointer_cast<DualParaboloid>(shadowMethod);
     if(simData->getBool("dp.drawSM0"))
       simpleDraw->drawDepth(dp->getShadowMap(0)->getId(),.0f,.0f,1.0f,1.0f,simData->getFloat("shadowMapMethods.near"),simData->getFloat("shadowMapMethods.far"),DrawPrimitive::DP);
     if(simData->getBool("dp.drawSM1"))
@@ -358,7 +380,7 @@ void idle(){
   }
   ___;
   if(SSMethod==SS_NAVYDUALPARABOLOID){
-    NavyDualParaboloid*ndp=(NavyDualParaboloid*)shadowMethod;
+    auto ndp=std::dynamic_pointer_cast<NavyDualParaboloid>(shadowMethod);
     if(simData->getBool("ndp.drawSM0"))
       simpleDraw->drawDepth(ndp->getShadowMap(0)->getId(),.0f,.0f,1.0f,1.0f,simData->getFloat("shadowMapMethods.near"),simData->getFloat("shadowMapMethods.far"),DrawPrimitive::DP);
     if(simData->getBool("ndp.drawSM1"))
@@ -395,18 +417,17 @@ void methodChangeSet(const void*A,void*D){
   ESSMethod newMethod=*((ESSMethod*)A);
   ESSMethod*oldMethod= ((ESSMethod*)D);
   if(*oldMethod!=newMethod||!shadowMethod){
-    delete shadowMethod;
     switch(newMethod){
-      case SS_NAVYMAPPING       :shadowMethod = new NavyMapping       (simData);break;
-      case SS_SHADOWMAP         :shadowMethod = new CShadowMapping    (simData);break;
-      case SS_DUALPARABOLOID    :shadowMethod = new DualParaboloid    (simData);break;
-      case SS_CUBESHADOWMAP     :shadowMethod = new CubeShadowMapping (simData);break;
-      case SS_CUBENAVYMAPPING   :shadowMethod = new CubeNavyMapping   (simData);break;
-      case SS_NAVYDUALPARABOLOID:shadowMethod = new NavyDualParaboloid(simData);break;
-      case SS_RTW               :shadowMethod = new RTWBack           (simData);break;
-      case SS_COMPUTE           :shadowMethod = new ComputeGeometry   (simData);break;
-      case SS_RAYTRACE          :shadowMethod = new RayTrace          (simData);break;
-      default                   :shadowMethod = nullptr                        ;break;
+      case SS_NAVYMAPPING       :shadowMethod = std::make_shared<NavyMapping       >(simData);break;
+      case SS_SHADOWMAP         :shadowMethod = std::make_shared<CShadowMapping    >(sData  );break;
+      case SS_DUALPARABOLOID    :shadowMethod = std::make_shared<DualParaboloid    >(simData);break;
+      case SS_CUBESHADOWMAP     :shadowMethod = std::make_shared<CubeShadowMapping >(simData);break;
+      case SS_CUBENAVYMAPPING   :shadowMethod = std::make_shared<CubeNavyMapping   >(simData);break;
+      case SS_NAVYDUALPARABOLOID:shadowMethod = std::make_shared<NavyDualParaboloid>(simData);break;
+      case SS_RTW               :shadowMethod = std::make_shared<RTWBack           >(simData);break;
+      case SS_COMPUTE           :shadowMethod = std::make_shared<ComputeGeometry   >(sData  );break;
+      case SS_RAYTRACE          :shadowMethod = std::make_shared<RayTrace          >(simData);break;
+      default                   :shadowMethod = nullptr                                      ;break;
     }
   }
   *oldMethod=newMethod;
@@ -453,14 +474,42 @@ void init(){
   }catch(std::string&e){
     std::cerr<<e<<std::endl;
   }
-  deferred=new Deferred(simData->getUVec2("window.size").x,simData->getUVec2("window.size").y,simData->getString("shaderDirectory"));
 
+  sData->insert("sceneVAO",typeRegister->sharedEmptyAccessor("VAO",[](unsigned char*ptr){delete(ge::gl::VertexArrayObject*)ptr;}));
+  sData->insert("sceneVBO",typeRegister->sharedEmptyAccessor("BO",[](unsigned char*ptr){delete(ge::gl::BufferObject*)ptr;}));
+  sData->insert("gbuffer",typeRegister->sharedAccessorAddD<Deferred>("Deferred",
+        sData->get<unsigned[]>("window.size")[0],
+        sData->get<unsigned[]>("window.size")[1],
+        sData->get<std::string>("shaderDirectory")));
   InitModel(ModelFile.c_str());
+  sData->insert("fastAdjacency",typeRegister->sharedAccessorAddD<Adjacency>("Adjacency",model->getPositions(),model->getNofVertices()/3,2));
+  sData->insert("computeMethod.program.WORKGROUPSIZE" ,typeRegister->sharedAccessor<int>("i32",64));
+  sData->insert("computeMethod.program.CULL_SIDE"     ,typeRegister->sharedAccessor<bool>("bool",true));
+  sData->insert("measure.computeGeometry.computeSides",typeRegister->sharedAccessor<simulation::GpuGauge>("GPUGauge",false,true));
+  sData->insert("measure.computeGeometry.draw"        ,typeRegister->sharedAccessor<simulation::GpuGauge>("GPUGauge",false,true));
+  sData->insert("measure.computeGeometry.blit"        ,typeRegister->sharedAccessor<simulation::GpuGauge>("GPUGauge",false,true));
+
+
+  sData->insert("shadowMask",typeRegister->sharedAccessor<ge::gl::TextureObject>("Texture",GL_TEXTURE_2D,GL_R32F,1,
+      sData->get<unsigned[]>("window.size")[0],
+      sData->get<unsigned[]>("window.size")[1]));
+
+
+  sData->insert("camera",typeRegister->sharedAccessor<ge::util::CameraObject>("Camera",
+    sData->get<unsigned[]>("window.size"),1.f,std::numeric_limits<float>::infinity(),45.f));
+
+  sData->insert("light"   ,typeRegister->sharedAccessor("Light"));
+
+  sDataManipulator = std::make_shared<NamespaceManipulator>(sData);
+
   std::cerr<<"NumTriangles: "   <<fastAdjacency->getNofTriangles   ()<<std::endl;
   std::cerr<<"NumEdges: "       <<fastAdjacency->getNofEdges       ()<<std::endl;
   std::cerr<<"MaxMultiplicity: "<<fastAdjacency->getMaxMultiplicity()<<std::endl;
 
-  cameraConfiguration = new objconf::CameraConfiguration(simData->getUVec2("window.size"));
+  cameraConfiguration = new objconf::CameraConfiguration(
+      glm::uvec2(
+        sData->get<unsigned[]>("window.size")[0],
+        sData->get<unsigned[]>("window.size")[1]));
   cameraPathConfiguration = new objconf::CameraPathConfiguration();
   cameraPathConfiguration->setCamera(cameraConfiguration->getCamera());
   lightConfiguration = new objconf::LightConfiguration();
@@ -487,10 +536,7 @@ void init(){
   TwType MethodType=TwDefineEnum("SS mode",MethodDef,sizeof(MethodDef)/sizeof(TwEnumVal));
   TwAddVarCB(Bar,"Method",MethodType,methodChangeSet,methodChangeGet,&SSMethod,"help='Cange shadow method'");
 
-  shadowMask=new ge::gl::TextureObject(GL_TEXTURE_2D,GL_R32F,1,
-      simData->getIVec2("window.size",glm::ivec2(1024)).x,
-      simData->getIVec2("window.size",glm::ivec2(1024)).y);
-
+  /*
   simData->insertVariable("emptyVAO"                            ,new simulation::Object(EmptyVAO)          );
   simData->insertVariable("sceneVAO"                            ,new simulation::Object(sceneVAO)          );
   simData->insertVariable("sceneVBO"                            ,new simulation::Object(SceneBuffer)       );
@@ -557,12 +603,16 @@ void init(){
   simData->insertVariable("ndp.drawWarpedCountMap1" ,new simulation::Bool(false));
 
   simData->insertVariable("camera",new simulation::Object(cameraConfiguration->getCamera()));
+  */
 
   ___;
   simpleDraw = new DrawPrimitive(ShaderDir+"app/");
   ___;
-  simpleDraw->setWindowSize(simData->getUVec2("window.size"));
+  //simpleDraw->setWindowSize(simData->getUVec2("window.size"));
+  simpleDraw->setWindowSize(sData->get<unsigned[]>("window.size"));
   ___;
+
+
 
   copyTexInit(ShaderDir);
   //std::cerr<<"konec initu\n";
@@ -579,11 +629,13 @@ void DrawScene(){
   glDepthMask(GL_TRUE);
   glDisable(GL_STENCIL_TEST);
   glColorMask(GL_TRUE,GL_TRUE,GL_TRUE,GL_TRUE);
-  sceneVAO->bind();
+  sData->get<ge::gl::VertexArrayObject>("sceneVAO").bind();
+  //sceneVAO->bind();
   sceneMaterial->bindBase(GL_SHADER_STORAGE_BUFFER,0);
   sceneDIBO->bind(GL_DRAW_INDIRECT_BUFFER);
   glMultiDrawArraysIndirect(GL_TRIANGLES,NULL,sceneDIBOSize,sizeof(unsigned)*4);
-  sceneVAO->unbind();
+  sData->get<ge::gl::VertexArrayObject>("sceneVAO").unbind();
+  //sceneVAO->unbind();
   if(Window->isKeyOn('f'))glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
 }
 
@@ -603,23 +655,23 @@ void DrawGBuffer(){
   glDispatchCompute(ge::core::getDispatchSize(sceneDIBOSize,FRUSTUMCULLING_WORKGROUP_SIZE_X),1,1);
   glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
-  deferred->activate();
-  deferred->setTextures();
-  deferred->createProgram->use();
-  ShaderSetMatrix(deferred->createProgram);
+  sData->get<Deferred>("gbuffer").activate();
+  sData->get<Deferred>("gbuffer").setTextures();
+  sData->get<Deferred>("gbuffer").createProgram->use();
+  ShaderSetMatrix(sData->get<Deferred>("gbuffer").createProgram);
   DrawScene();
-  deferred->deactivate();
+  sData->get<Deferred>("gbuffer").deactivate();
 }
 
 void DrawAmbient(){
-  deferred->setTextures();
+  sData->get<Deferred>("gbuffer").setTextures();
 
   DrawShader->use();
 
   DrawShader->set("La",.3f,.3f,.3f);
   DrawShader->set("Ld",.0f,.0f,.0f);
   DrawShader->set("Ls",.0f,.0f,.0f);
-  DrawShader->set("CameraPosition",-Pos[0],-Pos[1],-Pos[2]);
+  DrawShader->set("CameraPosition",1,glm::value_ptr(sData->get<ge::util::CameraObject>("camera").getPosition()));
   DrawShader->set("SSAO",SSAOEnable);
   DrawShader->set("useShadows",false);
 
@@ -629,7 +681,8 @@ void DrawAmbient(){
 }
 
 void setGLForStencil(bool zfail){
-  deferred->activateCreateStencil();
+
+  sData->get<Deferred>("gbuffer").activateCreateStencil();
   glEnable(GL_STENCIL_TEST);
   glStencilFunc(GL_ALWAYS,0,0);
   if(zfail){
@@ -694,9 +747,11 @@ void InitModel(const char* File){
     std::cerr<<"SCENE ERROR: "<<File<<std::endl;
     exit(1);
   }
-
+  ___;
   model=new ModelPN(SceneModel);
-  ModelPN2VAO(&sceneVAO,&SceneBuffer,model)();
+  ___;
+  ModelPN2VAO(*sData->getVariable("sceneVAO"),*sData->getVariable("sceneVBO"),model)();
+  ___;
   Model2AABB(&sceneAABBData,model)();
   Model2DIBO(&sceneDIBO,model)();
 
@@ -736,14 +791,16 @@ void InitModel(const char* File){
       "");
 
   aiReleaseImport(SceneModel);
+  auto start=SDL_GetTicks();
   fastAdjacency = new Adjacency(model->getPositions(),model->getNofVertices()/3,2);
+  auto end=SDL_GetTicks();
+  std::cout<<(end-start)<<" ms"<<std::endl;
 }
 
 void destroy(){
-  delete deferred;
   delete programPipeline;
   delete CameraMation;
   delete DrawShader;
-  delete SceneBuffer;
+  //delete SceneBuffer;
   delete model;
 }

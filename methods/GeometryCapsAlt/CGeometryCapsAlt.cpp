@@ -33,10 +33,10 @@ CGeometryCapsAlt::CGeometryCapsAlt(
   this->VBO->unbind(GL_ARRAY_BUFFER);
 }
 
-void CGeometryCapsAlt::DrawCaps(float*mvp,simulation::Light*Light){
+void CGeometryCapsAlt::DrawCaps(float*mvp,float*Light){
   this->Program->use();
   this->Program->set("mvp",1,GL_FALSE,(const float*)mvp);
-  this->Program->set("LightPosition",1,glm::value_ptr(Light->position));
+  this->Program->set("LightPosition",1,Light);
   this->VAO->bind();
   glDrawArrays(GL_TRIANGLES,0,this->_nofTriangles*3);
 }

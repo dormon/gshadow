@@ -1,5 +1,7 @@
 #include"CVertexSides.hpp"
 
+#if 0
+
 CVertexSides::CVertexSides(SAdjecency*Adjacency){
   this->Adjacency=Adjacency;
 
@@ -99,4 +101,4 @@ void CVertexSides::DrawSides(float*mvp,simulation::Light*Light){
   this->VAO->unbind();
 }
 
-
+#endif

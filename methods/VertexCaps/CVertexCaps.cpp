@@ -1,5 +1,7 @@
 #include"CVertexCaps.hpp"
 
+#if 0
+
 CVertexCaps::CVertexCaps(SAdjecency*Adjacency){
   this->Adjacency=Adjacency;
 
@@ -74,4 +76,4 @@ void CVertexCaps::DrawCaps(float*mvp,simulation::Light*Light){
   this->VAO->unbind();
 }
 
-
+#endif
