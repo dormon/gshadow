@@ -59,6 +59,7 @@
 
 
 #include"../methods/ComputeGeometry/ComputeGeometry.h"
+#include"../methods/DormonShadowTest0/dormonShadowTest0.h"
 #include"../methods/RTW/RTW.h"
 
 #include"copyTex.h"

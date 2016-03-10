@@ -1,0 +1,163 @@
+#version 450 core
+
+#ifndef MAX_MULTIPLICITY
+#define MAX_MULTIPLICITY 4
+#endif//MAX_MULTIPLICITY
+
+layout(local_size_x=8,local_size_y=8)in;
+
+layout(std430 ,binding=0)buffer Edges{vec4 edges[];};
+layout(rgba32f,binding=0)uniform image2D  viewSamples;
+layout(r32i   ,binding=1)uniform iimage2D contour;
+
+uniform vec4 lightPosition;
+uniform uint numEdges = 0;
+uniform mat4 mvp;
+uniform uvec2 windowSize=uvec2(1024u,1024u);
+
+#define GID gl_GlobalInvocationID.xy
+
+int greaterVec(vec3 a,vec3 b){
+  return int(dot(ivec3(sign(a-b)),ivec3(4,2,1)));
+}
+
+int computeMult(vec3 A,vec3 B,vec3 C,vec4 L){
+  vec3 n=cross(C-A,L.xyz-A*L.w);
+  return int(sign(dot(n,B-A)));
+}
+
+//2D example
+//
+//P.xy,Q.xy view-samples
+//R.xy ray from one point of edge
+//Oi.xy other rays from other points of edges
+//Mi multiplicity of edge R-Oi
+//
+//v = Q-P
+//n = (-v.y,v.x)
+//rv = n*R-n*Q
+//oiv = n*Oi-n*Q
+//sum( sign(rv)!=sign(oiv)*Mi )
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+
+
+//L=(L.xyz,L.w)
+//A=(A.xyz,1)
+//B=(B.xyz,1)
+//C=(A.xyz*L.w-L.xyz,0)
+//D=(B.xyz*L.w-L.xyz,0)
+//
+//P=(P.xyz,1)
+//Q=(Q.xyz,1)
+//
+//X(s) = P + s*(Q-P)
+//
+//M(t) = A + t*(B-A)
+//N(t) = C + t*(D-C)
+//X(t,l) = M(t) + l*(N(t)-M(t))
+//X(t,l) = A + t*(B-A) + l*(C+t*(D-C)-A-t*(B-A))
+//X(t,l) = A + t*(B-A) + l*(C-A) + t*l*((D-C)-(B-A))
+//X(t,l) = A + t*(B-A) + l*(C-A)
+//X(t,l) = A + t*(B-A) + l*(-L.xyz,-1)
+//
+//X(s).xyz/X(s).w = X(t,l).xyz/X(t,l).w
+//X(s).xyz/1 = X(t,l).xyz/(1-l)
+//P + s*(Q-P) =( A + t*(B-A) + l*(-L.xyz,-1) ) / (1-l)
+//P*(1-l) + s*(1-l)*(Q-P) = A + t*(B-A) + l*(-L)
+//(P-A)
+//(P-A) = t*(B-A) + l*(-L.xyz,-1) + s*(P-Q)
+//a = t*b + l*c + s*d
+//
+
+bool colision(vec4 P,vec4 Q,vec4 A,vec4 B,vec4 L){
+  vec3 x=L.xyz-A.xyz;
+  vec3 y=B.xyz-A.xyz;
+  vec3 n=cross(x,y);
+  float s=dot(n,A.xyz-P.xyz)/dot(n,Q.xyz-P.xyz);
+  if(s<0||s>1)return false;
+  vec3 X=P.xyz+s*(Q.xyz-P.xyz);
+  vec3 a=A.xyz-L.xyz;
+  vec3 b=B.xyz-L.xyz;
+  vec3 c=B.xyz-A.xyz;
+  vec3 na=cross(cross(a,b),a);
+  vec3 nb=cross(b,cross(a,b));
+  vec3 nc=cross(c,cross(a,b));
+  return dot(na,X)-dot(na,A.xyz)>0 && dot(nb,X)-dot(nb,B.xyz)>0 && dot(nc,X)-dot(nc,A.xyz)>0;
+/*
+  vec3 a = (P-A).xyz;
+  vec3 b = (B-A).xyz;
+  vec3 c = -L.xyz;
+  vec3 d = (P-Q).xyz;
+  float det  = determinant(mat3(b,c,d));
+  float dets = determinant(mat3(b,c,a));
+  float detl = determinant(mat3(b,a,d));
+  float dett = determinant(mat3(a,c,d));
+  float s=dets/det;
+  float l=detl/det;
+  float t=dett/det;
+  return s>=0. && s<=1.;// && l>=0. && l<=1. && t>=0. && t<=0.;
+  */
+}
+
+void main(){
+  if(any(greaterThanEqual(GID,windowSize)))return;
+  vec4 p;
+  vec4 q;
+  if(ivec2(GID).x>0){
+    p=vec4(imageLoad(viewSamples,ivec2(GID)-ivec2(1,0)).xyz,1);
+    q=vec4(imageLoad(viewSamples,ivec2(GID)-ivec2(0,0)).xyz,1);
+  }else{
+    p=vec4(0,0,0,1);//TODO
+    q=vec4(imageLoad(viewSamples,ivec2(GID)).xyz,1);
+  }
+  
+  int sumMultiplicity=0;
+  for(uint e=0;e<numEdges;++e){
+    vec4 P[4];
+    uint gid=e*(2+MAX_MULTIPLICITY);
+
+    P[0]=edges[gid+0];
+    P[1]=edges[gid+1];
+    P[2]=vec4(P[0].xyz*lightPosition.w-lightPosition.xyz,0);
+    P[3]=vec4(P[1].xyz*lightPosition.w-lightPosition.xyz,0);
+
+    if(!colision(p,q,vec4(P[0].xyz,1),vec4(P[1].xyz,1),vec4(lightPosition.xyz,1)))continue;
+//    if(!colision(p,q,vec4(P[0].xyz,1),vec4(P[1].xyz,1),vec4(lightPosition.xyz,1)))continue;
+//    sumMultiplicity+=1;
+
+    int Num=int(P[0].w)+2;
+    P[0].w=1;
+    precise int multiplicity=0;
+    if(Num>20)Num=0;
+    if(Num<0)Num=0;
+
+    for(int i=2;i<Num;++i){
+#define T0 P[0].xyz
+#define T1 P[1].xyz
+#define T2 edges[gid+i].xyz
+      if(greaterVec(T0,T2)>0){//T[2] T[0] T[1]?
+        multiplicity+=computeMult(T2,T0,T1,lightPosition);
+      }else{
+        if(greaterVec(T1,T2)>0){//T[0] T[2] T[1]?
+          multiplicity-=computeMult(T0,T2,T1,lightPosition);
+        }else{//T[0] T[1] T[2]?
+          multiplicity+=computeMult(T0,T1,T2,lightPosition);
+        }
+      }
+    }
+    sumMultiplicity+=multiplicity;
+  }
+  //TODO atomicStore
+  imageStore(contour,ivec2(GID),ivec4(sumMultiplicity));
+}

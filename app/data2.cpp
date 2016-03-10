@@ -1,7 +1,7 @@
 #include"data2.h"
 
 using namespace lang2;
-
+/*
 TypeManager::TypeManager(){
   
 }
@@ -65,17 +65,17 @@ unsigned TypeManager::getNofFceArgs(TypeID id){
 TypeManager::TypeID TypeManager::getFceArgTypeId(TypeID id,unsigned element){
   return this->getTypeDescriptionElem(id,3+element);
 }
-
+*/
 /*
 unsigned TypeManager::getStructElementType(unsigned typeId,unsigned element){
 
 }*/
-
+/*
 unsigned TypeManager::addType(std::vector<unsigned>&type,std::string name){
   for(unsigned t=0;t<this->_typeStart.size();++t){
     this->_types[this->_typeStart[t]];
   }
   return 0;
 }
-
+*/
 

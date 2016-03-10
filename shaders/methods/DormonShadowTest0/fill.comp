@@ -1,0 +1,17 @@
+#version 450 core
+
+layout(local_size_x=64)in;
+layout(r32i,binding=0)uniform iimage2D contour;
+layout(r32f,binding=1)uniform image2D  shadowMask;
+
+uniform uvec2 windowSize=uvec2(1024u,1024u);
+
+void main(){
+  if(gl_GlobalInvocationID.x>=windowSize.y)return;
+  int counter=0;
+  uint y=gl_GlobalInvocationID.x;
+  for(uint x=0;x<windowSize.x;++x){
+    counter=imageLoad(contour,ivec2(x,y)).x;
+    imageStore(shadowMask,ivec2(x,y),vec4(counter==0));
+  }
+}

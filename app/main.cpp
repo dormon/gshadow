@@ -97,6 +97,7 @@ bool SSAOEnable       = false;
 bool SSMeasureGbuffer = true;
 enum ESSMethod{
   SS_COMPUTE,
+  SS_DORMONSHADOWTEST0,
   SS_SHADOWMAP,
   SS_DUALPARABOLOID,
   SS_CUBESHADOWMAP,
@@ -426,6 +427,7 @@ void methodChangeSet(const void*A,void*D){
       case SS_NAVYDUALPARABOLOID:shadowMethod = std::make_shared<NavyDualParaboloid>(simData);break;
       case SS_RTW               :shadowMethod = std::make_shared<RTWBack           >(simData);break;
       case SS_COMPUTE           :shadowMethod = std::make_shared<ComputeGeometry   >(sData  );break;
+      case SS_DORMONSHADOWTEST0 :shadowMethod = std::make_shared<DormonShadowTest0 >(sData  );break;
       case SS_RAYTRACE          :shadowMethod = std::make_shared<RayTrace          >(simData);break;
       default                   :shadowMethod = nullptr                                      ;break;
     }
@@ -442,6 +444,7 @@ void init(){
   glewExperimental=GL_TRUE;
   glewInit();
 
+  ge::gl::init();
   try{
     ge::gl::initShadersAndPrograms();
   }catch(std::string&e){
@@ -508,8 +511,8 @@ void init(){
 
   cameraConfiguration = new objconf::CameraConfiguration(
       glm::uvec2(
-        sData->get<unsigned[]>("window.size")[0],
-        sData->get<unsigned[]>("window.size")[1]));
+        sData->get<unsigned[2]>("window.size")[0],
+        sData->get<unsigned[2]>("window.size")[1]));
   cameraPathConfiguration = new objconf::CameraPathConfiguration();
   cameraPathConfiguration->setCamera(cameraConfiguration->getCamera());
   lightConfiguration = new objconf::LightConfiguration();
@@ -522,6 +525,7 @@ void init(){
 
   TwEnumVal MethodDef[]={
     {SS_COMPUTE           ,"compute"                            },
+    {SS_DORMONSHADOWTEST0 ,"dormonShadowTest0"                  },
     {SS_SHADOWMAP         ,"shadowmapping"                      },
     {SS_DUALPARABOLOID    ,"dualParaboloid"                     },
     {SS_CUBESHADOWMAP     ,"cubeShadowMapping"                  },

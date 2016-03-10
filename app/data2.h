@@ -7,6 +7,7 @@
 #include<typeinfo>
 
 namespace lang2{
+  /*
   class TypeManager{
     public:
       DEF_ENUM(Type,VOID,INT,UINT,FLOAT,STRING,ARRAY,STRUCT,PTR,FCE,TYPEID);
@@ -42,4 +43,5 @@ namespace lang2{
       unsigned addType(std::vector<unsigned>&type,std::string name="");
       //unsigned getType(std::string name);
   };
+  */
 }

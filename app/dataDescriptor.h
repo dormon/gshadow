@@ -7,6 +7,7 @@
 #include<typeinfo>
 
 namespace lang{
+  /*
   class ExpressionDescriptor{
     public:
       DEF_ENUM(Type,ADD,SUB,MUL,DIV,MOD);
@@ -167,4 +168,5 @@ namespace lang{
       Data*       allocate(unsigned id);
       Data*       allocate(std::string name);
   };
+  */
 }

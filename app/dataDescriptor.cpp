@@ -1,5 +1,5 @@
 #include"dataDescriptor.h"
-
+/*
 using namespace lang;
 
 DataT::DataT(Type type){ 
@@ -230,4 +230,4 @@ Data*TypeManager::allocate(unsigned id){
 
 Data*TypeManager::allocate(std::string name){
   return this->allocate(this->_name2Id[name]);
-}
+}*/
