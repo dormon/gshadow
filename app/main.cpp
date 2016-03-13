@@ -505,6 +505,7 @@ void init(){
 
   sDataManipulator = std::make_shared<NamespaceManipulator>(sData);
 
+
   std::cerr<<"NumTriangles: "   <<fastAdjacency->getNofTriangles   ()<<std::endl;
   std::cerr<<"NumEdges: "       <<fastAdjacency->getNofEdges       ()<<std::endl;
   std::cerr<<"MaxMultiplicity: "<<fastAdjacency->getMaxMultiplicity()<<std::endl;

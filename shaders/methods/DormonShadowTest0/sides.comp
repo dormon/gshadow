@@ -80,7 +80,34 @@ int computeMult(vec3 A,vec3 B,vec3 C,vec4 L){
 //a = t*b + l*c + s*d
 //
 
+int collision2(vec3 P,vec3 Q,vec3 A,vec3 B,vec3 L){
+  bool swappedPQ;
+  if(greaterVec(P,Q)>0){
+    vec3 z=P;
+    P=Q;
+    Q=z;
+    swappedPQ=true;
+  }
+  vec4 pq,ab;
+  pq.xyz = cross(Q-P,L-P);
+  pq.w = - dot(pq.xyz,P);
+  ab.xyz = cross(B-A,L-A);
+  ab.w = - dot(ab.xyz,A);
+  float pqa=sign(dot(pq,vec4(A.xyz,1)));
+  float pqb=sign(dot(pq,vec4(B.xyz,1)));
+  float abp=sign(dot(ab,vec4(P.xyz,1)));
+  float abq=sign(dot(ab,vec4(Q.xyz,1)));
+
+
+  int col = int(pqa != pqb && abp != abq && pqb != 0 && abq != 0);
+  int val = int(sign(abp-abq)*(1-2*float(swappedPQ)));
+  return col*val;
+}
+
 bool colision(vec4 P,vec4 Q,vec4 A,vec4 B,vec4 L){
+//  return sign(dot(pq,vec4(A.xyz,1)))!=sign(dot(pq,vec4(B.xyz,1))) && sign(dot(ab,vec4(P.xyz,1)))!=sign(dot(ab,vec4(Q.xyz,1)));
+
+
   vec3 x=L.xyz-A.xyz;
   vec3 y=B.xyz-A.xyz;
   vec3 n=cross(x,y);
@@ -118,7 +145,7 @@ void main(){
     p=vec4(imageLoad(viewSamples,ivec2(GID)-ivec2(1,0)).xyz,1);
     q=vec4(imageLoad(viewSamples,ivec2(GID)-ivec2(0,0)).xyz,1);
   }else{
-    p=vec4(0,0,0,1);//TODO
+    p=vec4(lightPosition.xyz,1);
     q=vec4(imageLoad(viewSamples,ivec2(GID)).xyz,1);
   }
   
@@ -132,7 +159,9 @@ void main(){
     P[2]=vec4(P[0].xyz*lightPosition.w-lightPosition.xyz,0);
     P[3]=vec4(P[1].xyz*lightPosition.w-lightPosition.xyz,0);
 
-    if(!colision(p,q,vec4(P[0].xyz,1),vec4(P[1].xyz,1),vec4(lightPosition.xyz,1)))continue;
+//    if(!colision(p,q,vec4(P[0].xyz,1),vec4(P[1].xyz,1),vec4(lightPosition.xyz,1)))continue;
+    int col = collision2(p.xyz,q.xyz,P[0].xyz,P[1].xyz,lightPosition.xyz);
+    if(0==col)continue;
 //    if(!colision(p,q,vec4(P[0].xyz,1),vec4(P[1].xyz,1),vec4(lightPosition.xyz,1)))continue;
 //    sumMultiplicity+=1;
 
@@ -156,7 +185,7 @@ void main(){
         }
       }
     }
-    sumMultiplicity+=multiplicity;
+    sumMultiplicity+=multiplicity*col;
   }
   //TODO atomicStore
   imageStore(contour,ivec2(GID),ivec4(sumMultiplicity));

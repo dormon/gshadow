@@ -222,7 +222,9 @@ void DormonShadowTest0::updateProgram(){
 }
 
 void DormonShadowTest0::createShadowMask(){
-  
+  //glFinish();
+  //glMemoryBarrier(GL_ALL_BARRIER_BITS);
+  glMemoryBarrier(GL_FRAMEBUFFER_BARRIER_BIT);
   glm::mat4 mvp=this->_sData->get<ge::util::CameraObject>("camera").getProjection()*this->_sData->get<ge::util::CameraObject>("camera").getView();
   this->_sidesProgram->use();
   //this->_sidesProgram->bindImage("viewSamples",this->_sData->get<Deferred>("gbuffer").position);
@@ -240,21 +242,23 @@ void DormonShadowTest0::createShadowMask(){
       ge::core::getDispatchSize(this->_sData->get<unsigned[2]>("window.size")[1],8),
       1);
 
+  //glFinish();
   glClearTexImage(this->_sData->get<ge::gl::TextureObject>("shadowMask").getId(),0,GL_RED,GL_FLOAT,NULL);
-  glFinish();
+  //glFinish();
   this->_fillProgram->use();
   //this->_fillProgram->bindImage("contour",this->_contour);
   //this->_fillProgram->bindImage("shadowMask",&this->_sData->get<ge::gl::TextureObject>("shadowMask"));
   this->_contour->bindImage(0,0);
   this->_sData->get<ge::gl::TextureObject>("shadowMask").bindImage(1,0);
   this->_fillProgram->set("windowSize",1,this->_sData->get<unsigned[2]>("window.size"));
+  this->_fillProgram->set("fill",this->_sData->get<bool>("dormonShadowTest0.program.FILL.fill"));
 
   glDispatchCompute(
       ge::core::getDispatchSize(this->_sData->get<unsigned[2]>("window.size")[1],64),
       1,
       1);
 
-  glFinish();
+  //glFinish();
 
   /*
   glm::mat4 mvp=this->_sData->get<ge::util::CameraObject>("camera").getProjection()*this->_sData->get<ge::util::CameraObject>("camera").getView();
