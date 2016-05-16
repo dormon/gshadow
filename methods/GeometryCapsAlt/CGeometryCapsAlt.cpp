@@ -5,8 +5,8 @@
 CGeometryCapsAlt::CGeometryCapsAlt(
     Adjacency*ad){
   this->VAO=new ge::gl::VertexArrayObject();
-
   this->_nofTriangles=ad->getNofTriangles();
+  std::cout<<this->_nofTriangles<<std::endl;
   this->VBO=new ge::gl::BufferObject(
       sizeof(float)*4*3*this->_nofTriangles,
       NULL,GL_STATIC_DRAW);
@@ -23,7 +23,6 @@ CGeometryCapsAlt::CGeometryCapsAlt(
       ShaderDir+"methods/GeometryCapsAlt/geometrycaps.vp",
       ShaderDir+"methods/GeometryCapsAlt/geometrycaps.gp",
       ShaderDir+"methods/GeometryCapsAlt/geometrycaps.fp");
-
   this->VAO->bind();
   this->VBO->bind(GL_ARRAY_BUFFER);
   glEnableVertexAttribArray(0);

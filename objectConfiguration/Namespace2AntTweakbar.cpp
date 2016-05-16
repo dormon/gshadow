@@ -1,4 +1,5 @@
 #include"Namespace2AntTweakbar.h"
+#include<geCore/Accessor.h>
 
 NamespaceManipulator::NamespaceManipulator(std::shared_ptr<ge::util::sim::NamespaceWithUsers> const&ns){
   this->_bar = TwNewBar("*");

@@ -38,19 +38,6 @@ int computeMult(vec3 A,vec3 B,vec3 C,vec4 L){
 //rv = n*R-n*Q
 //oiv = n*Oi-n*Q
 //sum( sign(rv)!=sign(oiv)*Mi )
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-
 
 //L=(L.xyz,L.w)
 //A=(A.xyz,1)
@@ -80,14 +67,15 @@ int computeMult(vec3 A,vec3 B,vec3 C,vec4 L){
 //a = t*b + l*c + s*d
 //
 
+uniform bool noif = false;
+
 int collision2(vec3 P,vec3 Q,vec3 A,vec3 B,vec3 L){
   bool swappedPQ;
-  if(greaterVec(P,Q)>0){
-    vec3 z=P;
-    P=Q;
-    Q=z;
-    swappedPQ=true;
-  }
+  swappedPQ = greaterVec(P,Q)>0;
+  vec3 pp=P*float(!swappedPQ)+Q*float(swappedPQ);
+  vec3 qq=Q*float(!swappedPQ)+P*float(swappedPQ);
+  P=pp;
+  Q=qq;
   vec4 pq,ab;
   pq.xyz = cross(Q-P,L-P);
   pq.w = - dot(pq.xyz,P);
@@ -98,57 +86,61 @@ int collision2(vec3 P,vec3 Q,vec3 A,vec3 B,vec3 L){
   float abp=sign(dot(ab,vec4(P.xyz,1)));
   float abq=sign(dot(ab,vec4(Q.xyz,1)));
 
+  vec4 abpq;
+  abpq.xyz = cross(Q-P,B-A);
+  abpq.w = - dot(abpq.xyz,A);
+
+  float abpqp=dot(abpq,vec4(P,1))*(1-2*float(swappedPQ));
+  //abpqp = 32;
+  
+
+  
+
+  int col = int(pqa != pqb && abp != abq && pqb != 0 && abq != 0);// && abpqp>=0);
+  int val = int(sign(abp-abq)*(1-2*float(swappedPQ)));
+  return col*val;
+}
+
+/*
+int collision3(bool swappedPQ,vec3 P,vec3 Q,vec4 pq,vec3 A,vec3 B,vec3 L){
+  vec4 ab;
+  ab.xyz = cross(B-A,L-A);
+  ab.w = - dot(ab.xyz,A);
+  float pqa=sign(dot(pq,vec4(A.xyz,1)));
+  float pqb=sign(dot(pq,vec4(B.xyz,1)));
+  float abp=sign(dot(ab,vec4(P.xyz,1)));
+  float abq=sign(dot(ab,vec4(Q.xyz,1)));
 
   int col = int(pqa != pqb && abp != abq && pqb != 0 && abq != 0);
   int val = int(sign(abp-abq)*(1-2*float(swappedPQ)));
   return col*val;
 }
-
-bool colision(vec4 P,vec4 Q,vec4 A,vec4 B,vec4 L){
-//  return sign(dot(pq,vec4(A.xyz,1)))!=sign(dot(pq,vec4(B.xyz,1))) && sign(dot(ab,vec4(P.xyz,1)))!=sign(dot(ab,vec4(Q.xyz,1)));
-
-
-  vec3 x=L.xyz-A.xyz;
-  vec3 y=B.xyz-A.xyz;
-  vec3 n=cross(x,y);
-  float s=dot(n,A.xyz-P.xyz)/dot(n,Q.xyz-P.xyz);
-  if(s<0||s>1)return false;
-  vec3 X=P.xyz+s*(Q.xyz-P.xyz);
-  vec3 a=A.xyz-L.xyz;
-  vec3 b=B.xyz-L.xyz;
-  vec3 c=B.xyz-A.xyz;
-  vec3 na=cross(cross(a,b),a);
-  vec3 nb=cross(b,cross(a,b));
-  vec3 nc=cross(c,cross(a,b));
-  return dot(na,X)-dot(na,A.xyz)>0 && dot(nb,X)-dot(nb,B.xyz)>0 && dot(nc,X)-dot(nc,A.xyz)>0;
-/*
-  vec3 a = (P-A).xyz;
-  vec3 b = (B-A).xyz;
-  vec3 c = -L.xyz;
-  vec3 d = (P-Q).xyz;
-  float det  = determinant(mat3(b,c,d));
-  float dets = determinant(mat3(b,c,a));
-  float detl = determinant(mat3(b,a,d));
-  float dett = determinant(mat3(a,c,d));
-  float s=dets/det;
-  float l=detl/det;
-  float t=dett/det;
-  return s>=0. && s<=1.;// && l>=0. && l<=1. && t>=0. && t<=0.;
-  */
-}
+*/
 
 void main(){
   if(any(greaterThanEqual(GID,windowSize)))return;
-  vec4 p;
-  vec4 q;
+  vec3 p;
+  vec3 q;
   if(ivec2(GID).x>0){
-    p=vec4(imageLoad(viewSamples,ivec2(GID)-ivec2(1,0)).xyz,1);
-    q=vec4(imageLoad(viewSamples,ivec2(GID)-ivec2(0,0)).xyz,1);
+    p=imageLoad(viewSamples,ivec2(GID)-ivec2(1,0)).xyz;
+    q=imageLoad(viewSamples,ivec2(GID)-ivec2(0,0)).xyz;
   }else{
-    p=vec4(lightPosition.xyz,1);
-    q=vec4(imageLoad(viewSamples,ivec2(GID)).xyz,1);
+    p=lightPosition.xyz;
+    q=imageLoad(viewSamples,ivec2(GID)).xyz;
   }
-  
+ 
+/*
+  bool swappedPQ;
+  swappedPQ = greaterVec(p,q)>0;
+  vec3 pp=p*float(!swappedPQ)+q*float(swappedPQ);
+  vec3 qq=q*float(!swappedPQ)+p*float(swappedPQ);
+  p=pp;
+  q=qq;
+  vec4 pq;
+  pq.xyz = cross(q-p,lightPosition.xyz-p);
+  pq.w = - dot(pq.xyz,p);
+*/
+
   int sumMultiplicity=0;
   for(uint e=0;e<numEdges;++e){
     vec4 P[4];
@@ -159,11 +151,9 @@ void main(){
     P[2]=vec4(P[0].xyz*lightPosition.w-lightPosition.xyz,0);
     P[3]=vec4(P[1].xyz*lightPosition.w-lightPosition.xyz,0);
 
-//    if(!colision(p,q,vec4(P[0].xyz,1),vec4(P[1].xyz,1),vec4(lightPosition.xyz,1)))continue;
     int col = collision2(p.xyz,q.xyz,P[0].xyz,P[1].xyz,lightPosition.xyz);
+    //int col = collision3(swappedPQ,p,q,pq,P[0].xyz,P[1].xyz,lightPosition.xyz);
     if(0==col)continue;
-//    if(!colision(p,q,vec4(P[0].xyz,1),vec4(P[1].xyz,1),vec4(lightPosition.xyz,1)))continue;
-//    sumMultiplicity+=1;
 
     int Num=int(P[0].w)+2;
     P[0].w=1;

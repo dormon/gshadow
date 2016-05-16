@@ -16,8 +16,9 @@ class DormonShadowTest0: public ge::util::sim::User, public ShadowMethod
     std::shared_ptr<ge::gl::ProgramObject>_sidesProgram = nullptr;
     std::shared_ptr<ge::gl::ProgramObject>_capsProgram  = nullptr;
     std::shared_ptr<ge::gl::ProgramObject>_fillProgram  = nullptr;
-    ge::gl::BufferObject* _edges   = nullptr;
-    ge::gl::TextureObject*_contour = nullptr;
+    //ge::gl::BufferObject* _edges   = nullptr;
+    std::shared_ptr<ge::gl::BufferObject> _edges   = nullptr;
+    std::shared_ptr<ge::gl::TextureObject>_contour = nullptr;
     CComputeSides*             _sides    = nullptr;
     CGeometryCapsAlt*          _caps     = nullptr;
     std::shared_ptr<ge::gl::FramebufferObject> _maskFBO  = nullptr;

@@ -10,6 +10,7 @@ ModelPN::ModelPN(){
 }
 
 ModelPN::ModelPN(const aiScene*sceneModelPN){
+  std::cout<<"ModelPN::ModelPN()"<<std::endl;
   if(!sceneModelPN){
     std::cerr<<"error while loading opened assimp file"<<std::endl;
     return;
@@ -53,6 +54,8 @@ ModelPN::ModelPN(const aiScene*sceneModelPN){
 ModelPN::~ModelPN(){
   delete[]this->_positions;
   delete[]this->_normals  ;
+  this->_positions = nullptr;
+  this->_normals = nullptr;
 }
 
 const float*ModelPN::getPositions(){

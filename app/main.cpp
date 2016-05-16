@@ -148,7 +148,7 @@ int main(int Argc,char*Argv[]){
   //for(unsigned i=0;i<argLoader->getNumVariables();++i)
   //  simData->insertVariable(argLoader->getVariable(i),argLoader->getData(i));
 
-  //ModelFile = "models/o/o.3ds";
+  ModelFile = "models/o/o.3ds";
   //ModelFile = "models/bagr/bagr.obj";
   //ModelFile = "models/bugbagr/bugbagr.obj";
   //ModelFile = "models/bunny/bunny.obj";
@@ -165,7 +165,7 @@ int main(int Argc,char*Argv[]){
   //ModelFile = "/media/data/models/lost_empire/lost_empire.obj";
   //ModelFile = "/home/dormon/Desktop/hairball.obj";
   //ModelFile = "models/o/o.3ds";
-  ModelFile = "models/2quads/2quads.obj";
+  //ModelFile = "models/2quads/2quads.obj";
   //ModelFile = "models/2_3quads/2_3quads.obj";
   //ModelFile = "/media/old/home/dormon/Plocha/sponza/sponza.obj";
 
@@ -252,6 +252,7 @@ void setConfig(objconf::ShadowMethodConfig**config,simulation::SimulationObject*
   if((!method) && ( *config)){delete *config;*config = NULL;}
 }
 
+/*
 class ProgramObjectFactor: public ge::core::Function{
   public:
     ProgramObjectFactor():Function(10){}
@@ -260,6 +261,7 @@ class ProgramObjectFactor: public ge::core::Function{
 
     }
 };
+*/
 
 void idle(){
   sData->get<ge::util::CameraObject>("camera").right  ((Window->isKeyDown('d')-Window->isKeyDown('a'))*Speed);
@@ -426,7 +428,7 @@ void methodChangeSet(const void*A,void*D){
       case SS_CUBENAVYMAPPING   :shadowMethod = std::make_shared<CubeNavyMapping   >(simData);break;
       case SS_NAVYDUALPARABOLOID:shadowMethod = std::make_shared<NavyDualParaboloid>(simData);break;
       case SS_RTW               :shadowMethod = std::make_shared<RTWBack           >(simData);break;
-      case SS_COMPUTE           :shadowMethod = std::make_shared<ComputeGeometry   >(sData  );break;
+      case SS_COMPUTE           :shadowMethod = std::make_shared<ComputeGeometry   >(sData  );
       case SS_DORMONSHADOWTEST0 :shadowMethod = std::make_shared<DormonShadowTest0 >(sData  );break;
       case SS_RAYTRACE          :shadowMethod = std::make_shared<RayTrace          >(simData);break;
       default                   :shadowMethod = nullptr                                      ;break;
@@ -486,6 +488,8 @@ void init(){
         sData->get<std::string>("shaderDirectory")));
   InitModel(ModelFile.c_str());
   sData->insert("fastAdjacency",typeRegister->sharedAccessorAddD<Adjacency>("Adjacency",model->getPositions(),model->getNofVertices()/3,2));
+
+  //exit(0);
   sData->insert("computeMethod.program.WORKGROUPSIZE" ,typeRegister->sharedAccessor<int>("i32",64));
   sData->insert("computeMethod.program.CULL_SIDE"     ,typeRegister->sharedAccessor<bool>("bool",true));
   sData->insert("measure.computeGeometry.computeSides",typeRegister->sharedAccessor<simulation::GpuGauge>("GPUGauge",false,true));
@@ -747,7 +751,6 @@ void InitModel(const char* File){
       aiProcess_GenNormals|
       //aiProcess_JoinIdenticalVertices|
       aiProcess_SortByPType);
-
   if(SceneModel==NULL){
     std::cerr<<"SCENE ERROR: "<<File<<std::endl;
     exit(1);

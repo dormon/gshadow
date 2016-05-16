@@ -160,8 +160,10 @@ DormonShadowTest0::DormonShadowTest0(std::shared_ptr<ge::util::sim::NamespaceWit
   this->_fillProgram = std::make_shared<ge::gl::ProgramObject>(
       shaderRoot+"fill.comp");
 
-  AdjacencyToVBO(&this->_edges,&data->get<Adjacency>("fastAdjacency"))();
-  this->_contour = new ge::gl::TextureObject(GL_TEXTURE_2D,GL_R32I,1,data->get<unsigned[2]>("window.size")[0],data->get<unsigned[2]>("window.size")[1]);
+  ge::gl::BufferObject*b;
+  AdjacencyToVBO(&b,&data->get<Adjacency>("fastAdjacency"))();
+  this->_edges=std::shared_ptr<ge::gl::BufferObject>(b);
+  this->_contour = std::make_shared<ge::gl::TextureObject>(GL_TEXTURE_2D,GL_R32I,1,data->get<unsigned[2]>("window.size")[0],data->get<unsigned[2]>("window.size")[1]);
 
 
   //data->registerUser(this,)
@@ -189,9 +191,9 @@ DormonShadowTest0::~DormonShadowTest0(){
   ___;
   this->_fillProgram = nullptr;
   ___;
-  delete this->_edges;
+  this->_edges = nullptr;
   ___;
-  delete this->_contour;
+  this->_contour = nullptr;
   ___;
   //this->_simulationData->unregisterUser(this);
   //data
@@ -231,11 +233,12 @@ void DormonShadowTest0::createShadowMask(){
   //this->_sidesProgram->bindImage("contour"    ,this->_contour);
   this->_sData->get<Deferred>("gbuffer").position->bindImage(0,0);
   this->_contour->bindImage(1,0);
-  this->_sidesProgram->bindSSBO ("edges"      ,this->_edges);
+  this->_sidesProgram->bindSSBO ("edges"      ,&*this->_edges);
   this->_sidesProgram->set("mvp",1,GL_FALSE,glm::value_ptr(mvp));
   this->_sidesProgram->set("numEdges",this->_sData->get<Adjacency>("fastAdjacency").getNofEdges());
   this->_sidesProgram->set("lightPosition",1,this->_sData->get<float[4]>("light.position"));
   this->_sidesProgram->set("windowSize",1,this->_sData->get<unsigned[2]>("window.size"));
+  this->_sidesProgram->set("noif",this->_sData->get<bool>("dormonShadowTest0.program.SIDE.noif"));
   
   glDispatchCompute(
       ge::core::getDispatchSize(this->_sData->get<unsigned[2]>("window.size")[0],8),
@@ -258,48 +261,6 @@ void DormonShadowTest0::createShadowMask(){
       1,
       1);
 
-  //glFinish();
-
-  /*
-  glm::mat4 mvp=this->_sData->get<ge::util::CameraObject>("camera").getProjection()*this->_sData->get<ge::util::CameraObject>("camera").getView();
-  ge::gl::FramebufferObject*fbo=this->_sData->get<Deferred>("gbuffer").fbo;
-
-  this->_sData->get<simulation::GpuGauge>("measure.computeGeometry.computeSides").begin();
-  this->_sides->ComputeSides(glm::value_ptr(mvp),this->_sData->get<float[]>("light.position"));
-  this->_sData->get<simulation::GpuGauge>("measure.computeGeometry.computeSides").end();
-
-  this->_sData->get<simulation::GpuGauge>("measure.computeGeometry.draw").begin();
-  glClearTexImage(this->_sData->get<ge::gl::TextureObject>("shadowMask").getId(),0,GL_RED,GL_FLOAT,NULL);
-  fbo->bind();
-  glEnable(GL_STENCIL_TEST);
-  glClear(GL_STENCIL_BUFFER_BIT);
-  glStencilFunc(GL_ALWAYS,0,0);
-  glStencilOpSeparate(GL_FRONT,GL_KEEP,GL_INCR_WRAP,GL_KEEP);
-  glStencilOpSeparate(GL_BACK ,GL_KEEP,GL_DECR_WRAP,GL_KEEP);
-  glDepthFunc(GL_LESS);
-  glDepthMask(GL_FALSE);
-  glColorMask(GL_FALSE,GL_FALSE,GL_FALSE,GL_FALSE);
-  this->_sides->DrawSides(glm::value_ptr(mvp),this->_sData->get<float[]>("light.position"));
-  this->_caps ->DrawCaps (glm::value_ptr(mvp),this->_sData->get<float[]>("light.position"));
-  fbo->unbind();
-  this->_sData->get<simulation::GpuGauge>("measure.computeGeometry.draw").end();
-
-  this->_sData->get<simulation::GpuGauge>("measure.computeGeometry.blit").begin();
-  if(!this->_maskFBO->check())std::cerr<<"maskFBO neni v poradku"<<std::endl;
-  this->_maskFBO->bind();
-  glStencilOp(GL_KEEP,GL_KEEP,GL_KEEP);
-  glStencilFunc(GL_EQUAL,0,0xff);
-  glColorMask(GL_TRUE,GL_TRUE,GL_TRUE,GL_TRUE);
-  glDepthFunc(GL_ALWAYS);
-  glDepthMask(GL_FALSE);
-  this->_blit->use();
-  this->_emptyVAO->bind();
-  glDrawArrays(GL_POINTS,0,1);
-  this->_emptyVAO->unbind();
-  this->_maskFBO->unbind();
-  glDisable(GL_STENCIL_TEST);
-  this->_sData->get<simulation::GpuGauge>("measure.computeGeometry.blit").end();
-  */
 }
 
 void DormonShadowTest0::createShadowMask(GLuint mask){

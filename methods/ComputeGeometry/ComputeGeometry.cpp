@@ -148,14 +148,20 @@ void ComputeGeometry::update(){
 }
 
 ComputeGeometry::ComputeGeometry(std::shared_ptr<ge::util::sim::NamespaceWithUsers>const&data):User(data){
+  //___;
   //data->registerUser(this,)
   //TODO all variables
   this->_caps    = NULL;
   this->_sides   = NULL;
   this->_maskFBO = NULL;
+  //___;
+
+  //std::cout<<(&data->get<Adjacency>("fastAdjacency"))->getNofTriangles()<<std::endl;
   this->_caps  = new CGeometryCapsAlt(&data->get<Adjacency>("fastAdjacency"));
+  //___;
   this->_sides = new CComputeSides(&data->get<Adjacency>("fastAdjacency"),
       data->get<unsigned>("computeMethod.program.WORKGROUPSIZE"),data->get<bool>("computeMethod.program.CULL_SIDE"));
+  //___;
   this->_maskFBO = new ge::gl::FramebufferObject();
   this->_maskFBO->attachTexture(GL_COLOR_ATTACHMENT0 ,data->get<ge::gl::TextureObject>("shadowMask").getId());
   this->_maskFBO->attachTexture(GL_STENCIL_ATTACHMENT,data->get<Deferred>("gbuffer").depth->getId());
